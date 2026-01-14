@@ -111,23 +111,27 @@ class _HomePageState extends State<HomePage> {
 
                                     builder: (context, constraints) {
 
-                                      final crossAxisCount = constraints.maxWidth > 800 ? 4 : 2;
+                                                            final crossAxisCount = constraints.maxWidth > 800 ? 4 : 2;
 
-                                      return GridView.count(
+                                                            final aspectRatio = constraints.maxWidth > 800 ? 3.5 : 1.8;
 
-                                        shrinkWrap: true,
+                                                            return GridView.count(
 
-                                        physics: const NeverScrollableScrollPhysics(),
+                                                              shrinkWrap: true,
 
-                                        crossAxisCount: crossAxisCount,
+                                                              physics: const NeverScrollableScrollPhysics(),
 
-                                        mainAxisSpacing: 12,
+                                                              crossAxisCount: crossAxisCount,
 
-                                        crossAxisSpacing: 12,
+                                                              mainAxisSpacing: 12,
 
-                                        childAspectRatio: 1.3,
+                                                              crossAxisSpacing: 12,
 
-                                        children: [
+                                                              childAspectRatio: aspectRatio,
+
+                                                              children: [
+
+                                      
 
                                           _buildQuickStatCard(
 

@@ -7,6 +7,9 @@ import 'package:luminara_photobooth/features/settings/settings.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shorebird_code_push/shorebird_code_push.dart';
 
+import 'package:luminara_photobooth/core/preferences/app_state.dart';
+import 'package:provider/provider.dart';
+
 part 'sections/profile_section.dart';
 
 class SettingPage extends StatefulWidget {
@@ -367,6 +370,36 @@ class _SettingPageState extends State<SettingPage> {
                       builder: (context) => const PrinterPage(),
                     ),
                   );
+                },
+              ),
+            ],
+          ),
+          const Divider(thickness: Dimens.dp8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(Dimens.dp16),
+                child: RegularText.semiBold('Tampilan'),
+              ),
+              ItemMenuSetting(
+                title: 'Mode Gelap',
+                icon: Icons.dark_mode,
+                trailing: Switch(
+                  value: context.watch<AppState>().themeMode == ThemeMode.dark,
+                  onChanged: (value) {
+                    context.read<AppState>().setThemeMode(
+                          value ? ThemeMode.dark : ThemeMode.light,
+                        );
+                  },
+                ),
+                onTap: () {
+                  final current = context.read<AppState>().themeMode;
+                  context.read<AppState>().setThemeMode(
+                        current == ThemeMode.light
+                            ? ThemeMode.dark
+                            : ThemeMode.light,
+                      );
                 },
               ),
             ],

@@ -351,7 +351,7 @@ class _SplashScreenState extends State<SplashScreen> {
               HeadingText(
                 'Luminara Photobooth',
                 style: TextStyle(
-                  color: Colors.black,
+                  color: Theme.of(context).textTheme.headlineLarge?.color,
                   fontSize: Dimens.dp32,
                   fontWeight: FontWeight.bold,
                 ),

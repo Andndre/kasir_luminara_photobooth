@@ -35,6 +35,8 @@ class MyApp extends StatelessWidget {
                 debugShowCheckedModeBanner: false,
                 scrollBehavior: AppScrollBehavior(),
                 theme: LightTheme(AppColors.primary).theme,
+                darkTheme: DarkTheme(AppColors.primary).theme,
+                themeMode: appState.themeMode,
                 onGenerateRoute: routes,
                 home: appState.hasMode ? const SplashScreen() : const ModeSelectionPage(),
               ),

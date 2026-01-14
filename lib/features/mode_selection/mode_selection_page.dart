@@ -16,9 +16,13 @@ class ModeSelectionPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 'Select Mode',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.headlineMedium?.color,
+                ),
               ),
               const SizedBox(height: 48),
               _ModeCard(
