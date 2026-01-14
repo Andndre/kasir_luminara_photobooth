@@ -52,6 +52,10 @@ class MainPage extends StatelessWidget {
                   onDestinationSelected: (i) =>
                       context.read<BottomNavBloc>().add(TapBottomNavEvent(i)),
                   labelType: NavigationRailLabelType.all,
+                  indicatorColor: AppColors.primary,
+                  selectedIconTheme: const IconThemeData(color: Colors.white),
+                  unselectedIconTheme:
+                      const IconThemeData(color: AppColors.textDisabled),
                   leading: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Image.asset(MainAssets.logo, width: 40),
@@ -282,10 +286,17 @@ class _NavItem extends StatelessWidget {
               builder: (context, scale, child) {
                 return Transform.scale(
                   scale: scale,
-                  child: Icon(
-                    icon,
-                    color: isActive ? AppColors.primary : AppColors.textDisabled,
-                    size: isActive ? 24 : 22,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isActive ? AppColors.primary : Colors.transparent,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      icon,
+                      color: isActive ? Colors.white : AppColors.textDisabled,
+                      size: isActive ? 20 : 22,
+                    ),
                   ),
                 );
               },

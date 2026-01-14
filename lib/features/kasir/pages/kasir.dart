@@ -4,7 +4,6 @@ import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/model/produk.dart';
 import 'package:luminara_photobooth/model/transaksi.dart';
 import 'package:luminara_photobooth/core/services/server_service.dart';
-import 'package:luminara_photobooth/core/helpers/printer.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
