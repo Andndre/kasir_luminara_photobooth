@@ -61,7 +61,7 @@ class _KasirState extends State<Kasir> {
                           child: Card(
                             elevation: 4,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(Dimens.radius),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(24.0),
@@ -103,7 +103,7 @@ class _KasirState extends State<Kasir> {
                 margin: const EdgeInsets.only(bottom: 12),
                 color: isSelected ? Colors.blue.shade50 : null,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(Dimens.radius),
                   side: BorderSide(
                     color: isSelected ? Colors.blue : Colors.transparent,
                     width: 2,
@@ -193,7 +193,7 @@ class _KasirState extends State<Kasir> {
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Dimens.radius),
               ),
             ),
             child: const Text(

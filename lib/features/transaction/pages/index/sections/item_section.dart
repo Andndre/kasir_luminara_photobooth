@@ -19,6 +19,7 @@ class _ItemSection extends StatelessWidget {
         horizontal: 16,
         vertical: 8,
       ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimens.radius)),
       child: ListTile(
         title: Text(transaksi.customerName ?? 'Pelanggan'),
         subtitle: Column(

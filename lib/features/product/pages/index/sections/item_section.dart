@@ -14,6 +14,7 @@ class _ItemSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimens.radius)),
       child: ListTile(
         title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(formatCurrency(product.price)),

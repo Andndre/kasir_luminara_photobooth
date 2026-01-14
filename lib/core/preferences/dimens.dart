@@ -60,4 +60,7 @@ class Dimens {
   static const dp40 = 40.0;
   static const dp42 = 42.0;
   static const dp50 = 50.0;
+
+  static const double radius = 4.0;
+  static const double radiusMedium = 8.0;
 }

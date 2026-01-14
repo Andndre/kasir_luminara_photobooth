@@ -59,7 +59,7 @@ class LightTheme {
     elevation: 0,
     margin: EdgeInsets.zero,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(Dimens.dp8),
+      borderRadius: BorderRadius.circular(Dimens.radius),
       side: BorderSide(color: borderColor),
     ),
   );
@@ -88,8 +88,9 @@ class LightTheme {
   ElevatedButtonThemeData get elevatedButtonTheme {
     return ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimens.dp8),
+          borderRadius: BorderRadius.circular(Dimens.radius),
         ),
         backgroundColor: primaryColor,
         foregroundColor: scaffoldColor,
@@ -102,7 +103,7 @@ class LightTheme {
     return OutlinedButtonThemeData(
       style: ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimens.dp8),
+          borderRadius: BorderRadius.circular(Dimens.radius),
         ),
         side: BorderSide(color: primaryColor),
         foregroundColor: primaryColor,
@@ -122,23 +123,23 @@ class LightTheme {
         vertical: Dimens.dp12,
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(Dimens.dp8),
+        borderRadius: BorderRadius.circular(Dimens.radius),
         borderSide: BorderSide(color: inputColor),
       ),
       disabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(Dimens.dp8),
+        borderRadius: BorderRadius.circular(Dimens.radius),
         borderSide: BorderSide(color: inputColor),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(Dimens.dp8),
+        borderRadius: BorderRadius.circular(Dimens.radius),
         borderSide: BorderSide(color: primaryColor),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(Dimens.dp8),
+        borderRadius: BorderRadius.circular(Dimens.radius),
         borderSide: BorderSide(color: errorColor),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(Dimens.dp8),
+        borderRadius: BorderRadius.circular(Dimens.radius),
         borderSide: BorderSide(color: errorColor),
       ),
     );

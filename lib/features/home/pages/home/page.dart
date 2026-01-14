@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/data/db.dart';
 import 'package:intl/intl.dart';
 import 'package:luminara_photobooth/features/server/components/server_monitor.dart';
@@ -188,7 +189,7 @@ class _HomePageState extends State<HomePage> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Dimens.radius),
       ),
       child: Row(
         children: [
@@ -244,7 +245,7 @@ class _HomePageState extends State<HomePage> {
       padding: EdgeInsets.all(isLarge ? 20 : 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Dimens.radius),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withValues(alpha: 0.1),
@@ -308,12 +309,12 @@ class _HomePageState extends State<HomePage> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(Dimens.radius),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Dimens.radius),
           boxShadow: [
             BoxShadow(
               color: Colors.grey.withValues(alpha: 0.1),

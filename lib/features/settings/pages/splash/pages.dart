@@ -366,6 +366,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     width: 160,
                     child: LinearProgressIndicator(
                       backgroundColor: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(Dimens.radius),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         AppColors.primary,
                       ),

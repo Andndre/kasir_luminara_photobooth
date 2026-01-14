@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/features/server/blocs/server_bloc.dart';
 import 'package:luminara_photobooth/features/server/blocs/server_state.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -17,7 +18,7 @@ class ServerMonitor extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(Dimens.radius),
             border: Border.all(
               color: isOnline ? Colors.green.shade200 : Colors.red.shade200,
             ),
