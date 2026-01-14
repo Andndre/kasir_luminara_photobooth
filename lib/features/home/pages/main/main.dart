@@ -272,12 +272,13 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(Dimens.radius),
       child: Container(
         constraints: const BoxConstraints(minWidth: 48),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TweenAnimationBuilder<double>(
               tween: Tween(begin: 1.0, end: isActive ? 1.1 : 1.0),
@@ -287,7 +288,7 @@ class _NavItem extends StatelessWidget {
                 return Transform.scale(
                   scale: scale,
                   child: Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: isActive ? AppColors.primary : Colors.transparent,
                       shape: BoxShape.circle,
@@ -295,7 +296,7 @@ class _NavItem extends StatelessWidget {
                     child: Icon(
                       icon,
                       color: isActive ? Colors.white : AppColors.textDisabled,
-                      size: isActive ? 20 : 22,
+                      size: isActive ? 18 : 22,
                     ),
                   ),
                 );
@@ -303,19 +304,16 @@ class _NavItem extends StatelessWidget {
             ),
             AnimatedCrossFade(
               firstChild: const SizedBox.shrink(),
-              secondChild: Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 8,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
+              secondChild: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
               crossFadeState: isActive
                   ? CrossFadeState.showSecond
