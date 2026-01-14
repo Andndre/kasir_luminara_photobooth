@@ -2,7 +2,6 @@
 
 ## 1. Project Overview
 **Project Name:** Luminara Photobooth  
-**Legacy Base:** Kasir Mimba Bali (Fully Transformed)  
 **Architecture:** Dual-Mode (Server/Cashier & Client/Verifier)  
 **Primary Goal:** Local Network (LAN) based management for Photobooth businesses, operating entirely offline.
 

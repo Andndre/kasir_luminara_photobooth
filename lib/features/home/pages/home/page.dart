@@ -5,8 +5,6 @@ import 'package:luminara_photobooth/features/server/components/server_monitor.da
 import 'package:luminara_photobooth/core/constants/app_mode.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:luminara_photobooth/features/server/blocs/server_bloc.dart';
-
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:luminara_photobooth/core/core.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
@@ -44,10 +45,15 @@ class PrivacyPolicyPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Kasir Mimba Bali',
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
-                  ),
+              HeadingText(
+                'Luminara Photobooth',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: Dimens.dp24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
                 ],
               ),
             ),
@@ -136,7 +142,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Dengan menggunakan aplikasi Kasir Ini, Anda menyetujui kebijakan privasi ini.',
+                    'Dengan menggunakan aplikasi Luminara Photobooth, Anda menyetujui kebijakan privasi ini.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
