@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:kasir/core/services/server_service.dart';
+import 'package:luminara_photobooth/core/services/server_service.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'server_state.dart';
 

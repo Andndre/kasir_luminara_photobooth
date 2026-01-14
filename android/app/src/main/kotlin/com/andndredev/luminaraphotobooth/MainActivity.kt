@@ -1,4 +1,4 @@
-package com.andndredev.kasirmimbabali
+package com.andndredev.luminaraphotobooth
 
 import io.flutter.embedding.android.FlutterActivity
 

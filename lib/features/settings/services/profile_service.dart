@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:kasir/features/settings/settings.dart';
+import 'package:luminara_photobooth/features/settings/settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileService {

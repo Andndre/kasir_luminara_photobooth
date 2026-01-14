@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:kasir/core/data/db.dart';
+import 'package:luminara_photobooth/core/data/db.dart';
 import 'package:intl/intl.dart';
-import 'package:kasir/features/server/components/server_monitor.dart';
-import 'package:kasir/core/constants/app_mode.dart';
+import 'package:luminara_photobooth/features/server/components/server_monitor.dart';
+import 'package:luminara_photobooth/core/constants/app_mode.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:luminara_photobooth/features/server/blocs/server_bloc.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

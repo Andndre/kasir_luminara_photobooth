@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:kasir/core/core.dart';
-import 'package:kasir/core/data/db.dart';
-import 'package:kasir/app/app.dart';
+import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/core/data/db.dart';
+import 'package:luminara_photobooth/app/app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

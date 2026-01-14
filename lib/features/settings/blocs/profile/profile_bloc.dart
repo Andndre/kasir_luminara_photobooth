@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:kasir/core/core.dart';
-import 'package:kasir/features/settings/settings.dart';
+import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/features/settings/settings.dart';
 
 part 'profile_event.dart';
 part 'profile_state.dart';

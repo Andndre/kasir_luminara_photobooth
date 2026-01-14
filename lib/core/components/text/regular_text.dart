@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kasir/core/core.dart';
+import 'package:luminara_photobooth/core/core.dart';
 
 class RegularText extends StatelessWidget {
   const RegularText(this.text, {super.key, this.style, this.textAlign});

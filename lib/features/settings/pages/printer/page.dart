@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kasir/core/helpers/printer.dart';
-import 'package:kasir/core/helpers/snackbar_helper.dart';
+import 'package:luminara_photobooth/core/helpers/printer.dart';
+import 'package:luminara_photobooth/core/helpers/snackbar_helper.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 
 class PrinterPage extends StatefulWidget {

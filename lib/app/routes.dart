@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:kasir/core/core.dart';
-import 'package:kasir/features/home/home.dart';
-import 'package:kasir/features/home/pages/pages.dart';
+import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/features/home/home.dart';
+import 'package:luminara_photobooth/features/home/pages/pages.dart';
 
 Route<dynamic> routes(settings) {
   switch (settings.name) {

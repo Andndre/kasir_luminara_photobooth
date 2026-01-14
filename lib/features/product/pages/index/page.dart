@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kasir/core/core.dart';
-import 'package:kasir/model/produk.dart';
+import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/model/produk.dart';
 
 part 'sections/item_section.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kasir/core/core.dart';
+import 'package:luminara_photobooth/core/core.dart';
 
 class RegularTextInput extends StatelessWidget {
   const RegularTextInput({

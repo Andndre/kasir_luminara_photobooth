@@ -1,4 +1,4 @@
-import 'package:kasir/core/data/db.dart';
+import 'package:luminara_photobooth/core/data/db.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 

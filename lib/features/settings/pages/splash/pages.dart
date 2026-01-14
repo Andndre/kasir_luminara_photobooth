@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kasir/core/core.dart';
-import 'package:kasir/features/home/home.dart';
+import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/features/home/home.dart';
 import 'package:shorebird_code_push/shorebird_code_push.dart';
 
 class SplashScreen extends StatefulWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:kasir/core/constants/app_mode.dart';
-import 'package:kasir/core/core.dart';
-import 'package:kasir/core/preferences/app_state.dart';
+import 'package:luminara_photobooth/core/constants/app_mode.dart';
+import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/core/preferences/app_state.dart';
 import 'package:provider/provider.dart';
 
 class ModeSelectionPage extends StatelessWidget {

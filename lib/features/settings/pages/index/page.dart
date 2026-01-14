@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kasir/core/core.dart';
-import 'package:kasir/features/settings/pages/printer/page.dart';
-import 'package:kasir/features/settings/pages/privacy_policy/page.dart';
-import 'package:kasir/features/settings/settings.dart';
+import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/features/settings/pages/printer/page.dart';
+import 'package:luminara_photobooth/features/settings/pages/privacy_policy/page.dart';
+import 'package:luminara_photobooth/features/settings/settings.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shorebird_code_push/shorebird_code_push.dart';
 

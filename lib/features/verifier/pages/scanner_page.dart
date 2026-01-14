@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:kasir/features/verifier/blocs/verifier_bloc.dart';
+import 'package:luminara_photobooth/features/verifier/blocs/verifier_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class TicketScannerPage extends StatefulWidget {

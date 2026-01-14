@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kasir/core/constants/app_mode.dart';
+import 'package:luminara_photobooth/core/constants/app_mode.dart';
 
 class AppState extends ChangeNotifier {
   AppMode? _mode;

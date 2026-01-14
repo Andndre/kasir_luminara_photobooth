@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:kasir/core/core.dart';
-import 'package:kasir/features/home/home.dart';
-import 'package:kasir/features/kasir/pages/kasir.dart';
-import 'package:kasir/features/product/product.dart';
-import 'package:kasir/features/settings/pages/pages.dart';
-import 'package:kasir/features/transaction/pages/index/page.dart';
+import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/features/home/home.dart';
+import 'package:luminara_photobooth/features/kasir/pages/kasir.dart';
+import 'package:luminara_photobooth/features/product/product.dart';
+import 'package:luminara_photobooth/features/settings/pages/pages.dart';
+import 'package:luminara_photobooth/features/transaction/pages/index/page.dart';
 
-import 'package:kasir/core/constants/app_mode.dart';
-import 'package:kasir/features/verifier/pages/live_queue_page.dart';
-import 'package:kasir/features/verifier/pages/handshake_page.dart';
-import 'package:kasir/features/verifier/pages/scanner_page.dart';
+import 'package:luminara_photobooth/core/constants/app_mode.dart';
+import 'package:luminara_photobooth/features/verifier/pages/live_queue_page.dart';
+import 'package:luminara_photobooth/features/verifier/pages/handshake_page.dart';
+import 'package:luminara_photobooth/features/verifier/pages/scanner_page.dart';
 
 class MainPage extends StatelessWidget {
   const MainPage({super.key});

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:kasir/app/routes.dart';
-import 'package:kasir/core/core.dart';
-import 'package:kasir/core/constants/app_mode.dart';
-import 'package:kasir/features/home/blocs/blocs.dart';
-import 'package:kasir/features/settings/settings.dart';
-import 'package:kasir/features/server/blocs/server_bloc.dart';
-import 'package:kasir/features/verifier/blocs/verifier_bloc.dart';
-import 'package:kasir/core/preferences/scroll_behavior.dart';
-import 'package:kasir/features/mode_selection/mode_selection_page.dart';
-import 'package:kasir/core/preferences/app_state.dart';
+import 'package:luminara_photobooth/app/routes.dart';
+import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/core/constants/app_mode.dart';
+import 'package:luminara_photobooth/features/home/blocs/blocs.dart';
+import 'package:luminara_photobooth/features/settings/settings.dart';
+import 'package:luminara_photobooth/features/server/blocs/server_bloc.dart';
+import 'package:luminara_photobooth/features/verifier/blocs/verifier_bloc.dart';
+import 'package:luminara_photobooth/core/preferences/scroll_behavior.dart';
+import 'package:luminara_photobooth/features/mode_selection/mode_selection_page.dart';
+import 'package:luminara_photobooth/core/preferences/app_state.dart';
 import 'package:provider/provider.dart';
 
 class MyApp extends StatelessWidget {
@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
               BlocProvider(create: (context) => BottomNavBloc()),
               BlocProvider(create: (context) => ProfileBloc()),
               if (appState.mode == AppMode.server)
-                BlocProvider(create: (context) => ServerBloc()..add(StartServer())),
+                BlocProvider(create: (context) => ServerBloc()),
               if (appState.mode == AppMode.client)
                 BlocProvider(create: (context) => VerifierBloc()),
             ],

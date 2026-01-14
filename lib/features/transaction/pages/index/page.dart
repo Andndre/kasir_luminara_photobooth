@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kasir/core/core.dart';
-import 'package:kasir/model/transaksi.dart';
+import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/model/transaksi.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 

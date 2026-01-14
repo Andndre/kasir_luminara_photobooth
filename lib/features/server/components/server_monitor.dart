@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:kasir/features/server/blocs/server_bloc.dart';
-import 'package:kasir/features/server/blocs/server_state.dart';
+import 'package:luminara_photobooth/features/server/blocs/server_bloc.dart';
+import 'package:luminara_photobooth/features/server/blocs/server_state.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class ServerMonitor extends StatelessWidget {
@@ -54,6 +54,18 @@ class ServerMonitor extends StatelessWidget {
                       label: const Text('Pairing QR'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
+                    )
+                  else
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        context.read<ServerBloc>().add(StartServer());
+                      },
+                      icon: const Icon(Icons.play_arrow, size: 18),
+                      label: const Text('Start Server'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
                       ),
                     ),

@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:kasir/core/services/verifier_service.dart';
+import 'package:luminara_photobooth/core/services/verifier_service.dart';
 
-import 'package:kasir/features/verifier/blocs/verifier_state.dart';
+import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
 
 abstract class VerifierEvent extends Equatable {
   const VerifierEvent();

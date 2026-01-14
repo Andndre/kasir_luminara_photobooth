@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kasir/core/core.dart';
+import 'package:luminara_photobooth/core/core.dart';
 
 class LabelInput extends StatelessWidget {
   const LabelInput({super.key, required this.label, this.required = false});

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:kasir/features/verifier/blocs/verifier_bloc.dart';
-import 'package:kasir/features/verifier/blocs/verifier_state.dart';
+import 'package:luminara_photobooth/features/home/blocs/blocs.dart';
+import 'package:luminara_photobooth/features/verifier/blocs/verifier_bloc.dart';
+import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class HandshakePage extends StatefulWidget {
@@ -44,6 +45,8 @@ class _HandshakePageState extends State<HandshakePage> {
                             final ip = parts[0];
                             final port = parts.length > 1 ? int.parse(parts[1]) : 3000;
                             context.read<VerifierBloc>().add(ConnectToServer(ip, port));
+                            // Navigate to Live Queue (Index 0)
+                            context.read<BottomNavBloc>().add(TapBottomNavEvent(0));
                           },
                     child: Text(state.status == VerifierStatus.connecting
                         ? 'Menghubungkan...'
@@ -96,10 +99,16 @@ class _HandshakePageState extends State<HandshakePage> {
               if (barcode.rawValue != null) {
                 final data = barcode.rawValue!;
                 final parts = data.split(':');
-                final ip = parts[0];
-                final port = parts.length > 1 ? int.parse(parts[1]) : 3000;
-                context.read<VerifierBloc>().add(ConnectToServer(ip, port));
-                Navigator.pop(context);
+                if (parts.isNotEmpty) {
+                  final ip = parts[0];
+                  final port = parts.length > 1 ? int.parse(parts[1]) : 3000;
+                  context.read<VerifierBloc>().add(ConnectToServer(ip, port));
+                  
+                  if (context.mounted) {
+                    Navigator.pop(context); // Close scanner
+                    context.read<BottomNavBloc>().add(TapBottomNavEvent(0)); // Go to Queue
+                  }
+                }
               }
             },
           ),

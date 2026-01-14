@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kasir/model/produk.dart';
-import 'package:kasir/model/transaksi.dart';
+import 'package:luminara_photobooth/model/produk.dart';
+import 'package:luminara_photobooth/model/transaksi.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
