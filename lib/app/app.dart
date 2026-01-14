@@ -21,8 +21,6 @@ class MyApp extends StatelessWidget {
       create: (_) => AppState(),
       child: Consumer<AppState>(
         builder: (context, appState, _) {
-          // Provide all potential Blocs at the root level.
-          // They are lazy-loaded, so they won't consume resources until used.
           return MultiBlocProvider(
             providers: [
               BlocProvider(create: (context) => BottomNavBloc()),
@@ -30,16 +28,14 @@ class MyApp extends StatelessWidget {
               BlocProvider(create: (context) => ServerBloc()),
               BlocProvider(create: (context) => VerifierBloc()),
             ],
-            child: RepositoryProvider<AppMode>(
-              // Provide the current mode (or server as fallback for types)
-              create: (context) => appState.mode ?? AppMode.server,
+            child: RepositoryProvider<AppMode>.value(
+              value: appState.mode ?? AppMode.server,
               child: MaterialApp(
                 title: 'Luminara Photobooth',
                 debugShowCheckedModeBanner: false,
                 scrollBehavior: AppScrollBehavior(),
                 theme: LightTheme(AppColors.primary).theme,
                 onGenerateRoute: routes,
-                // home switches based on state
                 home: appState.hasMode ? const SplashScreen() : const ModeSelectionPage(),
               ),
             ),

@@ -8,6 +8,7 @@ class ServerState extends Equatable {
   final int port;
   final int connectedClients;
   final String? errorMessage;
+  final bool hasFirewallIssue;
 
   const ServerState({
     this.status = ServerStatus.offline,
@@ -15,6 +16,7 @@ class ServerState extends Equatable {
     this.port = 3000,
     this.connectedClients = 0,
     this.errorMessage,
+    this.hasFirewallIssue = false,
   });
 
   ServerState copyWith({
@@ -23,6 +25,7 @@ class ServerState extends Equatable {
     int? port,
     int? connectedClients,
     String? errorMessage,
+    bool? hasFirewallIssue,
   }) {
     return ServerState(
       status: status ?? this.status,
@@ -30,9 +33,10 @@ class ServerState extends Equatable {
       port: port ?? this.port,
       connectedClients: connectedClients ?? this.connectedClients,
       errorMessage: errorMessage ?? this.errorMessage,
+      hasFirewallIssue: hasFirewallIssue ?? this.hasFirewallIssue,
     );
   }
 
   @override
-  List<Object?> get props => [status, ipAddress, port, connectedClients, errorMessage];
+  List<Object?> get props => [status, ipAddress, port, connectedClients, errorMessage, hasFirewallIssue];
 }

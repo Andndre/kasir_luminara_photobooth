@@ -28,32 +28,27 @@ class ServerBloc extends Bloc<ServerEvent, ServerState> {
   }
 
   Future<void> _onStartServer(StartServer event, Emitter<ServerState> emit) async {
+    if (state.status == ServerStatus.online) return;
+    
     emit(state.copyWith(status: ServerStatus.starting));
     try {
       String? ip = await _networkInfo.getWifiIP();
       
-      // Fallback if getWifiIP fails (e.g. Ethernet or Linux specific issues)
       if (ip == null || ip.isEmpty) {
-        try {
-          final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
-          for (var interface in interfaces) {
-            for (var addr in interface.addresses) {
-              if (!addr.isLoopback && !addr.isLinkLocal) {
-                // Prioritize 192.168 addresses
-                if (addr.address.startsWith('192.168.')) {
-                  ip = addr.address;
-                  break;
-                }
-                // Secondary choice
-                ip ??= addr.address;
-              }
+        final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
+        for (var interface in interfaces) {
+          for (var addr in interface.addresses) {
+            if (!addr.isLoopback) {
+              ip = addr.address;
+              break;
             }
-            if (ip != null && ip.startsWith('192.168.')) break;
           }
-        } catch (_) {}
+          if (ip != null) break;
+        }
       }
 
       await _serverService.start(port: state.port);
+      
       emit(state.copyWith(
         status: ServerStatus.online,
         ipAddress: ip ?? '127.0.0.1',
@@ -79,6 +74,5 @@ class ServerBloc extends Bloc<ServerEvent, ServerState> {
   }
 
   void _onRefreshServerInfo(RefreshServerInfo event, Emitter<ServerState> emit) async {
-     // This could update client count if we add a stream to ServerService
   }
 }

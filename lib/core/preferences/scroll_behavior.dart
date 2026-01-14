@@ -5,7 +5,7 @@ class AppScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
         PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
+        // REMOVED PointerDeviceKind.mouse to prevent click interception on Linux
         PointerDeviceKind.trackpad,
       };
 }
