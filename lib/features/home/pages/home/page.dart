@@ -31,14 +31,15 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final mode = context.read<AppMode>();
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(mode == AppMode.server ? 'Server Dashboard' : 'Verifier Dashboard'),
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        foregroundColor: Colors.black87,
+        foregroundColor: theme.appBarTheme.foregroundColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -229,10 +230,10 @@ class _HomePageState extends State<HomePage> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: Colors.black87,
+        color: Theme.of(context).textTheme.titleLarge?.color,
       ),
     );
   }
@@ -289,7 +290,7 @@ class _HomePageState extends State<HomePage> {
             style: TextStyle(
               fontSize: isLarge ? 24 : 18,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Theme.of(context).textTheme.headlineMedium?.color,
             ),
           ),
           if (subtitle != null) ...[
@@ -350,10 +351,10 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 4),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.titleLarge?.color,
               ),
             ),
           ],

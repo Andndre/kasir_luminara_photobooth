@@ -48,6 +48,7 @@ class MainPage extends StatelessWidget {
             children: [
               if (isDesktop)
                 NavigationRail(
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                   selectedIndex: safeIndex,
                   onDestinationSelected: (i) =>
                       context.read<BottomNavBloc>().add(TapBottomNavEvent(i)),

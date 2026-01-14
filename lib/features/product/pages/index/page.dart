@@ -63,14 +63,15 @@ class _ProductPageState extends State<ProductPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 800;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Paket Photobooth'),
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        foregroundColor: Colors.black87,
+        foregroundColor: theme.appBarTheme.foregroundColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.add_circle, color: AppColors.primary, size: 28),

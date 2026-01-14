@@ -38,8 +38,10 @@ class _KasirState extends State<Kasir> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
+    final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(title: const Text('Transaksi Photobooth')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
