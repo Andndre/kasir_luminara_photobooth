@@ -142,11 +142,13 @@ class _ProductPageState extends State<ProductPage> {
                   name: nameController.text,
                   price: int.parse(priceController.text),
                 );
+                
+                final navigator = Navigator.of(context);
                 await Produk.createProduk(p);
-                if (mounted) {
-                  Navigator.pop(context);
-                  _loadProducts();
-                }
+                
+                if (!mounted) return;
+                navigator.pop();
+                _loadProducts();
               }
             },
             child: const Text('Simpan'),
@@ -166,11 +168,12 @@ class _ProductPageState extends State<ProductPage> {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
           TextButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
               await Produk.deleteProduk(product.id!);
-              if (mounted) {
-                Navigator.pop(context);
-                _loadProducts();
-              }
+              
+              if (!mounted) return;
+              navigator.pop();
+              _loadProducts();
             },
             child: const Text('Hapus', style: TextStyle(color: Colors.red)),
           ),
