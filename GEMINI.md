@@ -1,115 +1,67 @@
-# GEMINI.md - Developer Context & Instructions
+# GEMINI.md - Luminara Photobooth Development Master Guide
 
 ## 1. Project Overview
+**Project Name:** Luminara Photobooth  
+**Legacy Base:** Kasir Mimba Bali (Fully Transformed)  
+**Architecture:** Dual-Mode (Server/Cashier & Client/Verifier)  
+**Primary Goal:** Local Network (LAN) based management for Photobooth businesses, operating entirely offline.
 
-**Project Name:** Photobooth Management System (Luminara)
-**Original Base:** Kasir Mimba Bali
-**Type:** Flutter Application (Dual Mode: Server/Desktop & Client/Mobile)
-**Description:** A Local Network (LAN) based management system for a Photobooth business. It orchestrates the flow between the Cashier (Server) and the Entrance/Verification (Client) nodes without internet dependency (Offline First).
+## 2. System Architecture & Roles
 
-## 2. Architecture & Toplogy
+### **Dual-Mode Workflow**
+The application uses a **Global State Management** pattern to toggle between two roles at runtime without restarting the process.
 
-The system operates on a **Single Codebase** architecture with role-based behavior.
+1.  **Server Mode (Cashier):**
+    *   **Dashboard:** Displays local IP and Pairing QR.
+    *   **Embedded Server:** Launches a **Background Isolate** running an `Alfred` HTTP & WebSocket server.
+    *   **Database:** Master SQLite storage (`photobooth.db`).
+    *   **Features:** Create transactions, print thermal tickets with QR codes.
+2.  **Client Mode (Verifier):**
+    *   **Pairing:** Scans Server's Pairing QR to retrieve IP/Port.
+    *   **Live Queue:** Real-time list of paid customers (via WebSocket signals).
+    *   **Verification:** Scans customer ticket QR and validates via REST API.
 
-### **Roles**
-1.  **Server Node (Laptop/Windows):**
-    *   **Function:** Cashier Station, Central Server.
-    *   **Responsibilities:**
-        *   Host HTTP Server (REST API) on port 3000.
-        *   Host WebSocket Server (`/ws`) for real-time signaling.
-        *   Manage Central Database (SQLite).
-        *   Print Receipts (Thermal Printer).
-        *   Display Pairing QR for Clients.
-2.  **Client Node (Android/Mobile):**
-    *   **Function:** Ticket Verifier / Queue Display.
-    *   **Responsibilities:**
-        *   Connect to Server via P2P/LAN (Scan Pairing QR).
-        *   Listen to WebSocket for Queue Updates.
-        *   Scan User Tickets (QR Code).
-        *   Verify Tickets via REST API.
+## 3. Technology Stack & Key Patterns
 
-### **Communication Protocol**
-*   **REST HTTP:** For data fetching (Polling queues, verifying tickets).
-*   **WebSocket:** For lightweight signals (Triggers: `REFRESH_QUEUE`, `TICKET_REDEEMED`).
+### **Core Frameworks**
+*   **Flutter (3.9.2+):** Desktop (Linux/Windows) and Mobile (Android).
+*   **State Management:**
+    *   `AppState` (Provider/ChangeNotifier): Global mode control.
+    *   `Bloc` (flutter_bloc): Feature-level business logic.
+*   **Database:** `sqflite` (Android) & `sqflite_common_ffi` (Linux/Windows).
 
-## 3. Data Model (SQLite)
+### **Critical Patterns**
+*   **Isolate-Based Server:** The `ServerService` runs entirely in a background `Isolate`. This prevents the HTTP/WebSocket event loop from blocking the Flutter UI thread (essential for Linux Desktop stability).
+*   **Single MaterialApp:** The app maintains a single `MaterialApp` instance. Mode changes trigger a root rebuild using a `ValueKey(mode)`.
+*   **Offline-First:** No external APIs are used. All communication is P2P within the LAN.
 
-**Table: `products`**
-*   `id` (PK, Auto Increment)
-*   `name` (Text)
-*   `price` (Integer)
+## 4. Code Structure (Master Map)
+*   `lib/app/`: Navigation (`routes.dart`) and Root Widget (`app.dart`).
+*   `lib/core/`:
+    *   `services/`: `ServerService` (Background Isolate) and `VerifierService`.
+    *   `data/`: Database schema and connection.
+    *   `preferences/`: Global UI themes, constants, and `AppState`.
+*   `lib/features/`:
+    *   `mode_selection/`: First screen shown to the user.
+    *   `server/`: Server-specific UI and logic.
+    *   `verifier/`: Client-specific UI and real-time queue.
+    *   `kasir/`: Transaction processing UI.
+*   `lib/model/`: Simplified schema (`produk.dart`, `transaksi.dart`).
 
-**Table: `transactions`**
-*   `uuid` (PK, Text) - QR Code Content
-*   `customer_name` (Text)
-*   `product_name` (Text)
-*   `product_price` (Integer)
-*   `status` (Text) - 'PAID', 'COMPLETED', 'CANCELLED'
-*   `created_at` (DateTime)
-*   `redeemed_at` (DateTime, Nullable)
+## 5. Development Best Practices
 
-## 4. Key Dependencies & Packages
+### **Before Commit / Build**
+1.  **Static Analysis:** Always run `flutter analyze`. Fix all errors and warnings. The project should have 0 issues (excluding minor platform-specific hints).
+2.  **Test Execution:** Run `flutter test`. Ensure `test/photobooth_test.dart` passes.
+3.  **No Nested MaterialApps:** Never create a `MaterialApp` inside another. Use the global `AppState` to switch home screens.
+4.  **Isolate Hygiene:** Any logic that runs a continuous loop (like a Server) **must** be in an Isolate.
+5.  **Platform Awareness:** Wrap mobile-only code (Permissions, Bluetooth) in `if (Platform.isAndroid || Platform.isIOS)`.
 
-*   **Core:** `flutter`, `flutter_bloc` (State Management).
-*   **Networking:**
-    *   `alfred` (or similar) for Embedded HTTP/WS Server.
-    *   `http` / `dio` for REST Client.
-    *   `web_socket_channel` for WebSocket Client.
-*   **Database:**
-    *   `sqflite` (Android).
-    *   `sqflite_common_ffi` (Windows/Linux Support).
-*   **Hardware:**
-    *   `mobile_scanner` (QR Scanning).
-    *   `print_bluetooth_thermal` or `esc_pos_utils` (Printing).
-    *   `network_info_plus` (To retrieve local IP).
+### **Handling Crashes**
+*   **Global Error Catcher:** `lib/main.dart` contains `_setupErrorHandling()` which overrides `ErrorWidget.builder`. 
+*   **Black Screen Policy:** If a black screen occurs, check for unhandled exceptions in `build` methods or malformed JSON parsing in services.
 
-## 5. Development Conventions
-
-*   **Feature-First Structure:** Keep the existing modular structure (`lib/features/`).
-*   **Platform-Aware:** Use `Platform.isWindows` or `Platform.isAndroid` to toggle Server/Client logic.
-*   **Offline-First:** All logic must assume no internet connection.
-*   **Security:** Simple Authorization Header for Client-Server handshake.
-
-## 6. Implementation Plan (Roadmap)
-
-We will execute this plan step-by-step.
-
-### Phase 1: Foundation & Architecture
-- [x] **Step 1.1: Platform-Agnostic Entry Point**
-  - Update `lib/main.dart` to include a Role Selection Screen (Server vs Client).
-  - Allow dynamic switching or persistent configuration (SharedPrefs) for AppMode.
-  - Establish `AppMode` enum (SERVER, CLIENT).
-- [x] **Step 1.2: Unified Database Layer**
-  - Refactor `lib/core/data/db.dart` to support `sqflite_common_ffi` for Windows.
-  - Create the `products` and `transactions` tables per SKPL.
-
-### Phase 2: Server Node (Windows)
-- [x] **Step 2.1: Server Service (Alfred)**
-  - Implement `ServerService` class.
-  - Setup HTTP endpoints (`GET /health`, `GET /api/queue`, `POST /api/verify`).
-  - Setup WebSocket endpoint (`/ws`).
-- [x] **Step 2.2: Server State Management**
-  - Create `ServerBloc` to manage Server Status (Online/Offline), Local IP, and WebSocket connections.
-  - Display a "Server Monitor" on the Windows Desktop Dashboard.
-- [x] **Step 2.3: Cashier Logic Adaptation**
-  - Modify `Transaction` flow to generate UUIDs.
-  - Implement "Print Ticket" flow (Ticket QR shown in UI).
-  - Show "Pairing QR" (IP + Port) for Mobile Clients.
-
-### Phase 3: Client Node (Android/Verifier)
-- [x] **Step 3.1: Client State Management**
-  - Create `VerifierBloc` for managing connection state (Disconnected, Connected).
-- [x] **Step 3.2: Handshake UI**
-  - Create a "Scan Server QR" screen.
-  - Implement logic to connect via REST/WebSocket.
-- [x] **Step 3.3: Queue & Verification UI**
-  - Create `LiveQueuePage` to listen for WebSocket `REFRESH_QUEUE` events.
-  - Create `TicketScannerPage` to scan Customer QR and call `POST /api/verify`.
-
-### Phase 4: Integration & Polish
-- [ ] **Step 4.1: End-to-End Testing**
-  - Verify flow: Create Transaction (Windows) -> Broadcast -> Update Android UI.
-  - Verify flow: Scan Ticket (Android) -> Verify API -> Update DB -> Broadcast.
-- [ ] **Step 4.2: UI Cleanup**
-  - Remove unused features from original POS (if any).
-  - Ensure Windows UI is desktop-friendly and Android UI is mobile-friendly.
+## 6. Deployment
+*   **Build Android:** `flutter build apk --release` (outputs to `build/app/outputs/flutter-apk/`).
+*   **Package Name:** `com.andndredev.luminaraphotobooth`.
+*   **Icons:** Managed via `flutter_launcher_icons` (source: `assets/images/logo.png`).

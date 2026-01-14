@@ -56,9 +56,12 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
   Future<void> _onRefreshQueue(RefreshQueue event, Emitter<VerifierState> emit) async {
     try {
       final queue = await service.getQueue();
-      emit(state.copyWith(queue: queue));
+      emit(state.copyWith(queue: queue, status: VerifierStatus.connected));
     } catch (e) {
-      // Keep existing queue if refresh fails
+      emit(state.copyWith(
+        status: VerifierStatus.error,
+        errorMessage: 'Refresh Failed: $e',
+      ));
     }
   }
 

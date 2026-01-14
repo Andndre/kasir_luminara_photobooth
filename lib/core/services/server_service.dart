@@ -173,8 +173,8 @@ class ServerService {
     });
 
     try {
-      server = await alfred.listen(command.port);
-      print('Isolate Server listening on ${command.port}');
+      server = await alfred.listen(command.port, '0.0.0.0');
+      print('Isolate Server listening on 0.0.0.0:${command.port}');
     } catch (e) {
       print('Failed to start server in isolate: $e');
     }

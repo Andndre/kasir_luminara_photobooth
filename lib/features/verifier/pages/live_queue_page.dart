@@ -21,6 +21,31 @@ class LiveQueuePage extends StatelessWidget {
             );
           }
 
+          if (state.status == VerifierStatus.error) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.cloud_off, size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Gagal mengambil data:\n${state.errorMessage}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () => context.read<VerifierBloc>().add(RefreshQueue()),
+                      child: const Text('Coba Lagi'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           if (state.queue.isEmpty) {
             return const Center(
               child: Text('Tidak ada antrean saat ini.'),

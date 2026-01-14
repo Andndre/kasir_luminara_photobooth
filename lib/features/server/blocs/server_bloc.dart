@@ -37,14 +37,18 @@ class ServerBloc extends Bloc<ServerEvent, ServerState> {
         try {
           final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
           for (var interface in interfaces) {
-            // Filter out loopback and try to find a site-local address
             for (var addr in interface.addresses) {
               if (!addr.isLoopback && !addr.isLinkLocal) {
-                ip = addr.address;
-                break;
+                // Prioritize 192.168 addresses
+                if (addr.address.startsWith('192.168.')) {
+                  ip = addr.address;
+                  break;
+                }
+                // Secondary choice
+                ip ??= addr.address;
               }
             }
-            if (ip != null) break;
+            if (ip != null && ip.startsWith('192.168.')) break;
           }
         } catch (_) {}
       }
