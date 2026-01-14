@@ -100,31 +100,67 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 24),
 
-                // Quick Stats Grid
-                _buildSectionHeader('Statistik Cepat'),
-                const SizedBox(height: 12),
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.3,
-                  children: [
-                    _buildQuickStatCard(
-                      'Total Produk',
-                      '${statistics['total_produk'] ?? 0}',
-                      Icons.inventory,
-                      Colors.orange,
-                    ),
-                    _buildQuickStatCard(
-                      'Mode Aplikasi',
-                      mode.name.toUpperCase(),
-                      Icons.settings_applications,
-                      Colors.teal,
-                    ),
-                  ],
-                ),
+                                  // Quick Stats Grid
+
+                                  _buildSectionHeader('Statistik Cepat'),
+
+                                  const SizedBox(height: 12),
+
+                                  LayoutBuilder(
+
+                                    builder: (context, constraints) {
+
+                                      final crossAxisCount = constraints.maxWidth > 800 ? 4 : 2;
+
+                                      return GridView.count(
+
+                                        shrinkWrap: true,
+
+                                        physics: const NeverScrollableScrollPhysics(),
+
+                                        crossAxisCount: crossAxisCount,
+
+                                        mainAxisSpacing: 12,
+
+                                        crossAxisSpacing: 12,
+
+                                        childAspectRatio: 1.3,
+
+                                        children: [
+
+                                          _buildQuickStatCard(
+
+                                            'Total Produk',
+
+                                            '${statistics['total_produk'] ?? 0}',
+
+                                            Icons.inventory,
+
+                                            Colors.orange,
+
+                                          ),
+
+                                          _buildQuickStatCard(
+
+                                            'Mode Aplikasi',
+
+                                            mode.name.toUpperCase(),
+
+                                            Icons.settings_applications,
+
+                                            Colors.teal,
+
+                                          ),
+
+                                        ],
+
+                                      );
+
+                                    },
+
+                                  ),
+
+                
               ],
             ),
           );

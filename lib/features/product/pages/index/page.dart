@@ -61,17 +61,24 @@ class _ProductPageState extends State<ProductPage> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isDesktop = size.width > 800;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Paket Photobooth'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        foregroundColor: Colors.black87,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add_circle, color: AppColors.primary, size: 28),
             onPressed: () async {
               _showAddProductDialog();
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
@@ -88,23 +95,44 @@ class _ProductPageState extends State<ProductPage> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : filteredProducts.isEmpty
-                ? const Center(child: Text('Tidak ada paket.'))
-                : RefreshIndicator(
-                    onRefresh: _loadProducts,
-                    child: ListView.separated(
-                      padding: const EdgeInsets.all(16.0),
-                      itemBuilder: (context, index) {
-                        final product = filteredProducts[index];
-                        return _ItemSection(
-                          product: product,
-                          onDelete: () => _deleteProduct(product),
-                          formatCurrency: _formatCurrency,
-                        );
-                      },
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
-                      itemCount: filteredProducts.length,
-                    ),
-                  ),
+                    ? const Center(child: Text('Tidak ada paket.'))
+                    : RefreshIndicator(
+                        onRefresh: _loadProducts,
+                        child: isDesktop
+                            ? GridView.builder(
+                                padding: const EdgeInsets.all(16),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                  childAspectRatio: 2.5,
+                                ),
+                                itemCount: filteredProducts.length,
+                                itemBuilder: (context, index) {
+                                  final product = filteredProducts[index];
+                                  return _ItemSection(
+                                    product: product,
+                                    onDelete: () => _deleteProduct(product),
+                                    formatCurrency: _formatCurrency,
+                                  );
+                                },
+                              )
+                            : ListView.separated(
+                                padding: const EdgeInsets.all(16.0),
+                                itemBuilder: (context, index) {
+                                  final product = filteredProducts[index];
+                                  return _ItemSection(
+                                    product: product,
+                                    onDelete: () => _deleteProduct(product),
+                                    formatCurrency: _formatCurrency,
+                                  );
+                                },
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: 12),
+                                itemCount: filteredProducts.length,
+                              ),
+                      ),
           ),
         ],
       ),

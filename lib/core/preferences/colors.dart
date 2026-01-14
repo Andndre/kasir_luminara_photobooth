@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._(); // Private Constructor
 
-  static const primary = Color.fromARGB(255, 17, 177, 41);
+  static const primary = Color(0xff3059E8);
 
   static const yellow = MaterialColor(0xffFFD101, {
     200: Color(0xffFFDF4C),

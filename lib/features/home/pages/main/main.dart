@@ -20,6 +20,8 @@ class MainPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mode = context.read<AppMode>();
+    final size = MediaQuery.of(context).size;
+    final isDesktop = size.width > 700;
 
     final serverPages = <Widget>[
       const HomePage(),
@@ -38,127 +40,213 @@ class MainPage extends StatelessWidget {
 
     return BlocBuilder<BottomNavBloc, int>(
       builder: (context, index) {
-        // Ensure index is within range for clientPages if mode changed
         final safeIndex = index >= pages.length ? 0 : index;
 
         return Scaffold(
           backgroundColor: AppColors.background,
-          body: pages[safeIndex],
-          bottomNavigationBar: BottomAppBar(
-            shape: null,
-            clipBehavior: Clip.none,
-            elevation: 2.0,
-            height: 70,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Row(
-                mainAxisSize: MainAxisSize.max,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: mode == AppMode.server ? [
-                  Flexible(
-                    child: _NavItem(
-                      icon: AppIcons.storefront,
-                      label: 'Beranda',
-                      isActive: safeIndex == 0,
-                      onTap: () {
-                        context.read<BottomNavBloc>().add(TapBottomNavEvent(0));
-                      },
+          body: Row(
+            children: [
+              if (isDesktop)
+                NavigationRail(
+                  selectedIndex: safeIndex,
+                  onDestinationSelected: (i) =>
+                      context.read<BottomNavBloc>().add(TapBottomNavEvent(i)),
+                  labelType: NavigationRailLabelType.all,
+                  leading: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Image.asset(MainAssets.logo, width: 40),
+                  ),
+                  trailing: Expanded(
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: FloatingActionButton(
+                          onPressed: () => _handleFabAction(context, mode),
+                          child: Icon(mode == AppMode.server
+                              ? Icons.point_of_sale
+                              : Icons.qr_code_scanner),
+                        ),
+                      ),
                     ),
                   ),
-                  Flexible(
-                    child: _NavItem(
-                      icon: AppIcons.receipt,
-                      label: 'Transaksi',
-                      isActive: safeIndex == 1,
-                      onTap: () {
-                        context.read<BottomNavBloc>().add(TapBottomNavEvent(1));
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 84),
-                  Flexible(
-                    child: _NavItem(
-                      icon: AppIcons.product,
-                      label: 'Produk',
-                      isActive: safeIndex == 2,
-                      onTap: () {
-                        context.read<BottomNavBloc>().add(TapBottomNavEvent(2));
-                      },
-                    ),
-                  ),
-                  Flexible(
-                    child: _NavItem(
-                      icon: AppIcons.settings,
-                      label: 'Pengaturan',
-                      isActive: safeIndex == 3,
-                      onTap: () {
-                        context.read<BottomNavBloc>().add(TapBottomNavEvent(3));
-                      },
-                    ),
-                  ),
-                ] : [
-                  Flexible(
-                    child: _NavItem(
-                      icon: Icons.list_alt,
-                      label: 'Antrean',
-                      isActive: safeIndex == 0,
-                      onTap: () {
-                        context.read<BottomNavBloc>().add(TapBottomNavEvent(0));
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 84),
-                  Flexible(
-                    child: _NavItem(
-                      icon: Icons.link,
-                      label: 'Koneksi',
-                      isActive: safeIndex == 1,
-                      onTap: () {
-                        context.read<BottomNavBloc>().add(TapBottomNavEvent(1));
-                      },
-                    ),
-                  ),
-                  Flexible(
-                    child: _NavItem(
-                      icon: Icons.settings,
-                      label: 'Setelan',
-                      isActive: safeIndex == 2,
-                      onTap: () {
-                        context.read<BottomNavBloc>().add(TapBottomNavEvent(2));
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                  destinations: mode == AppMode.server
+                      ? [
+                          const NavigationRailDestination(
+                            icon: Icon(AppIcons.storefront),
+                            label: Text('Beranda'),
+                          ),
+                          const NavigationRailDestination(
+                            icon: Icon(AppIcons.receipt),
+                            label: Text('Transaksi'),
+                          ),
+                          const NavigationRailDestination(
+                            icon: Icon(AppIcons.product),
+                            label: Text('Produk'),
+                          ),
+                          const NavigationRailDestination(
+                            icon: Icon(AppIcons.settings),
+                            label: Text('Setelan'),
+                          ),
+                        ]
+                      : [
+                          const NavigationRailDestination(
+                            icon: Icon(Icons.list_alt),
+                            label: Text('Antrean'),
+                          ),
+                          const NavigationRailDestination(
+                            icon: Icon(Icons.link),
+                            label: Text('Koneksi'),
+                          ),
+                          const NavigationRailDestination(
+                            icon: Icon(Icons.settings),
+                            label: Text('Setelan'),
+                          ),
+                        ],
+                ),
+              Expanded(child: pages[safeIndex]),
+            ],
           ),
-
-          floatingActionButtonLocation:
-              FloatingActionButtonLocation.centerFloat,
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              if (mode == AppMode.server) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const Kasir()),
-                );
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const TicketScannerPage()),
-                );
-              }
-            },
-            tooltip: mode == AppMode.server ? 'Tambah Transaksi' : 'Scan Tiket',
-            elevation: 2.0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(50),
-            ),
-            child: Icon(mode == AppMode.server ? Icons.point_of_sale : Icons.qr_code_scanner, size: 32),
-          ),
+          bottomNavigationBar: isDesktop
+              ? null
+              : BottomAppBar(
+                  shape: null,
+                  clipBehavior: Clip.none,
+                  elevation: 2.0,
+                  height: 70,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: mode == AppMode.server
+                          ? [
+                              Flexible(
+                                child: _NavItem(
+                                  icon: AppIcons.storefront,
+                                  label: 'Beranda',
+                                  isActive: safeIndex == 0,
+                                  onTap: () {
+                                    context
+                                        .read<BottomNavBloc>()
+                                        .add(TapBottomNavEvent(0));
+                                  },
+                                ),
+                              ),
+                              Flexible(
+                                child: _NavItem(
+                                  icon: AppIcons.receipt,
+                                  label: 'Transaksi',
+                                  isActive: safeIndex == 1,
+                                  onTap: () {
+                                    context
+                                        .read<BottomNavBloc>()
+                                        .add(TapBottomNavEvent(1));
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 84),
+                              Flexible(
+                                child: _NavItem(
+                                  icon: AppIcons.product,
+                                  label: 'Produk',
+                                  isActive: safeIndex == 2,
+                                  onTap: () {
+                                    context
+                                        .read<BottomNavBloc>()
+                                        .add(TapBottomNavEvent(2));
+                                  },
+                                ),
+                              ),
+                              Flexible(
+                                child: _NavItem(
+                                  icon: AppIcons.settings,
+                                  label: 'Pengaturan',
+                                  isActive: safeIndex == 3,
+                                  onTap: () {
+                                    context
+                                        .read<BottomNavBloc>()
+                                        .add(TapBottomNavEvent(3));
+                                  },
+                                ),
+                              ),
+                            ]
+                          : [
+                              Flexible(
+                                child: _NavItem(
+                                  icon: Icons.list_alt,
+                                  label: 'Antrean',
+                                  isActive: safeIndex == 0,
+                                  onTap: () {
+                                    context
+                                        .read<BottomNavBloc>()
+                                        .add(TapBottomNavEvent(0));
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 84),
+                              Flexible(
+                                child: _NavItem(
+                                  icon: Icons.link,
+                                  label: 'Koneksi',
+                                  isActive: safeIndex == 1,
+                                  onTap: () {
+                                    context
+                                        .read<BottomNavBloc>()
+                                        .add(TapBottomNavEvent(1));
+                                  },
+                                ),
+                              ),
+                              Flexible(
+                                child: _NavItem(
+                                  icon: Icons.settings,
+                                  label: 'Setelan',
+                                  isActive: safeIndex == 2,
+                                  onTap: () {
+                                    context
+                                        .read<BottomNavBloc>()
+                                        .add(TapBottomNavEvent(2));
+                                  },
+                                ),
+                              ),
+                            ],
+                    ),
+                  ),
+                ),
+          floatingActionButtonLocation: isDesktop
+              ? null
+              : FloatingActionButtonLocation.centerFloat,
+          floatingActionButton: isDesktop
+              ? null
+              : FloatingActionButton(
+                  onPressed: () => _handleFabAction(context, mode),
+                  tooltip:
+                      mode == AppMode.server ? 'Tambah Transaksi' : 'Scan Tiket',
+                  elevation: 2.0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  child: Icon(mode == AppMode.server
+                      ? Icons.point_of_sale
+                      : Icons.qr_code_scanner, size: 32),
+                ),
         );
       },
     );
+  }
+
+  void _handleFabAction(BuildContext context, AppMode mode) {
+    if (mode == AppMode.server) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const Kasir()),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const TicketScannerPage()),
+      );
+    }
   }
 }
 

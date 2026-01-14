@@ -48,6 +48,11 @@ The application uses a **Global State Management** pattern to toggle between two
 *   **Firewall:** Ensure port `3000` is open (e.g., `sudo ufw allow 3000/tcp`).
 *   **Self-Ping Debugging:** If connectivity fails, use a "Self-Ping" test (reaching the LAN IP from the server itself) to diagnose firewall blocks.
 
+#### **4. Responsive & Adaptive UI**
+*   **Adaptive Navigation:** The app uses `NavigationRail` for screens wider than 700px (Desktop) and `BottomAppBar` for mobile. This is handled dynamically in `MainPage`.
+*   **Responsive Grids:** Dashboard and list views (Products, Transactions) use `LayoutBuilder` or `MediaQuery` to switch between single-column lists and multi-column grids based on screen width.
+*   **Split-View Transactions:** The `Kasir` page implements a split-view layout on desktop (> 900px) to show selection and checkout side-by-side.
+
 ### **Best Practices Before Commit/Build**
 1.  **Run Analysis:** `flutter analyze`. Fix all issues.
 2.  **Test Models:** `flutter test` to ensure database schema changes don't break logic.
