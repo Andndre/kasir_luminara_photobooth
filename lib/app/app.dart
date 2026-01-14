@@ -21,26 +21,30 @@ class MyApp extends StatelessWidget {
       create: (_) => AppState(),
       child: Consumer<AppState>(
         builder: (context, appState, _) {
-          return MultiBlocProvider(
-            providers: [
-              BlocProvider(create: (context) => BottomNavBloc()),
-              BlocProvider(create: (context) => ProfileBloc()),
-              BlocProvider(create: (context) => ServerBloc()),
-              BlocProvider(create: (context) => VerifierBloc()),
-            ],
-            child: RepositoryProvider<AppMode>.value(
-              value: appState.mode ?? AppMode.server,
-              child: MaterialApp(
-                title: 'Luminara Photobooth',
-                debugShowCheckedModeBanner: false,
-                scrollBehavior: AppScrollBehavior(),
-                theme: LightTheme(AppColors.primary).theme,
-                darkTheme: DarkTheme(AppColors.primary).theme,
-                themeMode: appState.themeMode,
-                onGenerateRoute: routes,
-                home: appState.hasMode ? const SplashScreen() : const ModeSelectionPage(),
-              ),
-            ),
+          return MaterialApp(
+            title: 'Luminara Photobooth',
+            debugShowCheckedModeBanner: false,
+            scrollBehavior: AppScrollBehavior(),
+            theme: LightTheme(AppColors.primary).theme,
+            darkTheme: DarkTheme(AppColors.primary).theme,
+            themeMode: appState.themeMode,
+            onGenerateRoute: routes,
+            // STABLE TREE: MultiBlocProvider is ALWAYS present.
+            builder: (context, child) {
+              return MultiBlocProvider(
+                providers: [
+                  BlocProvider(create: (context) => BottomNavBloc()),
+                  BlocProvider(create: (context) => ProfileBloc()),
+                  BlocProvider(create: (context) => ServerBloc()),
+                  BlocProvider(create: (context) => VerifierBloc()),
+                ],
+                child: RepositoryProvider<AppMode>.value(
+                  value: appState.mode ?? AppMode.server,
+                  child: child!,
+                ),
+              );
+            },
+            home: appState.hasMode ? const SplashScreen() : const ModeSelectionPage(),
           );
         },
       ),

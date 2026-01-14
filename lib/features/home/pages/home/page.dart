@@ -79,13 +79,10 @@ class _HomePageState extends State<HomePage> {
                     Expanded(
                       child: _buildStatCard(
                         title: 'Pemasukan',
-                        value: _formatCurrency(
-                          statistics['today_income'] ?? 0,
-                        ),
+                        value: _formatCurrency(statistics['today_income'] ?? 0),
                         icon: Icons.monetization_on,
                         color: Colors.green,
-                        subtitle:
-                            '${statistics['today_transactions'] ?? 0} transaksi',
+                        subtitle: '${statistics['today_transactions'] ?? 0} transaksi',
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -102,71 +99,37 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 24),
 
-                                  // Quick Stats Grid
-
-                                  _buildSectionHeader('Statistik Cepat'),
-
-                                  const SizedBox(height: 12),
-
-                                  LayoutBuilder(
-
-                                    builder: (context, constraints) {
-
-                                                            final crossAxisCount = constraints.maxWidth > 800 ? 4 : 2;
-
-                                                            final aspectRatio = constraints.maxWidth > 800 ? 3.5 : 1.8;
-
-                                                            return GridView.count(
-
-                                                              shrinkWrap: true,
-
-                                                              physics: const NeverScrollableScrollPhysics(),
-
-                                                              crossAxisCount: crossAxisCount,
-
-                                                              mainAxisSpacing: 12,
-
-                                                              crossAxisSpacing: 12,
-
-                                                              childAspectRatio: aspectRatio,
-
-                                                              children: [
-
-                                      
-
-                                          _buildQuickStatCard(
-
-                                            'Total Produk',
-
-                                            '${statistics['total_produk'] ?? 0}',
-
-                                            Icons.inventory,
-
-                                            Colors.orange,
-
-                                          ),
-
-                                          _buildQuickStatCard(
-
-                                            'Mode Aplikasi',
-
-                                            mode.name.toUpperCase(),
-
-                                            Icons.settings_applications,
-
-                                            Colors.teal,
-
-                                          ),
-
-                                        ],
-
-                                      );
-
-                                    },
-
-                                  ),
-
-                
+                // Quick Stats Grid
+                _buildSectionHeader('Statistik Cepat'),
+                const SizedBox(height: 12),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final crossAxisCount = constraints.maxWidth > 800 ? 4 : 2;
+                    final aspectRatio = constraints.maxWidth > 800 ? 3.5 : 1.8;
+                    return GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: aspectRatio,
+                      children: [
+                        _buildQuickStatCard(
+                          'Total Produk',
+                          '${statistics['total_produk'] ?? 0}',
+                          Icons.inventory,
+                          Colors.orange,
+                        ),
+                        _buildQuickStatCard(
+                          'Mode Aplikasi',
+                          mode.name.toUpperCase(),
+                          Icons.settings_applications,
+                          Colors.teal,
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
           );
@@ -212,10 +175,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  DateFormat(
-                    'EEEE, dd MMMM yyyy',
-                    'id_ID',
-                  ).format(DateTime.now()),
+                  DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(DateTime.now()),
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
               ],
@@ -291,7 +251,7 @@ class _HomePageState extends State<HomePage> {
             style: TextStyle(
               fontSize: isLarge ? 24 : 18,
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).textTheme.headlineMedium?.color,
+              color: theme.textTheme.headlineMedium?.color,
             ),
           ),
           if (subtitle != null) ...[
@@ -306,13 +266,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildQuickStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color, {
-    VoidCallback? onTap,
-  }) {
+  Widget _buildQuickStatCard(String title, String value, IconData icon, Color color, {VoidCallback? onTap}) {
     final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
@@ -356,7 +310,7 @@ class _HomePageState extends State<HomePage> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.titleLarge?.color,
+                color: theme.textTheme.titleLarge?.color,
               ),
             ),
           ],
@@ -366,10 +320,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   String _formatCurrency(int amount) {
-    return NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: 'Rp ',
-      decimalDigits: 0,
-    ).format(amount);
+    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
   }
 }
