@@ -146,7 +146,11 @@ class LightTheme {
   }
 
   DividerThemeData get dividerTheme {
-    return const DividerThemeData(color: AppColors.white);
+    return DividerThemeData(
+      color: Colors.grey.withValues(alpha: 0.2),
+      thickness: 1,
+      space: 1,
+    );
   }
 
   ThemeData get theme {

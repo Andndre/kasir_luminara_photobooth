@@ -358,7 +358,7 @@ class _SettingPageState extends State<SettingPage> {
       body: ListView(
         children: [
           const _ProfileSection(),
-          const Divider(thickness: Dimens.dp8),
+          const SizedBox(height: Dimens.dp8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -380,7 +380,7 @@ class _SettingPageState extends State<SettingPage> {
               ),
             ],
           ),
-          const Divider(thickness: Dimens.dp8),
+          const SizedBox(height: Dimens.dp8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -410,7 +410,7 @@ class _SettingPageState extends State<SettingPage> {
               ),
             ],
           ),
-          const Divider(thickness: Dimens.dp8),
+          const SizedBox(height: Dimens.dp8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -77,6 +77,11 @@ class DarkTheme {
         unselectedLabelTextStyle: TextStyle(color: textDisabledColor),
         indicatorColor: primaryColor,
       ),
+      dividerTheme: DividerThemeData(
+        color: borderColor,
+        thickness: 1,
+        space: 1,
+      ),
     );
   }
 }
