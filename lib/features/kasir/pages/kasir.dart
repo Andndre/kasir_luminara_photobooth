@@ -86,6 +86,7 @@ class _KasirState extends State<Kasir> {
   }
 
   Widget _buildProductSection() {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -103,11 +104,13 @@ class _KasirState extends State<Kasir> {
               return Card(
                 elevation: isSelected ? 4 : 1,
                 margin: const EdgeInsets.only(bottom: 12),
-                color: isSelected ? Colors.blue.shade50 : null,
+                color: isSelected
+                    ? theme.primaryColor.withValues(alpha: 0.1)
+                    : theme.cardTheme.color,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(Dimens.radius),
                   side: BorderSide(
-                    color: isSelected ? Colors.blue : Colors.transparent,
+                    color: isSelected ? theme.primaryColor : Colors.transparent,
                     width: 2,
                   ),
                 ),
@@ -126,7 +129,9 @@ class _KasirState extends State<Kasir> {
                     ).format(product.price),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.blue : Colors.black87,
+                      color: isSelected
+                          ? theme.primaryColor
+                          : theme.textTheme.bodyMedium?.color,
                       fontSize: 16,
                     ),
                   ),
@@ -159,8 +164,6 @@ class _KasirState extends State<Kasir> {
           decoration: const InputDecoration(
             hintText: 'Nama (Opsional)',
             border: OutlineInputBorder(),
-            filled: true,
-            fillColor: Colors.white,
           ),
         ),
         const SizedBox(height: 24),
