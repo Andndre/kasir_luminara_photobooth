@@ -90,32 +90,31 @@ class _TransactionPageState extends State<TransactionPage> {
                           ],
                         ),
                       )
-                    : RefreshIndicator(
-                        onRefresh: _loadTransactions,
-                        child: isDesktop
-                            ? GridView.builder(
-                                padding: const EdgeInsets.all(16),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  crossAxisSpacing: 16,
-                                  mainAxisSpacing: 16,
-                                  childAspectRatio: 1.8,
-                                ),
-                                itemCount: _transactions.length,
-                                itemBuilder: (context, index) {
-                                  final transaction = _transactions[index];
-                                  return _ItemSection(
-                                    transaksi: transaction,
-                                    onDelete: () =>
-                                        _deleteTransaction(transaction),
-                                  );
-                                },
-                              )
-                            : ListView.builder(
-                                padding: const EdgeInsets.all(8),
-                                itemCount: _transactions.length,
-                                itemBuilder: (context, index) {
+                                          : RefreshIndicator(
+                                            onRefresh: _loadTransactions,
+                                            child: isDesktop
+                                                ? GridView.builder(
+                                                    padding: const EdgeInsets.all(16),
+                                                    gridDelegate:
+                                                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                                                      maxCrossAxisExtent: 400,
+                                                      crossAxisSpacing: 16,
+                                                      mainAxisSpacing: 16,
+                                                      mainAxisExtent: 130,
+                                                    ),
+                                                    itemCount: _transactions.length,
+                                                    itemBuilder: (context, index) {
+                                                      final transaction = _transactions[index];
+                                                      return _ItemSection(
+                                                        transaksi: transaction,
+                                                        onDelete: () =>
+                                                            _deleteTransaction(transaction),
+                                                      );
+                                                    },
+                                                  )
+                                                : ListView.builder(
+                                                    padding: const EdgeInsets.all(8),
+                                                    itemCount: _transactions.length,                                itemBuilder: (context, index) {
                                   final transaction = _transactions[index];
                                   return _ItemSection(
                                     transaksi: transaction,

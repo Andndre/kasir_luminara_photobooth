@@ -45,6 +45,7 @@ class MainPage extends StatelessWidget {
         return Scaffold(
           backgroundColor: AppColors.background,
           body: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (isDesktop)
                 NavigationRail(
@@ -61,18 +62,13 @@ class MainPage extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Image.asset(MainAssets.logo, width: 40),
                   ),
-                  trailing: Expanded(
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        child: FloatingActionButton(
-                          onPressed: () => _handleFabAction(context, mode),
-                          child: Icon(mode == AppMode.server
-                              ? Icons.point_of_sale
-                              : Icons.qr_code_scanner),
-                        ),
-                      ),
+                  trailing: Padding(
+                    padding: const EdgeInsets.only(top: 24, bottom: 24),
+                    child: FloatingActionButton(
+                      onPressed: () => _handleFabAction(context, mode),
+                      child: Icon(mode == AppMode.server
+                          ? Icons.point_of_sale
+                          : Icons.qr_code_scanner),
                     ),
                   ),
                   destinations: mode == AppMode.server

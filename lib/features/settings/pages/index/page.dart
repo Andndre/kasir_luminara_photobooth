@@ -355,104 +355,111 @@ class _SettingPageState extends State<SettingPage> {
         foregroundColor: theme.appBarTheme.foregroundColor,
         elevation: 0,
       ),
-      body: ListView(
-        children: [
-          const _ProfileSection(),
-          const SizedBox(height: Dimens.dp8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          primary: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(Dimens.dp16),
-                child: RegularText.semiBold('Pengaturan Perangkat'),
-              ),
-              ItemMenuSetting(
-                title: 'Printer',
-                icon: Icons.print,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PrinterPage(),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: Dimens.dp8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(Dimens.dp16),
-                child: RegularText.semiBold('Tampilan'),
-              ),
-              ItemMenuSetting(
-                title: 'Mode Gelap',
-                icon: Icons.dark_mode,
-                trailing: Switch(
-                  value: context.watch<AppState>().themeMode == ThemeMode.dark,
-                  onChanged: (value) {
-                    context.read<AppState>().setThemeMode(
-                          value ? ThemeMode.dark : ThemeMode.light,
-                        );
-                  },
-                ),
-                onTap: () {
-                  final current = context.read<AppState>().themeMode;
-                  context.read<AppState>().setThemeMode(
-                        current == ThemeMode.light
-                            ? ThemeMode.dark
-                            : ThemeMode.light,
+              const _ProfileSection(),
+              const SizedBox(height: Dimens.dp8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(Dimens.dp16),
+                    child: RegularText.semiBold('Pengaturan Perangkat'),
+                  ),
+                  ItemMenuSetting(
+                    title: 'Printer',
+                    icon: Icons.print,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PrinterPage(),
+                        ),
                       );
-                },
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: Dimens.dp8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(Dimens.dp16),
-                child: RegularText.semiBold('Info Lainnya'),
-              ),
-              ItemMenuSetting(
-                title: 'Kebijakan Privasi',
-                icon: AppIcons.verified,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PrivacyPolicyPage(),
+              const SizedBox(height: Dimens.dp8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(Dimens.dp16),
+                    child: RegularText.semiBold('Tampilan'),
+                  ),
+                  ItemMenuSetting(
+                    title: 'Mode Gelap',
+                    icon: Icons.dark_mode,
+                    trailing: Switch(
+                      value:
+                          context.watch<AppState>().themeMode == ThemeMode.dark,
+                      onChanged: (value) {
+                        context.read<AppState>().setThemeMode(
+                              value ? ThemeMode.dark : ThemeMode.light,
+                            );
+                      },
                     ),
-                  );
-                },
+                    onTap: () {
+                      final current = context.read<AppState>().themeMode;
+                      context.read<AppState>().setThemeMode(
+                            current == ThemeMode.light
+                                ? ThemeMode.dark
+                                : ThemeMode.light,
+                          );
+                    },
+                  ),
+                ],
               ),
-              ItemMenuSetting(
-                title: 'Periksa Pembaruan',
-                icon: Icons.system_update,
-                onTap: () {
-                  _checkForUpdate(context);
-                },
+              const SizedBox(height: Dimens.dp8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(Dimens.dp16),
+                    child: RegularText.semiBold('Info Lainnya'),
+                  ),
+                  ItemMenuSetting(
+                    title: 'Kebijakan Privasi',
+                    icon: AppIcons.verified,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PrivacyPolicyPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  ItemMenuSetting(
+                    title: 'Periksa Pembaruan',
+                    icon: Icons.system_update,
+                    onTap: () {
+                      _checkForUpdate(context);
+                    },
+                  ),
+                ],
               ),
-            ],
+                                      Padding(
+                                        padding: const EdgeInsets.all(Dimens.dp16),
+                                        child: OutlinedButton(
+                                          key: ValueKey('exit_button_${theme.brightness.name}'),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: theme.colorScheme.error,
+                                            side: BorderSide(color: theme.colorScheme.error),
+                                          ),
+                                          onPressed: () {
+                                            _showExitDialog(context);
+                                          },
+                                          child: const Text('Keluar Aplikasi'),
+                                        ),
+                                      ),            ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(Dimens.dp16),
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: context.theme.colorScheme.error,
-                side: BorderSide(color: context.theme.colorScheme.error),
-              ),
-              onPressed: () {
-                _showExitDialog(context);
-              },
-              child: const Text('Keluar Aplikasi'),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

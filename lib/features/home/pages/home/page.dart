@@ -57,81 +57,106 @@ class _HomePageState extends State<HomePage> {
 
           final statistics = snapshot.data ?? {};
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (mode == AppMode.server) ...[
-                  const ServerMonitor(),
-                  const SizedBox(height: 24),
-                ],
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              // Enforce minimum width of 400px to prevent overflow on tiny windows
+              const double minWidth = 400.0;
+              final double contentWidth = constraints.maxWidth < minWidth ? minWidth : constraints.maxWidth;
 
-                // Welcome Section
-                _buildWelcomeSection(),
-                const SizedBox(height: 24),
+              return SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minWidth: contentWidth,
+                      maxWidth: contentWidth,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (mode == AppMode.server) ...[
+                            const ServerMonitor(),
+                            const SizedBox(height: 24),
+                          ],
 
-                // Today's Performance
-                _buildSectionHeader('Kinerja Hari Ini'),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStatCard(
-                        title: 'Pemasukan',
-                        value: _formatCurrency(statistics['today_income'] ?? 0),
-                        icon: Icons.monetization_on,
-                        color: Colors.green,
-                        subtitle: '${statistics['today_transactions'] ?? 0} transaksi',
+                          // Welcome Section
+                          _buildWelcomeSection(),
+                          const SizedBox(height: 24),
+
+                          // Today's Performance
+                          _buildSectionHeader('Kinerja Hari Ini'),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildStatCard(
+                                  title: 'Pemasukan',
+                                  value: _formatCurrency(statistics['today_income'] ?? 0),
+                                  icon: Icons.monetization_on,
+                                  color: Colors.green,
+                                  subtitle: '${statistics['today_transactions'] ?? 0} transaksi',
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildStatCard(
+                                  title: 'Antrean',
+                                  value: '${statistics['queue_count'] ?? 0}',
+                                  icon: Icons.people,
+                                  color: Colors.blue,
+                                  subtitle: 'Status: PAID',
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Quick Stats Grid
+                          _buildSectionHeader('Statistik Cepat'),
+                          const SizedBox(height: 12),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              // Use the constraints from this inner LayoutBuilder (which matches contentWidth)
+                              // If contentWidth is 400, constraints.maxWidth here is ~368 (minus padding)
+                              final int crossAxisCount = (constraints.maxWidth / 200).floor().clamp(2, 4);
+                              final double itemWidth = (constraints.maxWidth - ((crossAxisCount - 1) * 12)) / crossAxisCount;
+                              const double targetHeight = 140.0;
+                              final double aspectRatio = itemWidth / targetHeight;
+
+                              return GridView.count(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                crossAxisCount: crossAxisCount,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: aspectRatio,
+                                children: [
+                                  _buildQuickStatCard(
+                                    'Total Produk',
+                                    '${statistics['total_produk'] ?? 0}',
+                                    Icons.inventory,
+                                    Colors.orange,
+                                  ),
+                                  _buildQuickStatCard(
+                                    'Mode Aplikasi',
+                                    mode.name.toUpperCase(),
+                                    Icons.settings_applications,
+                                    Colors.teal,
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildStatCard(
-                        title: 'Antrean',
-                        value: '${statistics['queue_count'] ?? 0}',
-                        icon: Icons.people,
-                        color: Colors.blue,
-                        subtitle: 'Status: PAID',
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 24),
-
-                // Quick Stats Grid
-                _buildSectionHeader('Statistik Cepat'),
-                const SizedBox(height: 12),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final crossAxisCount = constraints.maxWidth > 800 ? 4 : 2;
-                    final aspectRatio = constraints.maxWidth > 800 ? 3.5 : 1.8;
-                    return GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: aspectRatio,
-                      children: [
-                        _buildQuickStatCard(
-                          'Total Produk',
-                          '${statistics['total_produk'] ?? 0}',
-                          Icons.inventory,
-                          Colors.orange,
-                        ),
-                        _buildQuickStatCard(
-                          'Mode Aplikasi',
-                          mode.name.toUpperCase(),
-                          Icons.settings_applications,
-                          Colors.teal,
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ),
+              );
+            },
           );
         },
       ),

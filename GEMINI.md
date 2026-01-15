@@ -33,7 +33,7 @@ The application uses a **Global State Management** pattern to toggle between two
 
 #### **1. Architecture & Navigation**
 *   **Single MaterialApp Rule:** Never use nested `MaterialApp` widgets. It breaks the `Navigator` history and causes `Scaffold.geometryOf` exceptions.
-*   **Global Provider Placement:** Use `ChangeNotifierProvider` (for `AppState`) at the absolute root. Use `MaterialApp.builder` or wrap the `home` widget to inject `Bloc` providers so they are accessible to all dynamically pushed routes.
+*   **Global Provider Placement:** `MultiBlocProvider` must be placed **above** the `MaterialApp` (or at least outside the `Consumer<AppState>`/Builder that rebuilds on theme change). Placing them inside a builder that reacts to `AppState` changes causes them to reset/re-initialize on every theme switch, leading to connection drops and state loss.
 *   **AppMode Toggle:** Switching modes should update the global `AppState`. The UI reacts by switching the `home` widget of the `MaterialApp`, preserving the core engine state.
 
 #### **2. Linux Desktop Compatibility**
@@ -49,14 +49,24 @@ The application uses a **Global State Management** pattern to toggle between two
 *   **Self-Ping Debugging:** If connectivity fails, use a "Self-Ping" test (reaching the LAN IP from the server itself) to diagnose firewall blocks.
 
 #### **4. Responsive & Adaptive UI**
-*   **Adaptive Navigation:** The app uses `NavigationRail` for screens wider than 700px (Desktop) and `BottomAppBar` for mobile. This is handled dynamically in `MainPage`.
-*   **Responsive Grids:** Dashboard and list views (Products, Transactions) use `LayoutBuilder` or `MediaQuery` to switch between single-column lists and multi-column grids based on screen width.
-*   **Split-View Transactions:** The `Kasir` page implements a split-view layout on desktop (> 900px) to show selection and checkout side-by-side.
+*   **Adaptive Navigation:** The app uses `NavigationRail` for screens wider than 700px (Desktop) and `BottomAppBar` for mobile.
+    *   **Rail Layout:** Avoid wrapping `NavigationRail` in complex scroll structures (`SingleChildScrollView` + `IntrinsicHeight` + `Expanded`). This causes circular layout dependencies. Place it directly in a `Row` with `crossAxisAlignment: CrossAxisAlignment.start`.
+*   **Responsive Grids (Grid Strategy):**
+    *   **Avoid:** `SliverGridDelegateWithFixedCrossAxisCount` + `childAspectRatio` (causes overflow on wide screens or huge items).
+    *   **Prefer:** `SliverGridDelegateWithMaxCrossAxisExtent` combined with a fixed `mainAxisExtent` (height). This ensures cards have a guaranteed safe height (e.g., 130px) regardless of how wide they stretch.
+*   **Scroll & Input Stability:** For static forms/settings, prefer `SingleChildScrollView` + `Column` over `ListView`. This avoids "infinite size" layout errors during complex rebuilds.
+
+#### **5. Theme Stability & Interpolation**
+*   **Interpolation Crashes:** To prevent `Failed to interpolate TextStyles` errors during theme switching:
+    *   **Parity:** `LightTheme` and `DarkTheme` must have identical property structures. If one defines `fontFamily` or `fontSize`, the other must too.
+    *   **Inheritance:** Do **NOT** use `inherit: false` indiscriminately. It breaks standard widgets (ListTile, Card). Instead, ensure both themes define the same base styles so Flutter can calculate the transition.
+*   **Input Decorator Safety:** Explicitly define `hintStyle`, `labelStyle`, `floatingLabelStyle`, and all borders (`disabledBorder`) in `InputDecorationTheme`. Missing properties can cause `Null check operator` errors in `InputDecorator` during the transitional frame of a theme switch.
 
 ### **Best Practices Before Commit/Build**
 1.  **Run Analysis:** `flutter analyze`. Fix all issues.
 2.  **Test Models:** `flutter test` to ensure database schema changes don't break logic.
 3.  **Clean Build:** `flutter clean && flutter build apk --release` for final delivery.
+4.  **UI Only Changes:** Do NOT trigger full builds (APK/Linux) if only modifying UI, styles, or assets to optimize development speed.
 
 ## 6. Deployment
 *   **Build Android:** `flutter build apk --release` (outputs to `build/app/outputs/flutter-apk/`).

@@ -14,14 +14,14 @@ class DarkTheme {
   DarkTheme(this.primaryColor);
 
   TextTheme get textTheme => TextTheme(
-    headlineLarge: TextStyle(fontSize: Dimens.dp32, fontWeight: FontWeight.bold, color: textSolidColor),
-    headlineMedium: TextStyle(fontSize: Dimens.dp24, fontWeight: FontWeight.w600, color: textSolidColor),
-    headlineSmall: TextStyle(fontSize: Dimens.dp20, fontWeight: FontWeight.w600, color: textSolidColor),
-    titleLarge: TextStyle(fontSize: Dimens.dp16, fontWeight: FontWeight.w600, color: textSolidColor),
-    titleMedium: TextStyle(fontSize: Dimens.dp14, fontWeight: FontWeight.w600, color: textSolidColor),
-    bodyLarge: TextStyle(fontSize: Dimens.dp16, fontWeight: FontWeight.w500, color: textSolidColor),
-    bodyMedium: TextStyle(fontSize: Dimens.dp14, fontWeight: FontWeight.normal, color: textSolidColor),
-    labelMedium: TextStyle(fontSize: Dimens.dp12, fontWeight: FontWeight.w500, color: textDisabledColor),
+    headlineLarge: TextStyle(fontSize: Dimens.dp32, fontWeight: FontWeight.bold, color: textSolidColor, fontFamily: 'Poppins'),
+    headlineMedium: TextStyle(fontSize: Dimens.dp24, fontWeight: FontWeight.w600, color: textSolidColor, fontFamily: 'Poppins'),
+    headlineSmall: TextStyle(fontSize: Dimens.dp20, fontWeight: FontWeight.w600, color: textSolidColor, fontFamily: 'Poppins'),
+    titleLarge: TextStyle(fontSize: Dimens.dp16, fontWeight: FontWeight.w600, color: textSolidColor, fontFamily: 'Poppins'),
+    titleMedium: TextStyle(fontSize: Dimens.dp14, fontWeight: FontWeight.w600, color: textSolidColor, fontFamily: 'Poppins'),
+    bodyLarge: TextStyle(fontSize: Dimens.dp16, fontWeight: FontWeight.w500, color: textSolidColor, fontFamily: 'Poppins'),
+    bodyMedium: TextStyle(fontSize: Dimens.dp14, fontWeight: FontWeight.normal, color: textSolidColor, fontFamily: 'Poppins'),
+    labelMedium: TextStyle(fontSize: Dimens.dp12, fontWeight: FontWeight.w500, color: textDisabledColor, fontFamily: 'Poppins'),
   );
 
   ThemeData get theme {
@@ -58,15 +58,46 @@ class DarkTheme {
       inputDecorationTheme: InputDecorationTheme(
         fillColor: inputColor,
         filled: true,
-        hintStyle: textTheme.labelMedium,
-        contentPadding: const EdgeInsets.symmetric(horizontal: Dimens.defaultSize, vertical: Dimens.dp12),
+        iconColor: textDisabledColor,
+        hintStyle: TextStyle(
+          fontSize: Dimens.dp12,
+          fontWeight: FontWeight.w500,
+          color: textDisabledColor,
+          fontFamily: 'Poppins',
+        ),
+        labelStyle: TextStyle(
+          fontSize: Dimens.dp14,
+          fontWeight: FontWeight.normal,
+          color: textSolidColor,
+          fontFamily: 'Poppins',
+        ),
+        floatingLabelStyle: TextStyle(
+          fontSize: Dimens.dp12,
+          fontWeight: FontWeight.w500,
+          color: primaryColor,
+          fontFamily: 'Poppins',
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: Dimens.defaultSize, vertical: Dimens.dp12),
         enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(Dimens.radius),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(Dimens.radius),
           borderSide: BorderSide(color: borderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(Dimens.radius),
           borderSide: BorderSide(color: primaryColor),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(Dimens.radius),
+          borderSide: BorderSide(color: errorColor),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(Dimens.radius),
+          borderSide: BorderSide(color: errorColor),
         ),
       ),
       navigationRailTheme: NavigationRailThemeData(
@@ -81,6 +112,41 @@ class DarkTheme {
         color: borderColor,
         thickness: 1,
         space: 1,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Dimens.radius),
+          ),
+          backgroundColor: primaryColor,
+          foregroundColor: textSolidColor,
+          textStyle: textTheme.titleMedium,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Dimens.radius),
+          ),
+          side: BorderSide(color: primaryColor),
+          foregroundColor: primaryColor,
+          textStyle: textTheme.titleMedium,
+        ),
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: primaryColor,
+        selectedLabelStyle: textTheme.labelMedium?.copyWith(
+          fontSize: Dimens.dp10,
+          color: primaryColor,
+          fontFamily: 'Poppins',
+        ),
+        unselectedLabelStyle: textTheme.labelMedium?.copyWith(
+          fontSize: Dimens.dp10,
+          color: textDisabledColor,
+          fontFamily: 'Poppins',
+        ),
       ),
     );
   }
