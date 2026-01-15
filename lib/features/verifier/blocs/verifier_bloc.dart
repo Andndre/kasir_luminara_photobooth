@@ -18,6 +18,8 @@ class ConnectToServer extends VerifierEvent {
   const ConnectToServer(this.ip, this.port);
 }
 
+class DisconnectFromServer extends VerifierEvent {}
+
 class RefreshQueue extends VerifierEvent {}
 
 class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
@@ -26,6 +28,7 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
 
   VerifierBloc() : super(const VerifierState()) {
     on<ConnectToServer>(_onConnect);
+    on<DisconnectFromServer>(_onDisconnect);
     on<RefreshQueue>(_onRefreshQueue);
   }
 
@@ -51,6 +54,12 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
     } catch (e) {
       emit(state.copyWith(status: VerifierStatus.error, errorMessage: e.toString()));
     }
+  }
+
+  Future<void> _onDisconnect(DisconnectFromServer event, Emitter<VerifierState> emit) async {
+    _eventSubscription?.cancel();
+    service.disconnect();
+    emit(const VerifierState(status: VerifierStatus.disconnected));
   }
 
   Future<void> _onRefreshQueue(RefreshQueue event, Emitter<VerifierState> emit) async {
