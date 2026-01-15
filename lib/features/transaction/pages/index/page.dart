@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/core/services/server_service.dart';
 import 'package:luminara_photobooth/model/transaksi.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -16,6 +18,7 @@ class TransactionPage extends StatefulWidget {
 class _TransactionPageState extends State<TransactionPage> {
   List<Transaksi> _transactions = [];
   bool _isLoading = true;
+  StreamSubscription<String>? _eventSubscription;
   
   // Filter State
   DateTimeRange? _selectedDateRange;
@@ -29,6 +32,18 @@ class _TransactionPageState extends State<TransactionPage> {
     final now = DateTime.now();
     _selectedDateRange = DateTimeRange(start: now, end: now);
     _loadTransactions();
+
+    _eventSubscription = ServerService().appEventStream.listen((event) {
+      if (event == 'REFRESH_TRANSACTIONS') {
+        _loadTransactions();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _eventSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadTransactions() async {

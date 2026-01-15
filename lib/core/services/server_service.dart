@@ -17,6 +17,10 @@ class ServerService {
   final _clientCountController = StreamController<int>.broadcast();
   Stream<int> get clientCountStream => _clientCountController.stream;
   int get clientCount => _clients.length;
+
+  // Internal App Events
+  final _appEventController = StreamController<String>.broadcast();
+  Stream<String> get appEventStream => _appEventController.stream;
   
   bool get isRunning => _server != null;
 
@@ -75,6 +79,7 @@ class ServerService {
       );
 
       broadcast('TICKET_REDEEMED');
+      _appEventController.add('REFRESH_TRANSACTIONS');
 
       return {
         'valid': true,
