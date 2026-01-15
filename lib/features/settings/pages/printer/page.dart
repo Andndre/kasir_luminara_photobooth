@@ -217,116 +217,118 @@ class _PrinterPageState extends State<PrinterPage> {
             ),
           ],
         ),
-        body: Column(
-          children: [
-            // Connection Status
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              color: _isConnected ? Colors.green[100] : Colors.red[100],
-              child: Row(
-                children: [
-                  Icon(
-                    _isConnected
-                        ? Icons.bluetooth_connected
-                        : Icons.bluetooth_disabled,
-                    color: _isConnected ? Colors.green : Colors.red,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _isConnected
-                          ? 'Connected to: ${PrinterHelper.connectedPrinterName ?? "Unknown"}'
-                          : 'Not connected to any printer',
-                      style: TextStyle(
-                        color: _isConnected
-                            ? Colors.green[800]
-                            : Colors.red[800],
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  if (_isConnected)
-                    TextButton(
-                      onPressed: _disconnectPrinter,
-                      child: const Text('Disconnect'),
-                    ),
-                ],
-              ),
-            ),
-
-            // Test Print Button
-            if (_isConnected)
-              Padding(
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Connection Status
+              Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(16),
+                color: _isConnected ? Colors.green[100] : Colors.red[100],
                 child: Row(
                   children: [
+                    Icon(
+                      _isConnected
+                          ? Icons.bluetooth_connected
+                          : Icons.bluetooth_disabled,
+                      color: _isConnected ? Colors.green : Colors.red,
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _printTest,
-                        icon: const Icon(Icons.print),
-                        label: const Text('Print Test Receipt'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.all(16),
+                      child: Text(
+                        _isConnected
+                            ? 'Connected to: ${PrinterHelper.connectedPrinterName ?? "Unknown"}'
+                            : 'Not connected to any printer',
+                        style: TextStyle(
+                          color: _isConnected
+                              ? Colors.green[800]
+                              : Colors.red[800],
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
+                    if (_isConnected)
+                      TextButton(
+                        onPressed: _disconnectPrinter,
+                        child: const Text('Disconnect'),
+                      ),
                   ],
                 ),
               ),
-
-            // Device List
-            Expanded(
-              child: _isScanning
-                  ? const Center(child: CircularProgressIndicator())
-                  : _devices.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No paired bluetooth devices found.\nPlease pair your printer first.',
-                        textAlign: TextAlign.center,
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: _devices.length,
-                      itemBuilder: (context, index) {
-                        final device = _devices[index];
-                        final isCurrentDevice =
-                            PrinterHelper.connectedPrinterName == device.name;
-
-                        return ListTile(
-                          leading: Icon(
-                            Icons.print,
-                            color: isCurrentDevice ? Colors.green : null,
+  
+              // Test Print Button
+              if (_isConnected)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _printTest,
+                          icon: const Icon(Icons.print),
+                          label: const Text('Print Test Receipt'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.all(16),
                           ),
-                          title: Text(
-                            device.name,
-                            style: TextStyle(
-                              fontWeight: isCurrentDevice
-                                  ? FontWeight.bold
-                                  : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+  
+              // Device List
+              Expanded(
+                child: _isScanning
+                    ? const Center(child: CircularProgressIndicator())
+                    : _devices.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No paired bluetooth devices found.\nPlease pair your printer first.',
+                          textAlign: TextAlign.center,
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _devices.length,
+                        itemBuilder: (context, index) {
+                          final device = _devices[index];
+                          final isCurrentDevice =
+                              PrinterHelper.connectedPrinterName == device.name;
+  
+                          return ListTile(
+                            leading: Icon(
+                              Icons.print,
                               color: isCurrentDevice ? Colors.green : null,
                             ),
-                          ),
-                          subtitle: Text(
-                            device.macAdress,
-                            style: TextStyle(
-                              color: isCurrentDevice ? Colors.green[600] : null,
+                            title: Text(
+                              device.name,
+                              style: TextStyle(
+                                fontWeight: isCurrentDevice
+                                    ? FontWeight.bold
+                                    : null,
+                                color: isCurrentDevice ? Colors.green : null,
+                              ),
                             ),
-                          ),
-                          trailing: isCurrentDevice
-                              ? const Icon(
-                                  Icons.check_circle,
-                                  color: Colors.green,
-                                )
-                              : null,
-                          onTap: isCurrentDevice
-                              ? null
-                              : () => _connectToPrinter(device),
-                        );
-                      },
-                    ),
-            ),
-          ],
+                            subtitle: Text(
+                              device.macAdress,
+                              style: TextStyle(
+                                color: isCurrentDevice ? Colors.green[600] : null,
+                              ),
+                            ),
+                            trailing: isCurrentDevice
+                                ? const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                  )
+                                : null,
+                            onTap: isCurrentDevice
+                                ? null
+                                : () => _connectToPrinter(device),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

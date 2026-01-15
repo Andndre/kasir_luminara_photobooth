@@ -22,8 +22,14 @@ void main() {
       final uuid = Transaksi.generateUuid();
       final t = Transaksi(
         uuid: uuid,
-        productName: 'Test Package',
-        productPrice: 10000,
+        items: [
+          TransaksiItem(
+            productName: 'Test Package',
+            productPrice: 10000,
+            quantity: 1,
+          ),
+        ],
+        totalPrice: 10000,
         createdAt: DateTime.now(),
       );
 

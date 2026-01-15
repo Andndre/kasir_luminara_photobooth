@@ -1,8 +1,5 @@
-import 'package:flutter/services.dart';
-import 'package:print_bluetooth_thermal/post_code.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart' as esc;
-import 'package:image/image.dart' as image_lib;
 import 'package:intl/intl.dart';
 
 import 'package:luminara_photobooth/model/transaksi.dart';

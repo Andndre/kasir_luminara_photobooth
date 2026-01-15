@@ -66,44 +66,46 @@ class _KasirState extends State<Kasir> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(title: const Text('Transaksi Photobooth')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: isDesktop
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Left: Product Selection
-                        Expanded(flex: 2, child: _buildProductSection()),
-                        const SizedBox(width: 32),
-                        // Right: Checkout & Details
-                        SizedBox(
-                          width: 450,
-                          child: Card(
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                Dimens.radius,
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: isDesktop
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Left: Product Selection
+                          Expanded(flex: 2, child: _buildProductSection()),
+                          const SizedBox(width: 32),
+                          // Right: Checkout & Details
+                          SizedBox(
+                            width: 450,
+                            child: Card(
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  Dimens.radius,
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: _buildCheckoutSection(),
                               ),
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(24.0),
-                              child: _buildCheckoutSection(),
-                            ),
                           ),
-                        ),
-                      ],
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: _buildProductSection()),
-                        const SizedBox(height: 16),
-                        _buildCheckoutSection(),
-                      ],
-                    ),
-            ),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: _buildProductSection()),
+                          const SizedBox(height: 16),
+                          _buildCheckoutSection(),
+                        ],
+                      ),
+              ),
+      ),
     );
   }
 
@@ -241,6 +243,10 @@ class _KasirState extends State<Kasir> {
           ),
           const SizedBox(height: 12),
           SegmentedButton<String>(
+            style: SegmentedButton.styleFrom(
+              selectedBackgroundColor: theme.primaryColor,
+              selectedForegroundColor: Colors.white,
+            ),
             segments: const [
               ButtonSegment(
                 value: 'TUNAI',

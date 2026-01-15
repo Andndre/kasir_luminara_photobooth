@@ -88,64 +88,66 @@ class _ProductPageState extends State<ProductPage> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SearchTextInput(
-              hintText: 'Cari paket...',
-              onChanged: _searchProducts,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SearchTextInput(
+                hintText: 'Cari paket...',
+                onChanged: _searchProducts,
+              ),
             ),
-          ),
-          Expanded(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : filteredProducts.isEmpty
-                    ? const Center(child: Text('Tidak ada paket.'))
-                    : RefreshIndicator(
-                        onRefresh: _loadProducts,
-                        child: isDesktop
-                            ? GridView.builder(
-                                padding: const EdgeInsets.all(16),
-                                gridDelegate:
-                                    const SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 400,
-                                  crossAxisSpacing: 16,
-                                  mainAxisSpacing: 16,
-                                  mainAxisExtent: 130,
+            Expanded(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : filteredProducts.isEmpty
+                      ? const Center(child: Text('Tidak ada paket.'))
+                      : RefreshIndicator(
+                          onRefresh: _loadProducts,
+                          child: isDesktop
+                              ? GridView.builder(
+                                  padding: const EdgeInsets.all(16),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 400,
+                                    crossAxisSpacing: 16,
+                                    mainAxisSpacing: 16,
+                                    mainAxisExtent: 130,
+                                  ),
+                                  itemCount: filteredProducts.length,
+                                  itemBuilder: (context, index) {
+                                    final product = filteredProducts[index];
+                                    return _ItemSection(
+                                      product: product,
+                                      onEdit: () =>
+                                          _showEditProductDialog(product),
+                                      onDelete: () => _deleteProduct(product),
+                                      formatCurrency: _formatCurrency,
+                                    );
+                                  },
+                                )
+                              : ListView.separated(
+                                  padding: const EdgeInsets.all(16.0),
+                                  itemBuilder: (context, index) {
+                                    final product = filteredProducts[index];
+                                    return _ItemSection(
+                                      product: product,
+                                      onEdit: () =>
+                                          _showEditProductDialog(product),
+                                      onDelete: () => _deleteProduct(product),
+                                      formatCurrency: _formatCurrency,
+                                    );
+                                  },
+                                  separatorBuilder: (context, index) =>
+                                      const SizedBox(height: 12),
+                                  itemCount: filteredProducts.length,
                                 ),
-                                itemCount: filteredProducts.length,
-                                itemBuilder: (context, index) {
-                                  final product = filteredProducts[index];
-                                  return _ItemSection(
-                                    product: product,
-                                    onEdit: () =>
-                                        _showEditProductDialog(product),
-                                    onDelete: () => _deleteProduct(product),
-                                    formatCurrency: _formatCurrency,
-                                  );
-                                },
-                              )
-                            : ListView.separated(
-                                padding: const EdgeInsets.all(16.0),
-                                itemBuilder: (context, index) {
-                                  final product = filteredProducts[index];
-                                  return _ItemSection(
-                                    product: product,
-                                    onEdit: () =>
-                                        _showEditProductDialog(product),
-                                    onDelete: () => _deleteProduct(product),
-                                    formatCurrency: _formatCurrency,
-                                  );
-                                },
-                                separatorBuilder: (context, index) =>
-                                    const SizedBox(height: 12),
-                                itemCount: filteredProducts.length,
-                              ),
-                      ),
-          ),
-        ],
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }

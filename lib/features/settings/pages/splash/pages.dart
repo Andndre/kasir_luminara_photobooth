@@ -331,72 +331,74 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo with subtle animation
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                child: Image.asset(
-                  MainAssets.logo,
-                  width: MediaQuery.of(context).size.width / 4,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo with subtle animation
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  child: Image.asset(
+                    MainAssets.logo,
+                    width: MediaQuery.of(context).size.width / 4,
+                  ),
                 ),
-              ),
-
-              Dimens.defaultSize.height,
-
-              // App title
-              HeadingText(
-                'Luminara Photobooth',
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.headlineLarge?.color,
-                  fontSize: Dimens.dp32,
-                  fontWeight: FontWeight.bold,
+  
+                Dimens.defaultSize.height,
+  
+                // App title
+                HeadingText(
+                  'Luminara Photobooth',
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.headlineLarge?.color,
+                    fontSize: Dimens.dp32,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-
-              const SizedBox(height: 40),
-
-              // Progress indicator and status
-              Column(
-                children: [
-                  SizedBox(
-                    width: 160,
-                    child: LinearProgressIndicator(
-                      backgroundColor: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(Dimens.radius),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.primary,
+  
+                const SizedBox(height: 40),
+  
+                // Progress indicator and status
+                Column(
+                  children: [
+                    SizedBox(
+                      width: 160,
+                      child: LinearProgressIndicator(
+                        backgroundColor: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(Dimens.radius),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primary,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _statusText,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  if (_versionInfo.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
                     Text(
-                      _versionInfo,
+                      _statusText,
                       style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
                       textAlign: TextAlign.center,
                     ),
+                    if (_versionInfo.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _versionInfo,
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

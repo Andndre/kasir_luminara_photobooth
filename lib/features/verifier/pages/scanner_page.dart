@@ -17,20 +17,22 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Scan Tiket')),
-      body: MobileScanner(
-        onDetect: (capture) async {
-          if (_isProcessing) return;
-          
-          final List<Barcode> barcodes = capture.barcodes;
-          for (final barcode in barcodes) {
-            if (barcode.rawValue != null) {
-              setState(() => _isProcessing = true);
-              await _verifyTicket(barcode.rawValue!);
-              // _isProcessing reset is handled in _showResult or catch block
-              break;
+      body: SafeArea(
+        child: MobileScanner(
+          onDetect: (capture) async {
+            if (_isProcessing) return;
+            
+            final List<Barcode> barcodes = capture.barcodes;
+            for (final barcode in barcodes) {
+              if (barcode.rawValue != null) {
+                setState(() => _isProcessing = true);
+                await _verifyTicket(barcode.rawValue!);
+                // _isProcessing reset is handled in _showResult or catch block
+                break;
+              }
             }
-          }
-        },
+          },
+        ),
       ),
     );
   }

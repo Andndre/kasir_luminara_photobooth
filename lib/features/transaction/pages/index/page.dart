@@ -173,70 +173,72 @@ class _TransactionPageState extends State<TransactionPage> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildSummaryCard(theme),
-          _buildFilterHeader(theme),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _transactions.isEmpty
-                    ? const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.receipt_long_outlined,
-                              size: 64,
-                              color: Colors.grey,
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              'Belum ada transaksi',
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadTransactions,
-                        child: isDesktop
-                            ? GridView.builder(
-                                padding: const EdgeInsets.all(16),
-                                gridDelegate:
-                                    const SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 400,
-                                  crossAxisSpacing: 16,
-                                  mainAxisSpacing: 16,
-                                  mainAxisExtent: 130,
-                                ),
-                                itemCount: _transactions.length,
-                                itemBuilder: (context, index) {
-                                  final transaction = _transactions[index];
-                                  return _ItemSection(
-                                    transaksi: transaction,
-                                    onDelete: () =>
-                                        _deleteTransaction(transaction),
-                                  );
-                                },
-                              )
-                            : ListView.builder(
-                                padding: const EdgeInsets.all(8),
-                                itemCount: _transactions.length,
-                                itemBuilder: (context, index) {
-                                  final transaction = _transactions[index];
-                                  return _ItemSection(
-                                    transaksi: transaction,
-                                    onDelete: () =>
-                                        _deleteTransaction(transaction),
-                                  );
-                                },
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildSummaryCard(theme),
+            _buildFilterHeader(theme),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _transactions.isEmpty
+                      ? const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.receipt_long_outlined,
+                                size: 64,
+                                color: Colors.grey,
                               ),
-                      ),
-          ),
-        ],
+                              SizedBox(height: 16),
+                              Text(
+                                'Belum ada transaksi',
+                                style:
+                                    TextStyle(fontSize: 16, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadTransactions,
+                          child: isDesktop
+                              ? GridView.builder(
+                                  padding: const EdgeInsets.all(16),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 400,
+                                    crossAxisSpacing: 16,
+                                    mainAxisSpacing: 16,
+                                    mainAxisExtent: 130,
+                                  ),
+                                  itemCount: _transactions.length,
+                                  itemBuilder: (context, index) {
+                                    final transaction = _transactions[index];
+                                    return _ItemSection(
+                                      transaksi: transaction,
+                                      onDelete: () =>
+                                          _deleteTransaction(transaction),
+                                    );
+                                  },
+                                )
+                              : ListView.builder(
+                                  padding: const EdgeInsets.all(8),
+                                  itemCount: _transactions.length,
+                                  itemBuilder: (context, index) {
+                                    final transaction = _transactions[index];
+                                    return _ItemSection(
+                                      transaksi: transaction,
+                                      onDelete: () =>
+                                          _deleteTransaction(transaction),
+                                    );
+                                  },
+                                ),
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }

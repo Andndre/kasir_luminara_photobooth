@@ -20,84 +20,86 @@ class ClientHomePage extends StatelessWidget {
         elevation: 0,
         foregroundColor: theme.appBarTheme.foregroundColor,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildWelcomeSection(),
-            const SizedBox(height: 32),
-            Text(
-              'Menu Cepat',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: theme.textTheme.titleLarge?.color,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildWelcomeSection(),
+              const SizedBox(height: 32),
+              Text(
+                'Menu Cepat',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: theme.textTheme.titleLarge?.color,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 200,
-                mainAxisExtent: 160,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: 4,
-              itemBuilder: (context, index) {
-                final items = [
-                  {
-                    'title': 'Scan Tiket',
-                    'icon': Icons.qr_code_scanner,
-                    'color': Colors.blue,
-                    'onTap': () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TicketScannerPage(),
-                        ),
-                      );
+              const SizedBox(height: 16),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 200,
+                  mainAxisExtent: 160,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                itemCount: 4,
+                itemBuilder: (context, index) {
+                  final items = [
+                    {
+                      'title': 'Scan Tiket',
+                      'icon': Icons.qr_code_scanner,
+                      'color': Colors.blue,
+                      'onTap': () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TicketScannerPage(),
+                          ),
+                        );
+                      },
                     },
-                  },
-                  {
-                    'title': 'Antrean Live',
-                    'icon': Icons.list_alt,
-                    'color': Colors.orange,
-                    'onTap': () => context
-                        .read<BottomNavBloc>()
-                        .add(TapBottomNavEvent(1)),
-                  },
-                  {
-                    'title': 'Status Koneksi',
-                    'icon': Icons.wifi,
-                    'color': Colors.green,
-                    'onTap': () => context
-                        .read<BottomNavBloc>()
-                        .add(TapBottomNavEvent(2)),
-                  },
-                  {
-                    'title': 'Pengaturan',
-                    'icon': Icons.settings,
-                    'color': Colors.grey,
-                    'onTap': () => context
-                        .read<BottomNavBloc>()
-                        .add(TapBottomNavEvent(3)),
-                  },
-                ];
-
-                final item = items[index];
-                return _buildMenuCard(
-                  context,
-                  title: item['title'] as String,
-                  icon: item['icon'] as IconData,
-                  color: item['color'] as Color,
-                  onTap: item['onTap'] as VoidCallback,
-                );
-              },
-            ),
-          ],
+                    {
+                      'title': 'Antrean Live',
+                      'icon': Icons.list_alt,
+                      'color': Colors.orange,
+                      'onTap': () => context
+                          .read<BottomNavBloc>()
+                          .add(TapBottomNavEvent(1)),
+                    },
+                    {
+                      'title': 'Status Koneksi',
+                      'icon': Icons.wifi,
+                      'color': Colors.green,
+                      'onTap': () => context
+                          .read<BottomNavBloc>()
+                          .add(TapBottomNavEvent(2)),
+                    },
+                    {
+                      'title': 'Pengaturan',
+                      'icon': Icons.settings,
+                      'color': Colors.grey,
+                      'onTap': () => context
+                          .read<BottomNavBloc>()
+                          .add(TapBottomNavEvent(3)),
+                    },
+                  ];
+  
+                  final item = items[index];
+                  return _buildMenuCard(
+                    context,
+                    title: item['title'] as String,
+                    icon: item['icon'] as IconData,
+                    color: item['color'] as Color,
+                    onTap: item['onTap'] as VoidCallback,
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

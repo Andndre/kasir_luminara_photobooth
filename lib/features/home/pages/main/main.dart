@@ -45,86 +45,87 @@ class MainPage extends StatelessWidget {
       builder: (context, index) {
         final safeIndex = index >= pages.length ? 0 : index;
 
-        return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (isDesktop)
-                NavigationRail(
+                return Scaffold(
                   backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                  selectedIndex: safeIndex,
-                  onDestinationSelected: (i) =>
-                      context.read<BottomNavBloc>().add(TapBottomNavEvent(i)),
-                  labelType: NavigationRailLabelType.all,
-                  indicatorColor: AppColors.primary,
-                  selectedIconTheme: const IconThemeData(color: Colors.white),
-                  unselectedIconTheme:
-                      const IconThemeData(color: AppColors.textDisabled),
-                  leading: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Image.asset(MainAssets.logo, width: 40),
-                  ),
-                  trailing: Padding(
-                    padding: const EdgeInsets.only(top: 24, bottom: 24),
-                    child: FloatingActionButton(
-                      onPressed: () => _handleFabAction(context, mode),
-                      foregroundColor: Colors.white,
-                      child: Icon(mode == AppMode.server
-                          ? Icons.point_of_sale
-                          : Icons.qr_code_scanner),
+                  body: SafeArea(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (isDesktop)
+                          NavigationRail(
+                            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                            selectedIndex: safeIndex,
+                            onDestinationSelected: (i) =>
+                                context.read<BottomNavBloc>().add(TapBottomNavEvent(i)),
+                            labelType: NavigationRailLabelType.all,
+                            indicatorColor: AppColors.primary,
+                            selectedIconTheme: const IconThemeData(color: Colors.white),
+                            unselectedIconTheme:
+                                const IconThemeData(color: AppColors.textDisabled),
+                            leading: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Image.asset(MainAssets.logo, width: 40),
+                            ),
+                            trailing: Padding(
+                              padding: const EdgeInsets.only(top: 24, bottom: 24),
+                              child: FloatingActionButton(
+                                onPressed: () => _handleFabAction(context, mode),
+                                foregroundColor: Colors.white,
+                                child: Icon(mode == AppMode.server
+                                    ? Icons.point_of_sale
+                                    : Icons.qr_code_scanner),
+                              ),
+                            ),
+                            destinations: mode == AppMode.server
+                                ? [
+                                    const NavigationRailDestination(
+                                      icon: Icon(AppIcons.storefront),
+                                      label: Text('Beranda'),
+                                    ),
+                                    const NavigationRailDestination(
+                                      icon: Icon(AppIcons.receipt),
+                                      label: Text('Transaksi'),
+                                    ),
+                                    const NavigationRailDestination(
+                                      icon: Icon(AppIcons.product),
+                                      label: Text('Produk'),
+                                    ),
+                                    const NavigationRailDestination(
+                                      icon: Icon(AppIcons.settings),
+                                      label: Text('Setelan'),
+                                    ),
+                                  ]
+                                : [
+                                    const NavigationRailDestination(
+                                      icon: Icon(AppIcons.storefront),
+                                      label: Text('Beranda'),
+                                    ),
+                                    const NavigationRailDestination(
+                                      icon: Icon(Icons.list_alt),
+                                      label: Text('Antrean'),
+                                    ),
+                                    const NavigationRailDestination(
+                                      icon: Icon(Icons.link),
+                                      label: Text('Koneksi'),
+                                    ),
+                                    const NavigationRailDestination(
+                                      icon: Icon(Icons.settings),
+                                      label: Text('Setelan'),
+                                    ),
+                                  ],
+                          ),
+                        Expanded(
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1200),
+                              child: pages[safeIndex],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  destinations: mode == AppMode.server
-                      ? [
-                          const NavigationRailDestination(
-                            icon: Icon(AppIcons.storefront),
-                            label: Text('Beranda'),
-                          ),
-                          const NavigationRailDestination(
-                            icon: Icon(AppIcons.receipt),
-                            label: Text('Transaksi'),
-                          ),
-                          const NavigationRailDestination(
-                            icon: Icon(AppIcons.product),
-                            label: Text('Produk'),
-                          ),
-                          const NavigationRailDestination(
-                            icon: Icon(AppIcons.settings),
-                            label: Text('Setelan'),
-                          ),
-                        ]
-                      : [
-                          const NavigationRailDestination(
-                            icon: Icon(AppIcons.storefront),
-                            label: Text('Beranda'),
-                          ),
-                          const NavigationRailDestination(
-                            icon: Icon(Icons.list_alt),
-                            label: Text('Antrean'),
-                          ),
-                          const NavigationRailDestination(
-                            icon: Icon(Icons.link),
-                            label: Text('Koneksi'),
-                          ),
-                          const NavigationRailDestination(
-                            icon: Icon(Icons.settings),
-                            label: Text('Setelan'),
-                          ),
-                        ],
-                ),
-              Expanded(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1200),
-                    child: pages[safeIndex],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          bottomNavigationBar: isDesktop
-              ? null
+                  bottomNavigationBar: isDesktop              ? null
               : BottomAppBar(
                   shape: const CircularNotchedRectangle(),
                   clipBehavior: Clip.antiAlias,

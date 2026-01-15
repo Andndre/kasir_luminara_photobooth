@@ -11,39 +11,41 @@ class ModeSelectionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Select Mode',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.headlineMedium?.color,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Select Mode',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.headlineMedium?.color,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 48),
-              _ModeCard(
-                title: 'SERVER (KASIR)',
-                icon: Icons.computer,
-                description: 'Manage transactions, print receipts, and host local server.',
-                onTap: () {
-                  context.read<AppState>().setMode(AppMode.server);
-                },
-              ),
-              const SizedBox(height: 24),
-              _ModeCard(
-                title: 'CLIENT (VERIFIER)',
-                icon: Icons.qr_code_scanner,
-                description: 'Scan tickets and verify entry.',
-                onTap: () {
-                  context.read<AppState>().setMode(AppMode.client);
-                },
-              ),
-            ],
+                const SizedBox(height: 48),
+                _ModeCard(
+                  title: 'SERVER (KASIR)',
+                  icon: Icons.computer,
+                  description: 'Manage transactions, print receipts, and host local server.',
+                  onTap: () {
+                    context.read<AppState>().setMode(AppMode.server);
+                  },
+                ),
+                const SizedBox(height: 24),
+                _ModeCard(
+                  title: 'CLIENT (VERIFIER)',
+                  icon: Icons.qr_code_scanner,
+                  description: 'Scan tickets and verify entry.',
+                  onTap: () {
+                    context.read<AppState>().setMode(AppMode.client);
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
