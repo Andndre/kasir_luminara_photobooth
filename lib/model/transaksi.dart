@@ -2,11 +2,44 @@ import 'package:luminara_photobooth/core/data/db.dart';
 import 'dart:math';
 import 'package:sqflite/sqflite.dart';
 
+class TransaksiItem {
+  final int? id;
+  final String productName;
+  final int productPrice;
+  final int quantity;
+
+  TransaksiItem({
+    this.id,
+    required this.productName,
+    required this.productPrice,
+    required this.quantity,
+  });
+
+  Map<String, dynamic> toMap(String transactionUuid) {
+    return {
+      'transaction_uuid': transactionUuid,
+      'product_name': productName,
+      'product_price': productPrice,
+      'quantity': quantity,
+    };
+  }
+
+  factory TransaksiItem.fromMap(Map<String, dynamic> map) {
+    return TransaksiItem(
+      id: map['id'],
+      productName: map['product_name'],
+      productPrice: map['product_price'],
+      quantity: map['quantity'],
+    );
+  }
+}
+
 class Transaksi {
   final String uuid;
   final String? customerName;
-  final String productName;
-  final int productPrice;
+  final List<TransaksiItem> items;
+  final int totalPrice;
+  final String paymentMethod;
   final String status;
   final DateTime createdAt;
   final DateTime? redeemedAt;
@@ -14,8 +47,9 @@ class Transaksi {
   Transaksi({
     required this.uuid,
     this.customerName,
-    required this.productName,
-    required this.productPrice,
+    required this.items,
+    required this.totalPrice,
+    this.paymentMethod = 'TUNAI',
     this.status = 'PAID',
     required this.createdAt,
     this.redeemedAt,
@@ -25,33 +59,46 @@ class Transaksi {
     return {
       'uuid': uuid,
       'customer_name': customerName,
-      'product_name': productName,
-      'product_price': productPrice,
+      'total_price': totalPrice,
+      'payment_method': paymentMethod,
       'status': status,
       'created_at': createdAt.toIso8601String(),
       'redeemed_at': redeemedAt?.toIso8601String(),
     };
   }
 
-  factory Transaksi.fromMap(Map<String, dynamic> map) {
+  factory Transaksi.fromMap(Map<String, dynamic> map, List<TransaksiItem> items) {
     return Transaksi(
       uuid: map['uuid'],
       customerName: map['customer_name'],
-      productName: map['product_name'],
-      productPrice: map['product_price'],
+      items: items,
+      totalPrice: map['total_price'] ?? 0,
+      paymentMethod: map['payment_method'] ?? 'TUNAI',
       status: map['status'],
       createdAt: DateTime.parse(map['created_at']),
-      redeemedAt: map['redeemed_at'] != null ? DateTime.parse(map['redeemed_at']) : null,
+      redeemedAt:
+          map['redeemed_at'] != null ? DateTime.parse(map['redeemed_at']) : null,
     );
   }
 
   static Future<void> createTransaksi(Transaksi transaksi) async {
     final db = await getDatabase();
-    await db.insert(
-      'transactions',
-      transaksi.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.transaction((txn) async {
+      // 1. Insert Transaction header
+      await txn.insert(
+        'transactions',
+        transaksi.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      // 2. Insert Items
+      for (var item in transaksi.items) {
+        await txn.insert(
+          'transaction_items',
+          item.toMap(transaksi.uuid),
+        );
+      }
+    });
   }
 
   static Future<List<Transaksi>> getAllTransaksi() async {
@@ -60,15 +107,23 @@ class Transaksi {
       'transactions',
       orderBy: 'created_at DESC',
     );
-    return List.generate(maps.length, (i) {
-      return Transaksi.fromMap(maps[i]);
-    });
+
+    List<Transaksi> list = [];
+    for (var map in maps) {
+      final itemsMap = await db.query(
+        'transaction_items',
+        where: 'transaction_uuid = ?',
+        whereArgs: [map['uuid']],
+      );
+      final items = itemsMap.map((i) => TransaksiItem.fromMap(i)).toList();
+      list.add(Transaksi.fromMap(map, items));
+    }
+    return list;
   }
 
   static Future<List<Transaksi>> getTransactionsByDateRange(
       DateTime start, DateTime end) async {
     final db = await getDatabase();
-    // Normalisasi start ke awal hari (00:00:00) dan end ke akhir hari (23:59:59)
     final startOfDay = DateTime(start.year, start.month, start.day, 0, 0, 0);
     final endOfDay = DateTime(end.year, end.month, end.day, 23, 59, 59);
 
@@ -78,8 +133,33 @@ class Transaksi {
       whereArgs: [startOfDay.toIso8601String(), endOfDay.toIso8601String()],
       orderBy: 'created_at DESC',
     );
-    return List.generate(maps.length, (i) {
-      return Transaksi.fromMap(maps[i]);
+
+    List<Transaksi> list = [];
+    for (var map in maps) {
+      final itemsMap = await db.query(
+        'transaction_items',
+        where: 'transaction_uuid = ?',
+        whereArgs: [map['uuid']],
+      );
+      final items = itemsMap.map((i) => TransaksiItem.fromMap(i)).toList();
+      list.add(Transaksi.fromMap(map, items));
+    }
+    return list;
+  }
+
+  static Future<void> deleteTransaksi(String uuid) async {
+    final db = await getDatabase();
+    await db.transaction((txn) async {
+      await txn.delete(
+        'transaction_items',
+        where: 'transaction_uuid = ?',
+        whereArgs: [uuid],
+      );
+      await txn.delete(
+        'transactions',
+        where: 'uuid = ?',
+        whereArgs: [uuid],
+      );
     });
   }
 

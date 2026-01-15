@@ -67,7 +67,8 @@ class _TransactionPageState extends State<TransactionPage> {
 
       setState(() {
         _transactions = transactions;
-        _totalIncome = transactions.fold(0, (sum, item) => sum + item.productPrice);
+        _totalIncome =
+            transactions.fold(0, (sum, item) => sum + item.totalPrice);
         _isLoading = false;
       });
     } catch (e) {
@@ -249,15 +250,16 @@ class _TransactionPageState extends State<TransactionPage> {
     try {
       final excel = Excel.createExcel();
       final sheet = excel['Laporan'];
-      
+
       // Headers
       sheet.appendRow([
         TextCellValue('UUID'),
         TextCellValue('Tanggal'),
         TextCellValue('Jam'),
         TextCellValue('Pelanggan'),
-        TextCellValue('Paket'),
-        TextCellValue('Harga'),
+        TextCellValue('Rincian Produk'),
+        TextCellValue('Harga Total'),
+        TextCellValue('Metode'),
         TextCellValue('Status'),
         TextCellValue('Waktu Redeem'),
       ]);
@@ -267,16 +269,20 @@ class _TransactionPageState extends State<TransactionPage> {
 
       // Data Rows
       for (var t in _transactions) {
+        final itemsSummary =
+            t.items.map((i) => '${i.productName} (x${i.quantity})').join(', ');
+
         sheet.appendRow([
           TextCellValue(t.uuid),
           TextCellValue(dateFormatter.format(t.createdAt)),
           TextCellValue(timeFormatter.format(t.createdAt)),
           TextCellValue(t.customerName ?? '-'),
-          TextCellValue(t.productName),
-          IntCellValue(t.productPrice),
+          TextCellValue(itemsSummary),
+          IntCellValue(t.totalPrice),
+          TextCellValue(t.paymentMethod),
           TextCellValue(t.status),
-          TextCellValue(t.redeemedAt != null 
-              ? '${dateFormatter.format(t.redeemedAt!)} ${timeFormatter.format(t.redeemedAt!)}' 
+          TextCellValue(t.redeemedAt != null
+              ? '${dateFormatter.format(t.redeemedAt!)} ${timeFormatter.format(t.redeemedAt!)}'
               : '-'),
         ]);
       }
@@ -436,8 +442,17 @@ class _TransactionPageState extends State<TransactionPage> {
     );
 
     if (confirmed == true) {
-      // Logic for delete is missing in current model, adding it to model if needed or skip
-      // For now, we focus on the core flow.
+      try {
+        await Transaksi.deleteTransaksi(transaksi.uuid);
+        if (mounted) {
+          SnackBarHelper.showSuccess(context, 'Transaksi berhasil dihapus');
+          _loadTransactions();
+        }
+      } catch (e) {
+        if (mounted) {
+          SnackBarHelper.showError(context, 'Gagal menghapus transaksi: $e');
+        }
+      }
     }
   }
 }
