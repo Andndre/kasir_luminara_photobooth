@@ -14,6 +14,10 @@ class ServerService {
   HttpServer? _server;
   final List<WebSocket> _clients = [];
   
+  final _clientCountController = StreamController<int>.broadcast();
+  Stream<int> get clientCountStream => _clientCountController.stream;
+  int get clientCount => _clients.length;
+  
   bool get isRunning => _server != null;
 
   Future<void> start({int port = 3000}) async {
@@ -87,7 +91,19 @@ class ServerService {
     _alfred!.get('/ws', (req, res) async {
       final socket = await WebSocketTransformer.upgrade(req);
       _clients.add(socket);
-      socket.listen((_) {}, onDone: () => _clients.remove(socket));
+      _clientCountController.add(_clients.length);
+      
+      socket.listen(
+        (_) {}, 
+        onDone: () {
+          _clients.remove(socket);
+          _clientCountController.add(_clients.length);
+        },
+        onError: (_) {
+          _clients.remove(socket);
+          _clientCountController.add(_clients.length);
+        }
+      );
     });
 
     _server = await _alfred!.listen(port, '0.0.0.0');
@@ -102,6 +118,7 @@ class ServerService {
       await client.close();
     }
     _clients.clear();
+    _clientCountController.add(0);
     print('Server stopped');
   }
 

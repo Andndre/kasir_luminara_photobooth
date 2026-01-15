@@ -17,14 +17,30 @@ class StartServer extends ServerEvent {}
 class StopServer extends ServerEvent {}
 class RefreshServerInfo extends ServerEvent {}
 
+class UpdateClientCount extends ServerEvent {
+  final int count;
+  const UpdateClientCount(this.count);
+
+  @override
+  List<Object> get props => [count];
+}
+
 class ServerBloc extends Bloc<ServerEvent, ServerState> {
   final ServerService _serverService = ServerService();
   final NetworkInfo _networkInfo = NetworkInfo();
+  StreamSubscription<int>? _clientCountSubscription;
 
   ServerBloc() : super(const ServerState()) {
     on<StartServer>(_onStartServer);
     on<StopServer>(_onStopServer);
     on<RefreshServerInfo>(_onRefreshServerInfo);
+    on<UpdateClientCount>(_onUpdateClientCount);
+  }
+
+  @override
+  Future<void> close() {
+    _clientCountSubscription?.cancel();
+    return super.close();
   }
 
   Future<void> _onStartServer(StartServer event, Emitter<ServerState> emit) async {
@@ -49,9 +65,16 @@ class ServerBloc extends Bloc<ServerEvent, ServerState> {
 
       await _serverService.start(port: state.port);
       
+      // Listen to client count changes
+      _clientCountSubscription?.cancel();
+      _clientCountSubscription = _serverService.clientCountStream.listen((count) {
+        add(UpdateClientCount(count));
+      });
+
       emit(state.copyWith(
         status: ServerStatus.online,
         ipAddress: ip ?? '127.0.0.1',
+        connectedClients: _serverService.clientCount,
       ));
     } catch (e) {
       emit(state.copyWith(
@@ -64,8 +87,9 @@ class ServerBloc extends Bloc<ServerEvent, ServerState> {
   Future<void> _onStopServer(StopServer event, Emitter<ServerState> emit) async {
     emit(state.copyWith(status: ServerStatus.stopping));
     try {
+      _clientCountSubscription?.cancel();
       await _serverService.stop();
-      emit(state.copyWith(status: ServerStatus.offline));
+      emit(state.copyWith(status: ServerStatus.offline, connectedClients: 0));
     } catch (e) {
       emit(state.copyWith(
         errorMessage: e.toString(),
@@ -74,5 +98,9 @@ class ServerBloc extends Bloc<ServerEvent, ServerState> {
   }
 
   void _onRefreshServerInfo(RefreshServerInfo event, Emitter<ServerState> emit) async {
+  }
+
+  void _onUpdateClientCount(UpdateClientCount event, Emitter<ServerState> emit) {
+    emit(state.copyWith(connectedClients: event.count));
   }
 }

@@ -86,7 +86,7 @@ class Transaksi {
   static Future<List<DateTime>> getAvailableTransactionMonths() async {
     final db = await getDatabase();
     final List<Map<String, dynamic>> result = await db.rawQuery(
-      'SELECT DISTINCT strftime("%Y-%m", created_at) as month_str FROM transactions ORDER BY created_at DESC',
+      "SELECT DISTINCT strftime('%Y-%m', created_at) as month_str FROM transactions ORDER BY created_at DESC",
     );
 
     return result
