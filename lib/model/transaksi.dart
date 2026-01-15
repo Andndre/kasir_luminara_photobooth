@@ -1,6 +1,6 @@
 import 'package:luminara_photobooth/core/data/db.dart';
+import 'dart:math';
 import 'package:sqflite/sqflite.dart';
-import 'package:uuid/uuid.dart';
 
 class Transaksi {
   final String uuid;
@@ -66,6 +66,9 @@ class Transaksi {
   }
 
   static String generateUuid() {
-    return const Uuid().v4();
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = Random();
+    return List.generate(8, (index) => chars[random.nextInt(chars.length)])
+        .join();
   }
 }
