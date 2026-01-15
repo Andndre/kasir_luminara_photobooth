@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:excel/excel.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/services/server_service.dart';
@@ -77,7 +80,7 @@ class _TransactionPageState extends State<TransactionPage> {
     }
   }
 
-  void _applyFilter(String label, DateTimeRange range) {
+  void _applyFilter(String label, DateTimeRange? range) {
     setState(() {
       _filterLabel = label;
       _selectedDateRange = range;
@@ -158,6 +161,11 @@ class _TransactionPageState extends State<TransactionPage> {
         foregroundColor: theme.appBarTheme.foregroundColor,
         actions: [
           IconButton(
+            icon: const Icon(Icons.file_download),
+            tooltip: 'Export Excel',
+            onPressed: _exportToExcel,
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadTransactions,
           ),
@@ -232,6 +240,75 @@ class _TransactionPageState extends State<TransactionPage> {
     );
   }
 
+  Future<void> _exportToExcel() async {
+    if (_transactions.isEmpty) {
+      SnackBarHelper.showWarning(context, 'Tidak ada data untuk diexport');
+      return;
+    }
+
+    try {
+      final excel = Excel.createExcel();
+      final sheet = excel['Laporan'];
+      
+      // Headers
+      sheet.appendRow([
+        TextCellValue('UUID'),
+        TextCellValue('Tanggal'),
+        TextCellValue('Jam'),
+        TextCellValue('Pelanggan'),
+        TextCellValue('Paket'),
+        TextCellValue('Harga'),
+        TextCellValue('Status'),
+        TextCellValue('Waktu Redeem'),
+      ]);
+
+      final dateFormatter = DateFormat('yyyy-MM-dd');
+      final timeFormatter = DateFormat('HH:mm:ss');
+
+      // Data Rows
+      for (var t in _transactions) {
+        sheet.appendRow([
+          TextCellValue(t.uuid),
+          TextCellValue(dateFormatter.format(t.createdAt)),
+          TextCellValue(timeFormatter.format(t.createdAt)),
+          TextCellValue(t.customerName ?? '-'),
+          TextCellValue(t.productName),
+          IntCellValue(t.productPrice),
+          TextCellValue(t.status),
+          TextCellValue(t.redeemedAt != null 
+              ? '${dateFormatter.format(t.redeemedAt!)} ${timeFormatter.format(t.redeemedAt!)}' 
+              : '-'),
+        ]);
+      }
+
+      // Save File
+      Directory? directory;
+      if (Platform.isAndroid || Platform.isIOS) {
+        directory = await getApplicationDocumentsDirectory();
+      } else {
+        directory = await getDownloadsDirectory();
+      }
+
+      if (directory != null) {
+        final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+        final fileName = 'Laporan_Luminara_$timestamp.xlsx';
+        final path = '${directory.path}/$fileName';
+        
+        File(path)
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(excel.save()!);
+
+        if (mounted) {
+          SnackBarHelper.showSuccess(context, 'File disimpan di: $path');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarHelper.showError(context, 'Gagal export data: $e');
+      }
+    }
+  }
+
   Widget _buildSummaryCard(ThemeData theme) {
     final currencyFormatter = NumberFormat.currency(
       locale: 'id_ID',
@@ -290,6 +367,10 @@ class _TransactionPageState extends State<TransactionPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
+          _buildFilterChip('Semua Data', () {
+            _applyFilter('Semua Data', null);
+          }),
+          const SizedBox(width: 8),
           _buildFilterChip('Hari Ini', () {
             final now = DateTime.now();
             _applyFilter('Hari Ini', DateTimeRange(start: now, end: now));
