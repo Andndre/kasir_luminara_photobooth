@@ -120,6 +120,8 @@ class _ProductPageState extends State<ProductPage> {
                                   final product = filteredProducts[index];
                                   return _ItemSection(
                                     product: product,
+                                    onEdit: () =>
+                                        _showEditProductDialog(product),
                                     onDelete: () => _deleteProduct(product),
                                     formatCurrency: _formatCurrency,
                                   );
@@ -131,6 +133,8 @@ class _ProductPageState extends State<ProductPage> {
                                   final product = filteredProducts[index];
                                   return _ItemSection(
                                     product: product,
+                                    onEdit: () =>
+                                        _showEditProductDialog(product),
                                     onDelete: () => _deleteProduct(product),
                                     formatCurrency: _formatCurrency,
                                   );
@@ -187,6 +191,57 @@ class _ProductPageState extends State<ProductPage> {
               }
             },
             child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditProductDialog(Produk product) {
+    final nameController = TextEditingController(text: product.name);
+    final priceController = TextEditingController(text: product.price.toString());
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Paket'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Nama Paket'),
+            ),
+            TextField(
+              controller: priceController,
+              decoration: const InputDecoration(labelText: 'Harga (Rp)'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isNotEmpty &&
+                  priceController.text.isNotEmpty) {
+                final p = Produk(
+                  id: product.id,
+                  name: nameController.text,
+                  price: int.parse(priceController.text),
+                );
+
+                final navigator = Navigator.of(context);
+                await Produk.updateProduk(p);
+
+                if (!mounted) return;
+                navigator.pop();
+                _loadProducts();
+              }
+            },
+            child: const Text('Simpan Perubahan'),
           ),
         ],
       ),
