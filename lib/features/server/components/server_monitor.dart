@@ -168,6 +168,8 @@ class ServerMonitor extends StatelessWidget {
                 data: pairingData,
                 version: QrVersions.auto,
                 size: 200.0,
+                backgroundColor: Colors.white,
+                padding: const EdgeInsets.all(16),
               ),
             ),
             const SizedBox(height: 16),

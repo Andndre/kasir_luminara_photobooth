@@ -278,6 +278,8 @@ class _KasirState extends State<Kasir> {
                 data: transaction.uuid,
                 version: QrVersions.auto,
                 size: 200.0,
+                backgroundColor: Colors.white,
+                padding: const EdgeInsets.all(16),
               ),
             ),
             const SizedBox(height: 16),

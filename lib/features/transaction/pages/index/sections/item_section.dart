@@ -98,6 +98,8 @@ class _ItemSection extends StatelessWidget {
                   data: transaksi.uuid,
                   version: QrVersions.auto,
                   size: 150.0,
+                  backgroundColor: Colors.white,
+                  padding: const EdgeInsets.all(12),
                 ),
               ),
             ),
