@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
           BlocProvider(create: (context) => BottomNavBloc()),
           BlocProvider(create: (context) => ProfileBloc()),
           BlocProvider(create: (context) => ServerBloc()),
-          BlocProvider(create: (context) => VerifierBloc()),
+          BlocProvider(create: (context) => VerifierBloc()..add(InitializeVerifier())),
         ],
         child: Consumer<AppState>(
           builder: (context, appState, _) {

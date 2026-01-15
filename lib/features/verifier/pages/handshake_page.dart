@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:luminara_photobooth/features/home/blocs/blocs.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_bloc.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
+import 'package:luminara_photobooth/core/preferences/verifier_preferences.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class HandshakePage extends StatefulWidget {
@@ -15,6 +16,19 @@ class HandshakePage extends StatefulWidget {
 class _HandshakePageState extends State<HandshakePage> {
   final _ipController = TextEditingController();
   bool _isProcessing = false; // Guard flag
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedIp();
+  }
+
+  Future<void> _loadSavedIp() async {
+    final saved = await VerifierPreferences.getServerAddress();
+    if (saved != null && mounted) {
+      _ipController.text = saved['ip'];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
