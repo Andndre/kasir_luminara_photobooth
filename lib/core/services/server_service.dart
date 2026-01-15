@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:alfred/alfred.dart';
+import 'package:flutter_background/flutter_background.dart';
 import 'package:luminara_photobooth/core/data/db.dart';
 
 class ServerService {
@@ -26,6 +27,26 @@ class ServerService {
 
   Future<void> start({int port = 3000}) async {
     if (_server != null) return;
+
+    // Enable Background Mode (Android)
+    if (Platform.isAndroid) {
+      try {
+        final androidConfig = FlutterBackgroundAndroidConfig(
+          notificationTitle: "Luminara Server",
+          notificationText: "Server aktif. Ketuk untuk kembali ke aplikasi.",
+          notificationImportance: AndroidNotificationImportance.normal,
+          notificationIcon: AndroidResource(name: 'ic_launcher', defType: 'mipmap'),
+        );
+        
+        final hasPermissions = await FlutterBackground.hasPermissions;
+        if (!hasPermissions) {
+          await FlutterBackground.initialize(androidConfig: androidConfig);
+        }
+        await FlutterBackground.enableBackgroundExecution();
+      } catch (e) {
+        print('Failed to enable background execution: $e');
+      }
+    }
 
     _alfred = Alfred();
 
@@ -124,6 +145,14 @@ class ServerService {
     }
     _clients.clear();
     _clientCountController.add(0);
+    
+    if (Platform.isAndroid) {
+      try {
+        await FlutterBackground.disableBackgroundExecution();
+      } catch (e) {
+        print('Failed to disable background execution: $e');
+      }
+    }
     print('Server stopped');
   }
 

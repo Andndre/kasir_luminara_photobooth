@@ -26,7 +26,7 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
             if (barcode.rawValue != null) {
               setState(() => _isProcessing = true);
               await _verifyTicket(barcode.rawValue!);
-              setState(() => _isProcessing = false);
+              // _isProcessing reset is handled in _showResult or catch block
               break;
             }
           }
@@ -40,6 +40,9 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
       final result = await context.read<VerifierBloc>().service.verifyTicket(code);
       if (mounted) {
         _showResult(result);
+      } else {
+        // If unmounted, reset processing state immediately
+        setState(() => _isProcessing = false);
       }
     } catch (e) {
       if (mounted) {
@@ -47,26 +50,33 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
           SnackBar(content: Text('Error: $e')),
         );
       }
+      // Reset state on error to allow retry
+      setState(() => _isProcessing = false);
     }
   }
 
   void _showResult(Map<String, dynamic> result) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: Text(result['valid'] ? 'Tiket VALID' : 'Tiket TIDAK VALID'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Icon(
+                result['valid'] ? Icons.check_circle : Icons.error,
+                color: result['valid'] ? Colors.green : Colors.red,
+                size: 64,
+              ),
+            ),
+            const SizedBox(height: 16),
             if (result['valid']) ...[
-              const Icon(Icons.check_circle, color: Colors.green, size: 64),
-              const SizedBox(height: 16),
               Text('Nama: ${result['data']['customer_name']}'),
               Text('Paket: ${result['data']['product_name']}'),
             ] else ...[
-              const Icon(Icons.error, color: Colors.red, size: 64),
-              const SizedBox(height: 16),
               Text(result['message'] ?? 'Tiket tidak ditemukan atau sudah dipakai.'),
             ],
           ],
@@ -75,8 +85,10 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
+              setState(() => _isProcessing = false); // Resume scanning
+              
               if (result['valid']) {
-                Navigator.pop(context); // Close scanner
+                Navigator.pop(context); // Close scanner on success
               }
             },
             child: const Text('OK'),

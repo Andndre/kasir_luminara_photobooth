@@ -6,6 +6,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/data/db.dart';
 import 'package:luminara_photobooth/app/app.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runZonedGuarded(() async {
@@ -18,7 +19,13 @@ void main() {
 
     // Request permissions only on Mobile
     if (Platform.isAndroid || Platform.isIOS) {
-      // Logic for permissions...
+      await [
+        Permission.notification,
+        Permission.bluetooth,
+        Permission.bluetoothScan,
+        Permission.bluetoothConnect,
+        Permission.location,
+      ].request();
     }
 
     await initializeDateFormatting('id_ID', null);

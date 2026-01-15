@@ -164,6 +164,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildWelcomeSection() {
+    final theme = Theme.of(context);
     final hour = DateTime.now().hour;
     String greeting = 'Selamat Pagi';
     if (hour >= 12 && hour < 15) {
@@ -178,7 +179,10 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blue.shade600, Colors.blue.shade400],
+          colors: [
+            theme.primaryColor,
+            theme.primaryColor.withValues(alpha: 0.7),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -200,7 +204,8 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(DateTime.now()),
+                  DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
+                      .format(DateTime.now()),
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
               ],

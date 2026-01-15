@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/features/home/blocs/blocs.dart';
+import 'package:luminara_photobooth/features/verifier/pages/scanner_page.dart';
 import 'package:intl/intl.dart';
 
 class ClientHomePage extends StatelessWidget {
@@ -51,43 +52,48 @@ class ClientHomePage extends StatelessWidget {
                     'title': 'Scan Tiket',
                     'icon': Icons.qr_code_scanner,
                     'color': Colors.blue,
-                    'onTap': () => context.read<BottomNavBloc>().add(TapBottomNavEvent(1)), // Koneksi/Scanner is index 1 or 2? Wait.
-                    // Actually, "Scan Tiket" is redundant if "Koneksi" page handles scanning in handshake or if there's a dedicated scanner page.
-                    // The FAB is the main scanner trigger.
-                    // Let's just navigate to the Scanner Page directly or trigger the FAB action logic.
-                    // For now, let's keep the onTap empty or point to relevant tabs.
+                    'onTap': () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TicketScannerPage(),
+                        ),
+                      );
+                    },
                   },
                   {
                     'title': 'Antrean Live',
                     'icon': Icons.list_alt,
                     'color': Colors.orange,
-                    'onTap': () => context.read<BottomNavBloc>().add(TapBottomNavEvent(1)), // Antrean is index 1
+                    'onTap': () => context
+                        .read<BottomNavBloc>()
+                        .add(TapBottomNavEvent(1)),
                   },
                   {
                     'title': 'Status Koneksi',
                     'icon': Icons.wifi,
                     'color': Colors.green,
-                    'onTap': () => context.read<BottomNavBloc>().add(TapBottomNavEvent(2)), // Koneksi is index 2
+                    'onTap': () => context
+                        .read<BottomNavBloc>()
+                        .add(TapBottomNavEvent(2)),
                   },
                   {
                     'title': 'Pengaturan',
                     'icon': Icons.settings,
                     'color': Colors.grey,
-                    'onTap': () => context.read<BottomNavBloc>().add(TapBottomNavEvent(3)), // Setelan is index 3
+                    'onTap': () => context
+                        .read<BottomNavBloc>()
+                        .add(TapBottomNavEvent(3)),
                   },
                 ];
-                
+
                 final item = items[index];
                 return _buildMenuCard(
                   context,
                   title: item['title'] as String,
                   icon: item['icon'] as IconData,
                   color: item['color'] as Color,
-                  onTap: () {
-                     // Basic navigation for now, can be improved.
-                     // Accessing BottomNavBloc requires import.
-                     // For UI fix, let's just keep the visual structure.
-                  },
+                  onTap: item['onTap'] as VoidCallback,
                 );
               },
             ),
