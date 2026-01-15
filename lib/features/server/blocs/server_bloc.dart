@@ -25,21 +25,37 @@ class UpdateClientCount extends ServerEvent {
   List<Object> get props => [count];
 }
 
+class UpdateServerStatus extends ServerEvent {
+  final bool isOnline;
+  const UpdateServerStatus(this.isOnline);
+
+  @override
+  List<Object> get props => [isOnline];
+}
+
 class ServerBloc extends Bloc<ServerEvent, ServerState> {
   final ServerService _serverService = ServerService();
   final NetworkInfo _networkInfo = NetworkInfo();
   StreamSubscription<int>? _clientCountSubscription;
+  StreamSubscription<bool>? _statusSubscription;
 
   ServerBloc() : super(const ServerState()) {
     on<StartServer>(_onStartServer);
     on<StopServer>(_onStopServer);
     on<RefreshServerInfo>(_onRefreshServerInfo);
     on<UpdateClientCount>(_onUpdateClientCount);
+    on<UpdateServerStatus>(_onUpdateServerStatus);
+
+    // Initial listener for status changes (for Android background service)
+    _statusSubscription = _serverService.statusStream.listen((isOnline) {
+      add(UpdateServerStatus(isOnline));
+    });
   }
 
   @override
   Future<void> close() {
     _clientCountSubscription?.cancel();
+    _statusSubscription?.cancel();
     return super.close();
   }
 
@@ -71,11 +87,20 @@ class ServerBloc extends Bloc<ServerEvent, ServerState> {
         add(UpdateClientCount(count));
       });
 
-      emit(state.copyWith(
-        status: ServerStatus.online,
-        ipAddress: ip ?? '127.0.0.1',
-        connectedClients: _serverService.clientCount,
-      ));
+      // If not on Android, we can immediately emit online
+      // On Android, the background service will eventually emit its status
+      if (!Platform.isAndroid) {
+        emit(state.copyWith(
+          status: ServerStatus.online,
+          ipAddress: ip ?? '127.0.0.1',
+          connectedClients: _serverService.clientCount,
+        ));
+      } else {
+        // Just update IP, status will follow from UpdateServerStatus event
+        emit(state.copyWith(
+          ipAddress: ip ?? '127.0.0.1',
+        ));
+      }
     } catch (e) {
       emit(state.copyWith(
         status: ServerStatus.offline,
@@ -89,7 +114,10 @@ class ServerBloc extends Bloc<ServerEvent, ServerState> {
     try {
       _clientCountSubscription?.cancel();
       await _serverService.stop();
-      emit(state.copyWith(status: ServerStatus.offline, connectedClients: 0));
+      
+      if (!Platform.isAndroid) {
+        emit(state.copyWith(status: ServerStatus.offline, connectedClients: 0));
+      }
     } catch (e) {
       emit(state.copyWith(
         errorMessage: e.toString(),
@@ -102,5 +130,12 @@ class ServerBloc extends Bloc<ServerEvent, ServerState> {
 
   void _onUpdateClientCount(UpdateClientCount event, Emitter<ServerState> emit) {
     emit(state.copyWith(connectedClients: event.count));
+  }
+
+  void _onUpdateServerStatus(UpdateServerStatus event, Emitter<ServerState> emit) {
+    emit(state.copyWith(
+      status: event.isOnline ? ServerStatus.online : ServerStatus.offline,
+      connectedClients: event.isOnline ? state.connectedClients : 0,
+    ));
   }
 }

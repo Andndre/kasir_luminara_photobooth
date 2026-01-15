@@ -8,33 +8,46 @@ class PrivacyPolicyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Kebijakan Privasi'),
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        foregroundColor: Colors.black87,
+        foregroundColor: theme.appBarTheme.foregroundColor,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(Dimens.dp16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.blue.shade600, Colors.blue.shade400],
+                  colors: [
+                    theme.primaryColor,
+                    theme.primaryColor.withValues(alpha: 0.7),
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Dimens.radius),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.primaryColor.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
-                  Icon(Icons.privacy_tip, color: Colors.white, size: 48),
+                  const Icon(Icons.privacy_tip, color: Colors.white, size: 48),
                   const SizedBox(height: 12),
                   const Text(
                     'Kebijakan Privasi',
@@ -44,79 +57,52 @@ class PrivacyPolicyPage extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
-              HeadingText(
-                'Luminara Photobooth',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: Dimens.dp24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Luminara Photobooth',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
             // Content
-            _buildSection('1. Informasi yang Kami Kumpulkan', [
-              '• Data Transaksi: Informasi penjualan, produk, harga, dan pembayaran',
-              '• Data Produk: Nama produk, kategori, stok, dan harga',
-              '• Data Penggunaan: Statistik penggunaan aplikasi untuk perbaikan layanan',
-              '• Data Perangkat: Informasi perangkat untuk kompatibilitas dan troubleshooting',
+            _buildSection(context, '1. Informasi yang Kami Kumpulkan', [
+              '• Data Transaksi: Informasi penjualan, nama pelanggan, paket yang dipilih, dan harga.',
+              '• Data Perangkat: Informasi teknis untuk koneksi server lokal dan pairing QR.',
+              '• Data Jaringan: Alamat IP lokal (LAN) digunakan hanya untuk menghubungkan Kasir dan Verifikator.',
             ]),
 
-            _buildSection('2. Bagaimana Kami Menggunakan Informasi', [
-              '• Memproses transaksi penjualan',
-              '• Mengelola inventori dan stok produk',
-              '• Menghasilkan laporan penjualan dan statistik bisnis',
-              '• Menyimpan riwayat transaksi untuk keperluan bisnis',
-              '• Memperbaiki dan meningkatkan kualitas aplikasi',
+            _buildSection(context, '2. Penggunaan Informasi', [
+              '• Memproses transaksi dan verifikasi tiket di lokasi (offline).',
+              '• Menghasilkan laporan pemasukan dan riwayat transaksi.',
+              '• Menjaga koneksi antara perangkat server dan client dalam jaringan lokal.',
             ]),
 
-            _buildSection('3. Penyimpanan Data', [
-              '• Lokal: Semua data disimpan secara lokal di perangkat Anda',
-              '• Keamanan: Data dilindungi dengan enkripsi database SQLite',
-              '• Backup: Kami menyarankan backup data secara berkala',
-              '• Tidak ada Cloud: Data tidak dikirim ke server eksternal',
+            _buildSection(context, '3. Penyimpanan & Keamanan', [
+              '• Lokal: Seluruh data bisnis disimpan secara lokal di perangkat Anda (SQLite).',
+              '• Privasi: Kami tidak mengumpulkan atau mengirim data Anda ke server cloud pihak ketiga.',
+              '• Background Service: Pada Android, aplikasi menggunakan Foreground Service agar server tetap aktif saat di latar belakang.',
             ]),
 
-            _buildSection('4. Berbagi Informasi', [
-              '• Kami TIDAK membagikan data pribadi kepada pihak ketiga',
-              '• Data hanya digunakan untuk operasional aplikasi',
-              '• Tidak ada integrasi dengan platform analytics eksternal',
-              '• Data tetap menjadi milik penuh pengguna',
+            _buildSection(context, '4. Koneksi Jaringan & Lokasi', [
+              '• Izin Lokasi/Bluetooth: Digunakan semata-mata untuk mendeteksi printer thermal dan mendapatkan IP Wifi untuk server lokal.',
+              '• Offline: Aplikasi dirancang untuk bekerja tanpa koneksi internet (Local Network Only).',
             ]),
 
-            _buildSection('5. Hak Pengguna', [
-              '• Akses: Anda memiliki akses penuh ke semua data',
-              '• Hapus: Anda dapat menghapus data kapan saja',
-              '• Export: Data dapat diekspor untuk backup',
-              '• Kontrol: Penuh kontrol atas data bisnis Anda',
+            _buildSection(context, '5. Hak Anda', [
+              '• Anda memiliki kontrol penuh atas data Anda.',
+              '• Data dapat dihapus secara permanen melalui pengaturan aplikasi.',
+              '• Laporan transaksi dapat diekspor ke format Excel (.xlsx) untuk keperluan backup.',
             ]),
 
-            _buildSection('6. Keamanan Data', [
-              '• Enkripsi database lokal',
-              '• Tidak ada transmisi data melalui internet',
-              '• Perlindungan dengan password perangkat',
-              '• Update keamanan berkala',
-            ]),
-
-            _buildSection('7. Penggunaan Printer & Bluetooth', [
-              '• Akses Bluetooth hanya untuk koneksi printer thermal',
-              '• Tidak menyimpan informasi perangkat Bluetooth lain',
-              '• Data print tidak disimpan setelah pencetakan',
-            ]),
-
-            _buildSection('8. Perubahan Kebijakan', [
-              '• Kebijakan dapat diperbarui seiring update aplikasi',
-              '• Perubahan akan diberitahukan melalui update aplikasi',
-              '• Versi terbaru selalu tersedia di aplikasi',
-            ]),
-
-            _buildSection('9. Kontak', [
-              'Jika ada pertanyaan tentang kebijakan privasi ini:',
+            _buildSection(context, '6. Kontak', [
+              'Jika ada pertanyaan mengenai kebijakan privasi ini:',
               '• Email: agungandre687@gmail.com',
             ]),
 
@@ -125,37 +111,45 @@ class PrivacyPolicyPage extends StatelessWidget {
             // Footer
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
+                color: theme.cardTheme.color,
+                borderRadius: BorderRadius.circular(Dimens.radius),
+                border: Border.all(
+                  color: theme.dividerTheme.color ?? Colors.grey.withValues(alpha: 0.1),
+                ),
               ),
               child: Column(
                 children: [
                   Text(
-                    'Terakhir diperbarui: Oktober 2025',
+                    'Terakhir diperbarui: Januari 2026',
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: theme.textTheme.bodySmall?.color,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
                     'Dengan menggunakan aplikasi Luminara Photobooth, Anda menyetujui kebijakan privasi ini.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    style: TextStyle(
+                      color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSection(String title, List<String> items) {
+  Widget _buildSection(BuildContext context, String title, List<String> items) {
+    final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       child: Column(
@@ -163,25 +157,22 @@ class PrivacyPolicyPage extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: theme.textTheme.titleLarge?.color,
             ),
           ),
           const SizedBox(height: 12),
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              color: theme.cardTheme.color,
+              borderRadius: BorderRadius.circular(Dimens.radius),
+              border: Border.all(
+                color: theme.dividerTheme.color ?? Colors.grey.withValues(alpha: 0.1),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,9 +181,9 @@ class PrivacyPolicyPage extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     item,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: Colors.black87,
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                       height: 1.5,
                     ),
                   ),

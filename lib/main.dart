@@ -6,7 +6,9 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/data/db.dart';
 import 'package:luminara_photobooth/app/app.dart';
+import 'package:luminara_photobooth/core/services/background_service.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 void main() {
   runZonedGuarded(() async {
@@ -14,6 +16,24 @@ void main() {
 
     // Initialize Database
     await getDatabase();
+
+    // Initialize Background Service (Android/iOS)
+    if (Platform.isAndroid || Platform.isIOS) {
+      if (Platform.isAndroid) {
+        final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+            FlutterLocalNotificationsPlugin();
+        await flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>()
+            ?.createNotificationChannel(const AndroidNotificationChannel(
+              notificationChannelId,
+              'Luminara Server Service',
+              description: 'Menjaga server tetap aktif di latar belakang.',
+              importance: Importance.low,
+            ));
+      }
+      await initializeBackgroundService();
+    }
 
     Bloc.observer = AppBlocObserver();
 

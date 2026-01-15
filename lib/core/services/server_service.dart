@@ -3,13 +3,18 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:alfred/alfred.dart';
-import 'package:flutter_background/flutter_background.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:luminara_photobooth/core/data/db.dart';
 
 class ServerService {
   static final ServerService _instance = ServerService._internal();
   factory ServerService() => _instance;
-  ServerService._internal();
+  ServerService._internal() {
+    _initCommunication();
+  }
+
+  static bool _isBackgroundIsolate = false;
+  static void setBackgroundMode() => _isBackgroundIsolate = true;
 
   Alfred? _alfred;
   HttpServer? _server;
@@ -22,30 +27,47 @@ class ServerService {
   // Internal App Events
   final _appEventController = StreamController<String>.broadcast();
   Stream<String> get appEventStream => _appEventController.stream;
+
+  final _statusController = StreamController<bool>.broadcast();
+  Stream<bool> get statusStream => _statusController.stream;
   
   bool get isRunning => _server != null;
+  bool _isServiceRunning = false;
+  bool get isServiceRunning => _isServiceRunning;
 
-  Future<void> start({int port = 3000}) async {
+  void _initCommunication() {
+    // Only listen to background service events if we are in the UI isolate
+    if (Platform.isAndroid && !_isBackgroundIsolate) {
+      FlutterBackgroundService().on('serverStatus').listen((event) {
+        _isServiceRunning = event?['running'] ?? false;
+        _statusController.add(_isServiceRunning);
+      });
+
+      FlutterBackgroundService().on('clientCount').listen((event) {
+        _clientCountController.add(event?['count'] ?? 0);
+      });
+
+      FlutterBackgroundService().on('appEvent').listen((event) {
+        _appEventController.add(event?['event'] ?? '');
+      });
+    }
+  }
+
+  Future<void> start({int port = 3000, bool isBackground = false}) async {
     if (_server != null) return;
 
-    // Enable Background Mode (Android)
-    if (Platform.isAndroid) {
-      try {
-        final androidConfig = FlutterBackgroundAndroidConfig(
-          notificationTitle: "Luminara Server",
-          notificationText: "Server aktif. Ketuk untuk kembali ke aplikasi.",
-          notificationImportance: AndroidNotificationImportance.normal,
-          notificationIcon: AndroidResource(name: 'ic_launcher', defType: 'mipmap'),
-        );
-        
-        final hasPermissions = await FlutterBackground.hasPermissions;
-        if (!hasPermissions) {
-          await FlutterBackground.initialize(androidConfig: androidConfig);
-        }
-        await FlutterBackground.enableBackgroundExecution();
-      } catch (e) {
-        print('Failed to enable background execution: $e');
+    // In background isolate, we must mark it
+    if (isBackground) _isBackgroundIsolate = true;
+
+    // On Android, if we are in the UI isolate, we start the background service
+    if (Platform.isAndroid && !isBackground) {
+      final service = FlutterBackgroundService();
+      final isServiceRunning = await service.isRunning();
+      if (!isServiceRunning) {
+        await service.startService();
       }
+      service.invoke('startServer', {'port': port});
+      return;
     }
 
     _alfred = Alfred();
@@ -137,6 +159,11 @@ class ServerService {
   }
 
   Future<void> stop() async {
+    if (Platform.isAndroid && !isRunning) {
+      FlutterBackgroundService().invoke('stopServer');
+      return;
+    }
+
     await _server?.close(force: true);
     _server = null;
     _alfred = null;
@@ -145,14 +172,6 @@ class ServerService {
     }
     _clients.clear();
     _clientCountController.add(0);
-    
-    if (Platform.isAndroid) {
-      try {
-        await FlutterBackground.disableBackgroundExecution();
-      } catch (e) {
-        print('Failed to disable background execution: $e');
-      }
-    }
     print('Server stopped');
   }
 
@@ -165,3 +184,4 @@ class ServerService {
     }
   }
 }
+
