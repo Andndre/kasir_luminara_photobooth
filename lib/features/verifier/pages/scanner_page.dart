@@ -58,11 +58,21 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
   }
 
   void _showResult(Map<String, dynamic> result) {
+    final data = result['data'] ?? {};
+    final items = (data['items'] as List?) ?? [];
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text(result['valid'] ? 'Tiket VALID' : 'Tiket TIDAK VALID'),
+        title: Text(
+          result['valid'] ? 'Tiket VALID' : 'Tiket TIDAK VALID',
+          style: TextStyle(
+            color: result['valid'] ? Colors.green : Colors.red,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,29 +81,87 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
               child: Icon(
                 result['valid'] ? Icons.check_circle : Icons.error,
                 color: result['valid'] ? Colors.green : Colors.red,
-                size: 64,
+                size: 80,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             if (result['valid']) ...[
-              Text('Nama: ${result['data']['customer_name']}'),
-              Text('Paket: ${result['data']['product_name']}'),
+              const Text(
+                'Data Pelanggan:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              Text(
+                '${data['customer_name']}',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+              ),
+              const Divider(height: 24),
+              const Text(
+                'Paket yang Dibeli:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              if (items.isEmpty)
+                Text(data['product_name'] ?? '-')
+              else
+                ...items.map((i) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.shopping_bag_outlined, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${i['product_name']} x${i['quantity']}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: const Text(
+                  'Tiket berhasil diverifikasi dan ditandai sebagai COMPLETED.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.green, fontSize: 11),
+                ),
+              ),
             ] else ...[
-              Text(result['message'] ?? 'Tiket tidak ditemukan atau sudah dipakai.'),
+              Center(
+                child: Text(
+                  result['message'] ?? 'Tiket tidak ditemukan atau sudah dipakai.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
             ],
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() => _isProcessing = false); // Resume scanning
-              
-              if (result['valid']) {
-                Navigator.pop(context); // Close scanner on success
-              }
-            },
-            child: const Text('OK'),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() => _isProcessing = false); // Resume scanning
+                
+                if (result['valid']) {
+                  Navigator.pop(context); // Close scanner on success
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: result['valid'] ? Colors.green : Colors.grey,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('OK'),
+            ),
           ),
         ],
       ),

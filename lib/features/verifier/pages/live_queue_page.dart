@@ -61,6 +61,8 @@ class LiveQueuePage extends StatelessWidget {
                 itemCount: state.queue.length,
                 itemBuilder: (context, index) {
                   final item = state.queue[index];
+                  final items = (item['items'] as List?) ?? [];
+                  
                   String timeStr = '-';
                   try {
                     if (item['created_at'] != null) {
@@ -70,13 +72,69 @@ class LiveQueuePage extends StatelessWidget {
                     // ignore error
                   }
   
-                  return ListTile(
-                    leading: CircleAvatar(
-                      child: Text('${index + 1}'),
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                          child: Text('${index + 1}'),
+                        ),
+                        title: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              item['customer_name'] ?? 'Pelanggan',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              timeStr,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (items.isEmpty)
+                                Text(item['product_name'] ?? '-')
+                              else
+                                ...items.map((i) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 2),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.check_circle_outline, size: 14, color: Colors.green),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              '${i['product_name']} x${i['quantity']}',
+                                              style: const TextStyle(fontSize: 13),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )),
+                              const SizedBox(height: 4),
+                              Text(
+                                'ID: ${item['uuid']}',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontStyle: FontStyle.italic,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                    title: Text(item['customer_name'] ?? 'Pelanggan'),
-                    subtitle: Text(item['product_name'] ?? '-'),
-                    trailing: Text(timeStr),
                   );
                 },
               ),

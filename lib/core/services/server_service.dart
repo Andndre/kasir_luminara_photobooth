@@ -79,12 +79,34 @@ class ServerService {
     _alfred!.get('/api/queue', (req, res) async {
       try {
         final db = await getDatabase();
-        return await db.query(
+        final List<Map<String, dynamic>> transactions = await db.query(
           'transactions',
           where: 'status = ?',
           whereArgs: ['PAID'],
           orderBy: 'created_at ASC',
         );
+
+        List<Map<String, dynamic>> results = [];
+        for (var t in transactions) {
+          final items = await db.query(
+            'transaction_items',
+            where: 'transaction_uuid = ?',
+            whereArgs: [t['uuid']],
+          );
+          
+          final Map<String, dynamic> transactionWithItems = Map.from(t);
+          transactionWithItems['items'] = items;
+          
+          // Legacy support: for verifier screens that still expect a single product_name
+          if (items.isNotEmpty) {
+            transactionWithItems['product_name'] = items.map((e) => "${e['product_name']} (x${e['quantity']})").join(", ");
+          } else {
+            transactionWithItems['product_name'] = "-";
+          }
+          
+          results.add(transactionWithItems);
+        }
+        return results;
       } catch (e) {
         return [];
       }
@@ -114,6 +136,13 @@ class ServerService {
         return {'valid': false, 'message': 'Tiket sudah dipakai'};
       }
 
+      // Get items for the response
+      final items = await db.query(
+        'transaction_items',
+        where: 'transaction_uuid = ?',
+        whereArgs: [ticketCode],
+      );
+
       await db.update(
         'transactions',
         {'status': 'COMPLETED', 'redeemed_at': DateTime.now().toIso8601String()},
@@ -124,12 +153,17 @@ class ServerService {
       broadcast('TICKET_REDEEMED');
       _appEventController.add('REFRESH_TRANSACTIONS');
 
+      final productName = items.isNotEmpty 
+        ? items.map((e) => "${e['product_name']} (x${e['quantity']})").join(", ")
+        : "-";
+
       return {
         'valid': true,
         'data': {
           'id': transaction['uuid'],
           'customer_name': transaction['customer_name'],
-          'product_name': transaction['product_name'],
+          'product_name': productName,
+          'items': items,
           'status': 'COMPLETED',
         }
       };
