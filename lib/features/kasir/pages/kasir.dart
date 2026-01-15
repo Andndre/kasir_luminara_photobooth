@@ -75,10 +75,7 @@ class _KasirState extends State<Kasir> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Left: Product Selection
-                        Expanded(
-                          flex: 2,
-                          child: _buildProductSection(),
-                        ),
+                        Expanded(flex: 2, child: _buildProductSection()),
                         const SizedBox(width: 32),
                         // Right: Checkout & Details
                         SizedBox(
@@ -86,7 +83,9 @@ class _KasirState extends State<Kasir> {
                           child: Card(
                             elevation: 4,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(Dimens.radius),
+                              borderRadius: BorderRadius.circular(
+                                Dimens.radius,
+                              ),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(24.0),
@@ -140,8 +139,10 @@ class _KasirState extends State<Kasir> {
                   ),
                 ),
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
@@ -151,7 +152,9 @@ class _KasirState extends State<Kasir> {
                             Text(
                               product.name,
                               style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
                             Text(
                               NumberFormat.currency(
@@ -173,7 +176,9 @@ class _KasirState extends State<Kasir> {
                           IconButton(
                             icon: const Icon(Icons.remove_circle_outline),
                             onPressed: () => _updateQuantity(product.id!, -1),
-                            color: isSelected ? theme.primaryColor : Colors.grey,
+                            color: isSelected
+                                ? theme.primaryColor
+                                : Colors.grey,
                           ),
                           Container(
                             constraints: const BoxConstraints(minWidth: 30),
@@ -181,7 +186,9 @@ class _KasirState extends State<Kasir> {
                               '$quantity',
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
                           IconButton(
@@ -236,9 +243,15 @@ class _KasirState extends State<Kasir> {
           SegmentedButton<String>(
             segments: const [
               ButtonSegment(
-                  value: 'TUNAI', label: Text('TUNAI'), icon: Icon(Icons.money)),
+                value: 'TUNAI',
+                label: Text('TUNAI'),
+                icon: Icon(Icons.money),
+              ),
               ButtonSegment(
-                  value: 'QRIS', label: Text('QRIS'), icon: Icon(Icons.qr_code)),
+                value: 'QRIS',
+                label: Text('QRIS'),
+                icon: Icon(Icons.qr_code),
+              ),
             ],
             selected: {_paymentMethod},
             onSelectionChanged: (Set<String> newSelection) {
@@ -256,8 +269,13 @@ class _KasirState extends State<Kasir> {
           if (_cart.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: Text('Belum ada produk dipilih',
-                  style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
+              child: Text(
+                'Belum ada produk dipilih',
+                style: TextStyle(
+                  fontStyle: FontStyle.italic,
+                  color: Colors.grey,
+                ),
+              ),
             )
           else
             ..._cart.entries.map((entry) {
@@ -267,9 +285,7 @@ class _KasirState extends State<Kasir> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: Text('${product.name} x${entry.value}'),
-                    ),
+                    Expanded(child: Text('${product.name} x${entry.value}')),
                     Text(currencyFormat.format(product.price * entry.value)),
                   ],
                 ),
@@ -306,9 +322,12 @@ class _KasirState extends State<Kasir> {
                   borderRadius: BorderRadius.circular(Dimens.radius),
                 ),
               ),
-              child: const Text(
-                'BAYAR & CETAK TIKET',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              child: Text(
+                _paymentMethod == 'TUNAI' ? 'BAYAR' : 'BAYAR & CETAK TIKET',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -320,25 +339,295 @@ class _KasirState extends State<Kasir> {
   void _processPayment() async {
     if (_cart.isEmpty) return;
 
+    if (_paymentMethod == 'TUNAI') {
+      _showCashDialog();
+    } else {
+      _executePayment(totalBayar: _totalPrice);
+    }
+  }
+
+  void _showCashDialog() {
+    final theme = Theme.of(context);
+    final int total = _totalPrice;
+
+    // Format mata uang
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+
+    final manualController = TextEditingController();
+
+    // --- LOGIKA CERDAS SARAN NOMINAL ---
+    Set<int> suggestionSet = {total}; // Selalu masukkan uang pas
+
+    // Daftar pecahan uang kertas umum di Indonesia
+    List<int> fractions = [5000, 10000, 20000, 50000, 100000];
+
+    for (var f in fractions) {
+      // Jika total belanja lebih kecil dari pecahan (misal belanja 3.000, pecahan 5.000)
+      // Maka masukkan pecahan tersebut
+      if (total < f) {
+        suggestionSet.add(f);
+      } else {
+        // Jika lebih besar, cari kelipatan terdekat di atasnya
+        // Rumus: (Total / pecahan) dibulatkan ke atas * pecahan
+        // Contoh: Belanja 12.000. Pecahan 10.000.
+        // 12k/10k = 1.2 -> ceil jadi 2 -> 2 * 10k = 20.000
+        int rounded = ((total / f).ceil() * f).toInt();
+        if (rounded > total) {
+          suggestionSet.add(rounded);
+        }
+      }
+    }
+
+    // Urutkan dan ambil maksimal 6 opsi agar UI tidak penuh
+    List<int> suggestions = suggestionSet.toList();
+    suggestions.sort();
+    suggestions = suggestions.take(6).toList();
+    // -----------------------------------
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        // State lokal untuk dialog
+        int selectedAmount = total;
+
+        // Inisialisasi awal controller text
+        if (manualController.text.isEmpty) {
+          manualController.text = total.toString();
+        }
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final int kembalian = selectedAmount - total;
+            final bool isEnough = selectedAmount >= total;
+
+            return AlertDialog(
+              title: const Text('Pembayaran Tunai'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Tampilan Total
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: theme.primaryColor.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Total Tagihan',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          Text(
+                            currencyFormat.format(total),
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: theme.primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Pilih Uang Tunai:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Suggestion Chips
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: suggestions.map((amt) {
+                        final isSelected = selectedAmount == amt;
+                        return ChoiceChip(
+                          label: Text(
+                            currencyFormat.format(amt),
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          selected: isSelected,
+                          selectedColor: theme.primaryColor,
+                          backgroundColor: Colors.grey.shade200,
+                          checkmarkColor: Colors.white,
+                          onSelected: (val) {
+                            if (val) {
+                              setDialogState(() {
+                                selectedAmount = amt;
+                                // Update text field saat chip dipilih
+                                manualController.text = amt.toString();
+                                // Pindahkan kursor ke akhir
+                                manualController.selection =
+                                    TextSelection.fromPosition(
+                                      TextPosition(
+                                        offset: manualController.text.length,
+                                      ),
+                                    );
+                              });
+                            }
+                          },
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Input Manual (Rp):',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Text Input
+                    TextField(
+                      controller: manualController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        prefixText: 'Rp ',
+                        border: const OutlineInputBorder(),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            setDialogState(() {
+                              manualController.clear();
+                              selectedAmount = 0;
+                            });
+                          },
+                        ),
+                      ),
+                      onChanged: (val) {
+                        // Hapus karakter non-digit jika ada
+                        String cleanVal = val.replaceAll(RegExp(r'[^0-9]'), '');
+                        int newVal = int.tryParse(cleanVal) ?? 0;
+
+                        setDialogState(() {
+                          selectedAmount = newVal;
+                        });
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Info Kembalian
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Kembalian:',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        Text(
+                          currencyFormat.format(kembalian),
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: kembalian < 0 ? Colors.red : Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (!isEnough)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          'Uang kurang ${currencyFormat.format(total - selectedAmount)}',
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Batal',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: !isEnough
+                      ? null // Disable jika uang kurang
+                      : () {
+                          Navigator.pop(context);
+                          _executePayment(
+                            totalBayar: selectedAmount,
+                            kembalian: kembalian,
+                          );
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        theme.primaryColor, // Ganti AppColors.primary
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: const Text('BAYAR & CETAK'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _executePayment({required int totalBayar, int kembalian = 0}) async {
     final uuid = Transaksi.generateUuid();
-    
+
     // Prepare items list
     List<TransaksiItem> items = [];
     _cart.forEach((productId, quantity) {
       final product = _products.firstWhere((p) => p.id == productId);
-      items.add(TransaksiItem(
-        productName: product.name,
-        productPrice: product.price,
-        quantity: quantity,
-      ));
+      items.add(
+        TransaksiItem(
+          productName: product.name,
+          productPrice: product.price,
+          quantity: quantity,
+        ),
+      );
     });
 
     final transaction = Transaksi(
       uuid: uuid,
-      customerName:
-          _nameController.text.isEmpty ? 'Pelanggan' : _nameController.text,
+      customerName: _nameController.text.isEmpty
+          ? 'Pelanggan'
+          : _nameController.text,
       items: items,
       totalPrice: _totalPrice,
+      bayarAmount: totalBayar,
+      kembalian: kembalian,
       paymentMethod: _paymentMethod,
       createdAt: DateTime.now(),
     );
@@ -356,6 +645,8 @@ class _KasirState extends State<Kasir> {
         items: transaction.items,
         totalPrice: transaction.totalPrice,
         paymentMethod: transaction.paymentMethod,
+        bayarAmount: totalBayar,
+        kembalian: kembalian,
         date: transaction.createdAt,
       );
 
@@ -364,23 +655,24 @@ class _KasirState extends State<Kasir> {
       if (!printResult) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Gagal mencetak tiket, pastikan printer terhubung')),
+            content: Text('Gagal mencetak tiket, pastikan printer terhubung'),
+          ),
         );
       }
 
       // Show Success Dialog with Ticket QR
-      _showTicketDialog(transaction);
+      _showTicketDialog(transaction, totalBayar, kembalian);
 
       HapticFeedback.heavyImpact();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
-  void _showTicketDialog(Transaksi transaction) {
+  void _showTicketDialog(Transaksi transaction, int totalBayar, int kembalian) {
     final currencyFormat = NumberFormat.currency(
       locale: 'id_ID',
       symbol: 'Rp ',
@@ -397,6 +689,14 @@ class _KasirState extends State<Kasir> {
           children: [
             const Icon(Icons.check_circle, color: Colors.green, size: 64),
             const SizedBox(height: 16),
+            if (_paymentMethod == 'TUNAI') ...[
+              Text('Bayar: ${currencyFormat.format(totalBayar)}'),
+              Text(
+                'Kembali: ${currencyFormat.format(kembalian)}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Divider(height: 24),
+            ],
             const Text('Berikan tiket ini kepada pelanggan.'),
             const SizedBox(height: 24),
             SizedBox(
@@ -421,10 +721,12 @@ class _KasirState extends State<Kasir> {
               textAlign: TextAlign.center,
             ),
             const Divider(height: 24),
-            ...transaction.items.map((item) => Text(
-                  '${item.productName} x${item.quantity}',
-                  style: const TextStyle(fontSize: 12),
-                )),
+            ...transaction.items.map(
+              (item) => Text(
+                '${item.productName} x${item.quantity}',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
           ],
         ),
         actions: [

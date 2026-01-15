@@ -17,7 +17,7 @@ Future<Database> getDatabase() async {
 
   Database database = await openDatabase(
     join(await getDatabasesPath(), 'photobooth.db'),
-    version: 3,
+    version: 4,
     onCreate: (db, version) async {
       // Tabel: products
       await db.execute('''
@@ -34,6 +34,8 @@ Future<Database> getDatabase() async {
           uuid TEXT PRIMARY KEY,
           customer_name TEXT,
           total_price INTEGER NOT NULL,
+          bayar_amount INTEGER,
+          kembalian INTEGER,
           payment_method TEXT NOT NULL DEFAULT 'TUNAI',
           status TEXT NOT NULL DEFAULT 'PAID',
           created_at TEXT NOT NULL,
@@ -79,14 +81,12 @@ Future<Database> getDatabase() async {
         ''');
 
         // 3. Pindahkan data dan hitung total_price (fallback ke product_price jika ada)
-        // Gunakan try-catch karena kolom mungkin berbeda tergantung kapan terakhir berhasil migrate
         try {
           await db.execute('''
             INSERT INTO transactions (uuid, customer_name, total_price, status, created_at, redeemed_at)
             SELECT uuid, customer_name, product_price, status, created_at, redeemed_at FROM transactions_old
           ''');
         } catch (_) {
-          // Jika gagal (misal kolom sudah total_price), coba cara standar
           await db.execute('''
             INSERT INTO transactions (uuid, customer_name, total_price, payment_method, status, created_at, redeemed_at)
             SELECT uuid, customer_name, total_price, payment_method, status, created_at, redeemed_at FROM transactions_old
@@ -107,6 +107,14 @@ Future<Database> getDatabase() async {
             FOREIGN KEY (transaction_uuid) REFERENCES transactions (uuid) ON DELETE CASCADE
           )
         ''');
+      }
+
+      if (oldVersion < 4) {
+        // Tambahkan kolom bayar_amount dan kembalian
+        try {
+          await db.execute('ALTER TABLE transactions ADD COLUMN bayar_amount INTEGER');
+          await db.execute('ALTER TABLE transactions ADD COLUMN kembalian INTEGER');
+        } catch (_) {}
       }
     },
   );

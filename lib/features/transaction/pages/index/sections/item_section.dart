@@ -4,10 +4,7 @@ class _ItemSection extends StatelessWidget {
   final Transaksi transaksi;
   final VoidCallback onDelete;
 
-  const _ItemSection({
-    required this.transaksi,
-    required this.onDelete,
-  });
+  const _ItemSection({required this.transaksi, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -15,18 +12,18 @@ class _ItemSection extends StatelessWidget {
     final dateFormatter = DateFormat('dd/MM/yyyy • HH:mm');
 
     // Generate products summary
-    String productSummary = transaksi.items.map((e) => e.productName).join(', ');
+    String productSummary = transaksi.items
+        .map((e) => e.productName)
+        .join(', ');
     if (productSummary.length > 30) {
       productSummary = '${productSummary.substring(0, 27)}...';
     }
 
     return Card(
-      margin: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 8,
-      ),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimens.radius)),
+        borderRadius: BorderRadius.circular(Dimens.radius),
+      ),
       child: ListTile(
         title: Text(transaksi.customerName ?? 'Pelanggan'),
         subtitle: Column(
@@ -38,11 +35,14 @@ class _ItemSection extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color:
-                        _getStatusColor(transaksi.status).withValues(alpha: 0.1),
+                    color: _getStatusColor(
+                      transaksi.status,
+                    ).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -65,8 +65,10 @@ class _ItemSection extends StatelessWidget {
         ),
         trailing: Text(
           formatter.format(transaksi.totalPrice),
-          style:
-              const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
         ),
         onTap: () {
           _showTransactionDetail(context);
@@ -107,34 +109,64 @@ class _ItemSection extends StatelessWidget {
               Text('Status: ${transaksi.status}'),
               Text('Dibuat: ${dateFormatter.format(transaksi.createdAt)}'),
               if (transaksi.redeemedAt != null)
-                Text('Digunakan: ${dateFormatter.format(transaksi.redeemedAt!)}'),
+                Text(
+                  'Digunakan: ${dateFormatter.format(transaksi.redeemedAt!)}',
+                ),
               const Divider(height: 24),
-              const Text('Item Pesanan:',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Item Pesanan:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
-              ...transaksi.items.map((item) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                            child:
-                                Text('${item.productName} x${item.quantity}')),
-                        Text(formatter.format(item.productPrice * item.quantity)),
-                      ],
-                    ),
-                  )),
+              ...transaksi.items.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text('${item.productName} x${item.quantity}'),
+                      ),
+                      Text(formatter.format(item.productPrice * item.quantity)),
+                    ],
+                  ),
+                ),
+              ),
               const Divider(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('TOTAL',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(formatter.format(transaksi.totalPrice),
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.blue)),
+                  const Text(
+                    'TOTAL',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    formatter.format(transaksi.totalPrice),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
                 ],
               ),
+              if (transaksi.paymentMethod.toUpperCase() == 'TUNAI' &&
+                  transaksi.bayarAmount != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Bayar'),
+                    Text(formatter.format(transaksi.bayarAmount)),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Kembali'),
+                    Text(formatter.format(transaksi.kembalian ?? 0)),
+                  ],
+                ),
+              ],
               const SizedBox(height: 24),
               Center(
                 child: SizedBox(
@@ -170,6 +202,8 @@ class _ItemSection extends StatelessWidget {
                 totalPrice: transaksi.totalPrice,
                 paymentMethod: transaksi.paymentMethod,
                 date: transaksi.createdAt,
+                bayarAmount: transaksi.bayarAmount,
+                kembalian: transaksi.kembalian,
               );
 
               if (context.mounted) {
@@ -177,7 +211,9 @@ class _ItemSection extends StatelessWidget {
                   SnackBarHelper.showSuccess(context, 'Tiket berhasil dicetak');
                 } else {
                   SnackBarHelper.showError(
-                      context, 'Gagal mencetak tiket. Pastikan printer terhubung.');
+                    context,
+                    'Gagal mencetak tiket. Pastikan printer terhubung.',
+                  );
                 }
               }
             },

@@ -39,6 +39,8 @@ class Transaksi {
   final String? customerName;
   final List<TransaksiItem> items;
   final int totalPrice;
+  final int? bayarAmount;
+  final int? kembalian;
   final String paymentMethod;
   final String status;
   final DateTime createdAt;
@@ -49,6 +51,8 @@ class Transaksi {
     this.customerName,
     required this.items,
     required this.totalPrice,
+    this.bayarAmount,
+    this.kembalian,
     this.paymentMethod = 'TUNAI',
     this.status = 'PAID',
     required this.createdAt,
@@ -60,6 +64,8 @@ class Transaksi {
       'uuid': uuid,
       'customer_name': customerName,
       'total_price': totalPrice,
+      'bayar_amount': bayarAmount,
+      'kembalian': kembalian,
       'payment_method': paymentMethod,
       'status': status,
       'created_at': createdAt.toIso8601String(),
@@ -73,6 +79,8 @@ class Transaksi {
       customerName: map['customer_name'],
       items: items,
       totalPrice: map['total_price'] ?? 0,
+      bayarAmount: map['bayar_amount'],
+      kembalian: map['kembalian'],
       paymentMethod: map['payment_method'] ?? 'TUNAI',
       status: map['status'],
       createdAt: DateTime.parse(map['created_at']),

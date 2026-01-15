@@ -271,24 +271,6 @@ class _PrinterPageState extends State<PrinterPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          PrinterHelper.printPriceLabel(
-                            productName: 'Contoh Produk',
-                            upc: '123456789012',
-                            price: 19999.0,
-                          );
-                        },
-                        icon: const Icon(Icons.label),
-                        label: const Text('Print Label'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.all(16),
-                          backgroundColor: Colors.orange,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
