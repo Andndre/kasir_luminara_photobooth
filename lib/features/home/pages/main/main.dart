@@ -12,6 +12,8 @@ import 'package:luminara_photobooth/features/verifier/pages/live_queue_page.dart
 import 'package:luminara_photobooth/features/verifier/pages/handshake_page.dart';
 import 'package:luminara_photobooth/features/verifier/pages/scanner_page.dart';
 
+import 'package:luminara_photobooth/features/verifier/pages/home/page.dart';
+
 class MainPage extends StatelessWidget {
   const MainPage({super.key});
 
@@ -31,6 +33,7 @@ class MainPage extends StatelessWidget {
     ];
 
     final clientPages = <Widget>[
+      const ClientHomePage(),
       const LiveQueuePage(),
       const HandshakePage(),
       const SettingPage(),
@@ -92,6 +95,10 @@ class MainPage extends StatelessWidget {
                           ),
                         ]
                       : [
+                          const NavigationRailDestination(
+                            icon: Icon(AppIcons.storefront),
+                            label: Text('Beranda'),
+                          ),
                           const NavigationRailDestination(
                             icon: Icon(Icons.list_alt),
                             label: Text('Antrean'),
@@ -183,8 +190,8 @@ class MainPage extends StatelessWidget {
                           : [
                               Flexible(
                                 child: _NavItem(
-                                  icon: Icons.list_alt,
-                                  label: 'Antrean',
+                                  icon: AppIcons.storefront,
+                                  label: 'Beranda',
                                   isActive: safeIndex == 0,
                                   onTap: () {
                                     context
@@ -193,11 +200,10 @@ class MainPage extends StatelessWidget {
                                   },
                                 ),
                               ),
-                              const SizedBox(width: 84),
                               Flexible(
                                 child: _NavItem(
-                                  icon: Icons.link,
-                                  label: 'Koneksi',
+                                  icon: Icons.list_alt,
+                                  label: 'Antrean',
                                   isActive: safeIndex == 1,
                                   onTap: () {
                                     context
@@ -206,15 +212,28 @@ class MainPage extends StatelessWidget {
                                   },
                                 ),
                               ),
+                              const SizedBox(width: 84),
                               Flexible(
                                 child: _NavItem(
-                                  icon: Icons.settings,
-                                  label: 'Setelan',
+                                  icon: Icons.link,
+                                  label: 'Koneksi',
                                   isActive: safeIndex == 2,
                                   onTap: () {
                                     context
                                         .read<BottomNavBloc>()
                                         .add(TapBottomNavEvent(2));
+                                  },
+                                ),
+                              ),
+                              Flexible(
+                                child: _NavItem(
+                                  icon: Icons.settings,
+                                  label: 'Setelan',
+                                  isActive: safeIndex == 3,
+                                  onTap: () {
+                                    context
+                                        .read<BottomNavBloc>()
+                                        .add(TapBottomNavEvent(3));
                                   },
                                 ),
                               ),
