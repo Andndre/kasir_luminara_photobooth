@@ -43,7 +43,7 @@ class MainPage extends StatelessWidget {
         final safeIndex = index >= pages.length ? 0 : index;
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -66,6 +66,7 @@ class MainPage extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 24, bottom: 24),
                     child: FloatingActionButton(
                       onPressed: () => _handleFabAction(context, mode),
+                      foregroundColor: Colors.white,
                       child: Icon(mode == AppMode.server
                           ? Icons.point_of_sale
                           : Icons.qr_code_scanner),
@@ -105,14 +106,21 @@ class MainPage extends StatelessWidget {
                           ),
                         ],
                 ),
-              Expanded(child: pages[safeIndex]),
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1200),
+                    child: pages[safeIndex],
+                  ),
+                ),
+              ),
             ],
           ),
           bottomNavigationBar: isDesktop
               ? null
               : BottomAppBar(
-                  shape: null,
-                  clipBehavior: Clip.none,
+                  shape: const CircularNotchedRectangle(),
+                  clipBehavior: Clip.antiAlias,
                   elevation: 2.0,
                   height: 70,
                   child: Padding(
@@ -216,11 +224,12 @@ class MainPage extends StatelessWidget {
                 ),
           floatingActionButtonLocation: isDesktop
               ? null
-              : FloatingActionButtonLocation.centerFloat,
+              : FloatingActionButtonLocation.centerDocked,
           floatingActionButton: isDesktop
               ? null
               : FloatingActionButton(
                   onPressed: () => _handleFabAction(context, mode),
+                  foregroundColor: Colors.white,
                   tooltip:
                       mode == AppMode.server ? 'Tambah Transaksi' : 'Scan Tiket',
                   elevation: 2.0,

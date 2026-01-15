@@ -74,7 +74,13 @@ class _ProductPageState extends State<ProductPage> {
         foregroundColor: theme.appBarTheme.foregroundColor,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_circle, color: AppColors.primary, size: 28),
+            icon: Icon(
+              Icons.add_circle,
+              color: theme.brightness == Brightness.dark
+                  ? Colors.white
+                  : AppColors.primary,
+              size: 28,
+            ),
             onPressed: () async {
               _showAddProductDialog();
             },
