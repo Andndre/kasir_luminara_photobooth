@@ -380,7 +380,12 @@ class _KasirState extends State<Kasir> {
     if (_paymentMethod == 'TUNAI') {
       _showCashDialog();
     } else {
-      _executePayment(totalBayar: _totalPrice);
+      _executePayment(
+        totalBayar: _totalPrice,
+        customerName: _nameController.text.isEmpty
+            ? null
+            : _nameController.text,
+      );
     }
   }
 
@@ -620,6 +625,9 @@ class _KasirState extends State<Kasir> {
                           _executePayment(
                             totalBayar: selectedAmount,
                             kembalian: kembalian,
+                            customerName: _nameController.text.isEmpty
+                                ? null
+                                : _nameController.text,
                           );
                         },
                   style: ElevatedButton.styleFrom(
@@ -641,11 +649,15 @@ class _KasirState extends State<Kasir> {
     );
   }
 
-  void _executePayment({required int totalBayar, int kembalian = 0}) async {
+  void _executePayment({
+    required int totalBayar,
+    int kembalian = 0,
+    String? customerName,
+  }) async {
     if (_paymentMethod == 'QRIS') {
       if (_isMidtransEnabled) {
         // Online Flow (Midtrans)
-        await _handleQrisPayment(totalBayar);
+        await _handleQrisPayment(totalBayar, customerName);
       } else {
         // Offline Flow (Manual Transfer/EDC Terpisah)
         // Langsung finalize dengan metode NON-TUNAI
@@ -663,7 +675,7 @@ class _KasirState extends State<Kasir> {
     _finalizeTransaction(totalBayar: totalBayar, kembalian: kembalian);
   }
 
-  Future<void> _handleQrisPayment(int amount) async {
+  Future<void> _handleQrisPayment(int amount, String? customerName) async {
     // Show Loading
     showDialog(
       context: context,
@@ -673,7 +685,7 @@ class _KasirState extends State<Kasir> {
 
     try {
       final service = MidtransService();
-      final response = await service.createTransaction(amount);
+      final response = await service.createTransaction(amount, customerName);
 
       if (!mounted) return;
       Navigator.pop(context); // Dismiss Loading

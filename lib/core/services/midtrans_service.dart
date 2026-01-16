@@ -8,7 +8,10 @@ class MidtransService {
 
   String get baseUrl => _baseUrl;
 
-  Future<Map<String, dynamic>> createTransaction(int amount) async {
+  Future<Map<String, dynamic>> createTransaction(
+    int amount,
+    String? customerName,
+  ) async {
     final url = Uri.parse('$baseUrl/transaction');
 
     try {
@@ -18,7 +21,7 @@ class MidtransService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: jsonEncode({'amount': amount}),
+        body: jsonEncode({'amount': amount, 'customer_name': customerName}),
       );
 
       if (response.statusCode == 200) {
