@@ -26,10 +26,13 @@ jobs:
       - name: Build Windows Release
         run: flutter build windows --release
 
-      - name: Compile Installer using Inno Setup
-        uses: Minionguy/inno-setup-action@v1.2.2
-        with:
-          path: windows/installer.iss
+      - name: Install Inno Setup
+        run: choco install innosetup
+
+      - name: Compile Installer
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          & $iscc windows\installer.iss
 
       - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
