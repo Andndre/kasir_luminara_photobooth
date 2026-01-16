@@ -11,7 +11,7 @@ import 'package:luminara_photobooth/core/components/payment_webview_launcher.dar
 import 'package:luminara_photobooth/core/preferences/settings_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'dart:async'; // Added for Timer
+import 'dart:async';
 
 class Kasir extends StatefulWidget {
   const Kasir({super.key});
@@ -51,6 +51,14 @@ class _KasirState extends State<Kasir> {
     setState(() {
       _products = products;
       _isLoading = false;
+    });
+  }
+
+  void _resetState() {
+    setState(() {
+      _cart.clear();
+      _nameController.clear();
+      _paymentMethod = 'TUNAI';
     });
   }
 
@@ -645,7 +653,7 @@ class _KasirState extends State<Kasir> {
           totalBayar: totalBayar,
           kembalian: 0,
           isQris: false, // False agar tidak trigger pop webview
-          actualPaymentMethod: 'NON-TUNAI (MANUAL)',
+          actualPaymentMethod: 'NON-TUNAI',
         );
       }
       return;
@@ -730,8 +738,9 @@ class _KasirState extends State<Kasir> {
         }
       } else if (status == 'failed' || status == 'expire') {
         timer.cancel();
-        if (mounted)
+        if (mounted) {
           SnackBarHelper.showError(context, 'Pembayaran Gagal/Kadaluarsa');
+        }
       }
     });
   }
@@ -922,8 +931,8 @@ class _KasirState extends State<Kasir> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context); // Back to dashboard
+              Navigator.pop(context); // Tutup dialog saja
+              _resetState(); // Reset data kasir untuk transaksi berikutnya
             },
             child: const Text('Selesai'),
           ),
