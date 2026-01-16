@@ -3,7 +3,10 @@ import 'dart:io';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+// WAJIB: Import path_provider untuk akses folder yang aman di Desktop
+import 'package:path_provider/path_provider.dart';
 
+// Variable untuk memastikan FFI hanya di-init sekali
 bool _isDbInitialized = false;
 
 Future<Database> getDatabase() async {
@@ -15,14 +18,34 @@ Future<Database> getDatabase() async {
     }
   }
 
-  // 2. Sekarang aman untuk memanggil getDatabasesPath()
-  final dbPath = join(await getDatabasesPath(), 'photobooth.db');
+  String dbPath;
 
+  if (Platform.isWindows || Platform.isLinux) {
+    // DESKTOP: Gunakan folder Application Support agar memiliki izin TULIS (Write)
+    // Linux: ~/.local/share/luminara_photobooth/photobooth.db
+    // Windows: C:\Users\Nama\AppData\Roaming\luminara_photobooth\photobooth.db
+    final directory = await getApplicationSupportDirectory();
+
+    // Pastikan folder tersebut ada. Jika belum, buat dulu.
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+
+    dbPath = join(directory.path, 'photobooth.db');
+  } else {
+    dbPath = join(await getDatabasesPath(), 'photobooth.db');
+  }
+
+  // ------------------------------------------------------------------
   // 3. Buka Database & Buat Tabel
+  // ------------------------------------------------------------------
   Database database = await openDatabase(
     dbPath,
     version: 1,
     onCreate: (db, version) async {
+      print("Creating new database tables...");
+
+      // Tabel: products
       await db.execute('''
         CREATE TABLE products (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,6 +54,7 @@ Future<Database> getDatabase() async {
         )
       ''');
 
+      // Tabel: transactions
       await db.execute('''
         CREATE TABLE transactions (
           uuid TEXT PRIMARY KEY,
@@ -58,14 +82,14 @@ Future<Database> getDatabase() async {
         )
       ''');
 
-      // Seed default data
+      // Seed default data (Data awal)
       await db.insert('products', {
         'name': 'Self Photo 15 Menit',
         'price': 50000,
       });
       await db.insert('products', {'name': 'Wide Angle Photo', 'price': 75000});
 
-      print("Database siap digunakan!");
+      print("✅ Database siap digunakan!");
     },
   );
 
@@ -83,7 +107,7 @@ Future<Map<String, dynamic>> getStatistics() async {
     now.day,
   ).toIso8601String().substring(0, 10);
 
-  // Today's Income (Menggunakan total_price baru)
+  // Today's Income
   final todayIncomeResult = await db.rawQuery(
     "SELECT COALESCE(SUM(total_price), 0) as total FROM transactions WHERE created_at LIKE '$todayStr%'",
   );
@@ -95,7 +119,7 @@ Future<Map<String, dynamic>> getStatistics() async {
   );
   final todayTransactions = Sqflite.firstIntValue(todayTransactionResult) ?? 0;
 
-  // Total Queue (PAID but not COMPLETED)
+  // Total Queue (PAID but not COMPLETED/Redeemed)
   final queueResult = await db.rawQuery(
     "SELECT COUNT(*) as total FROM transactions WHERE status = 'PAID'",
   );
@@ -118,9 +142,4 @@ Future<Map<String, dynamic>> getStatistics() async {
 // Growth placeholder for new schema compatibility
 Future<Map<String, dynamic>> getSalesGrowth() async {
   return {'this_month': 0, 'last_month': 0, 'growth_percentage': 0.0};
-}
-
-// Low stock placeholder (Photobooth doesn't really have stock, it's time-based/service-based)
-Future<List<Map<String, dynamic>>> getLowStockProducts() async {
-  return [];
 }

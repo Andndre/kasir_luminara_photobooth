@@ -20,7 +20,12 @@ void main(List<String> args) {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
+      if (Platform.isWindows) {
+        await requestWindowsFirewallAccess(3000);
+      }
+
       // Initialize Database
+      // (Pastikan kode hapus DB di getDatabase() sudah dimatikan agar data aman)
       await getDatabase();
 
       // Initialize Background Service (Android/iOS)
@@ -103,4 +108,33 @@ void _setupErrorHandling() {
       ),
     );
   };
+}
+
+Future<void> requestWindowsFirewallAccess(int port) async {
+  // Nama Rule yang akan muncul di Windows Firewall
+  const String ruleName = "Luminara Photobooth Server";
+
+  // Script PowerShell: Cek apakah rule sudah ada? Jika belum, buat baru.
+  final String command =
+      '''
+    if (-not (Get-NetFirewallRule -DisplayName "$ruleName" -ErrorAction SilentlyContinue)) {
+      New-NetFirewallRule -DisplayName "$ruleName" -Direction Inbound -LocalPort $port -Protocol TCP -Action Allow -Profile Any
+    }
+  ''';
+
+  try {
+    // Jalankan PowerShell dengan mode RunAs (Admin Trigger)
+    await Process.run('powershell', [
+      '-Command',
+      'Start-Process',
+      'powershell',
+      '-ArgumentList',
+      "'-NoProfile', '-Command', '$command'",
+      '-Verb',
+      'RunAs',
+    ], runInShell: true);
+    debugPrint("Request Firewall Access dikirim...");
+  } catch (e) {
+    debugPrint("Gagal meminta akses firewall: $e");
+  }
 }
