@@ -26,15 +26,13 @@ jobs:
       - name: Build Windows Release
         run: flutter build windows --release
 
-      - name: Archive Release
-        uses: thedoctor0/zip-release@0.7.1
+      - name: Compile Installer using Inno Setup
+        uses: Minionguy/inno-setup-action@v1.2.2
         with:
-          type: 'zip'
-          filename: 'LuminaraPhotobooth_Windows.zip'
-          directory: 'build/windows/x64/runner/Release'
+          path: windows/installer.iss
 
-      - name: Upload Artifact
+      - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LuminaraPhotobooth-Windows-Build
-          path: build/windows/x64/runner/Release/LuminaraPhotobooth_Windows.zip
+          name: LuminaraPhotobooth-Installer
+          path: build/windows/x64/runner/Release/LuminaraPhotobooth_Setup.exe

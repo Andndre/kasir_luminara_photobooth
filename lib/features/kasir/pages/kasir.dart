@@ -263,7 +263,7 @@ class _KasirState extends State<Kasir> {
               ),
               ButtonSegment(
                 value: 'QRIS',
-                label: Text('QRIS'),
+                label: Text('NON-TUNAI'),
                 icon: Icon(Icons.qr_code),
               ),
             ],
