@@ -104,7 +104,9 @@ class _LogsPageState extends State<LogsPage> {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(
+              alpha: 0.1,
+            ), // Note: pastikan flutter terbaru utk withValues
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -112,20 +114,21 @@ class _LogsPageState extends State<LogsPage> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize:
+            MainAxisSize.min, // Tambahkan ini agar Column se-efisien mungkin
         children: [
           Text(
             DateFormat('yyyy-MM-dd HH:mm:ss').format(log.timestamp),
-            style: theme.textTheme.bodySmall,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
           ),
           const SizedBox(height: 8),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Text(
-                log.message,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: log.isError ? Colors.red : null,
-                ),
-              ),
+          Text(
+            log.message,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: log.isError ? Colors.red : null,
             ),
           ),
         ],
