@@ -63,6 +63,8 @@ dependencies:
   provider: ^6.1.5+1
   flutter_background_service: ^5.1.0
   flutter_local_notifications: ^19.5.0
+  webview_flutter: ^4.13.1
+  desktop_webview_window: ^0.2.3
 
 dev_dependencies:
   flutter_test:

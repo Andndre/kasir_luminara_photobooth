@@ -1,11 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/model/produk.dart';
 import 'package:luminara_photobooth/model/transaksi.dart';
 import 'package:luminara_photobooth/core/services/server_service.dart';
+import 'package:luminara_photobooth/core/services/midtrans_service.dart';
+import 'package:luminara_photobooth/core/components/payment_webview_launcher.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'dart:async'; // Added for Timer
 
 class Kasir extends StatefulWidget {
   const Kasir({super.key});
@@ -21,6 +26,9 @@ class _KasirState extends State<Kasir> {
   List<Produk> _products = [];
   bool _isLoading = true;
   String _paymentMethod = 'TUNAI';
+  
+  // Flag untuk safety pop
+  bool _isWebViewOpen = false;
 
   @override
   void initState() {
@@ -610,6 +618,105 @@ class _KasirState extends State<Kasir> {
   }
 
   void _executePayment({required int totalBayar, int kembalian = 0}) async {
+    if (_paymentMethod == 'QRIS') {
+      await _handleQrisPayment(totalBayar);
+      return;
+    }
+
+    // Flow Tunai (Langsung Finalize)
+    _finalizeTransaction(totalBayar: totalBayar, kembalian: kembalian);
+  }
+
+  Future<void> _handleQrisPayment(int amount) async {
+    // Show Loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final service = MidtransService();
+      final response = await service.createTransaction(amount);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss Loading
+
+      final redirectUrl = response['redirect_url'];
+      final orderId = response['order_id'];
+
+      debugPrint("🔗 LINK PEMBAYARAN MIDTRANS: $redirectUrl"); // <--- KLIK LINK INI DI TERMINAL
+      debugPrint("💳 ORDER ID: $orderId");
+
+      // Launch WebView
+      _isWebViewOpen = true;
+      PaymentWebViewLauncher.launch(
+        context,
+        redirectUrl,
+        onClose: () {
+           _isWebViewOpen = false;
+           debugPrint("WebView closed manually");
+        }
+      );
+
+      // Start Polling
+      _startPaymentPolling(orderId, amount);
+
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Dismiss Loading if error
+        SnackBarHelper.showError(context, 'Gagal inisiasi pembayaran: $e');
+      }
+    }
+  }
+
+  void _startPaymentPolling(String orderId, int amount) {
+    Timer.periodic(const Duration(seconds: 3), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      final service = MidtransService();
+      
+      // FORCE SYNC: Paksa Laravel cek ke Midtrans (karena Webhook tidak jalan di localhost)
+      await service.syncTransaction(orderId);
+
+      final status = await service.checkStatus(orderId);
+
+      if (status == 'paid' || status == 'settlement') {
+        timer.cancel();
+        
+        if (mounted) {
+             // Finalize
+             _finalizeTransaction(
+               totalBayar: amount, 
+               kembalian: 0, 
+               isQris: true,
+               midtransOrderId: orderId, // PASS ID KE SINI
+             );
+        }
+      } else if (status == 'failed' || status == 'expire') {
+        timer.cancel();
+        if (mounted) SnackBarHelper.showError(context, 'Pembayaran Gagal/Kadaluarsa');
+      }
+    });
+  }
+
+  void _finalizeTransaction({
+    required int totalBayar, 
+    int kembalian = 0, 
+    bool isQris = false,
+    String? midtransOrderId, // NEW PARAMETER
+  }) async {
+    // Safety Close WebView jika masih terbuka (khusus Mobile)
+    if (isQris && _isWebViewOpen && (Platform.isAndroid || Platform.isIOS)) {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      _isWebViewOpen = false;
+    }
+
     final uuid = Transaksi.generateUuid();
 
     // Prepare items list
@@ -636,6 +743,7 @@ class _KasirState extends State<Kasir> {
       kembalian: kembalian,
       paymentMethod: _paymentMethod,
       createdAt: DateTime.now(),
+      midtransOrderId: midtransOrderId, // SAVE TO DB
     );
 
     try {
@@ -656,10 +764,11 @@ class _KasirState extends State<Kasir> {
         date: transaction.createdAt,
       );
 
-      if (!mounted) return;
-
-      if (!printResult) {
-        ScaffoldMessenger.of(context).showSnackBar(
+            if (!mounted) return;
+            
+            // OLD CODE REMOVED: Safety pop is now handled at start of function
+      
+            if (!printResult) {        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Gagal mencetak tiket, pastikan printer terhubung'),
           ),

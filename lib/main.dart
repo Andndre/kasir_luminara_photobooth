@@ -9,8 +9,13 @@ import 'package:luminara_photobooth/app/app.dart';
 import 'package:luminara_photobooth/core/services/background_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:desktop_webview_window/desktop_webview_window.dart';
 
-void main() {
+void main(List<String> args) {
+  if (runWebViewTitleBarWidget(args)) {
+    return;
+  }
+
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 

@@ -45,6 +45,7 @@ class Transaksi {
   final String status;
   final DateTime createdAt;
   final DateTime? redeemedAt;
+  final String? midtransOrderId; // NEW FIELD
 
   Transaksi({
     required this.uuid,
@@ -57,6 +58,7 @@ class Transaksi {
     this.status = 'PAID',
     required this.createdAt,
     this.redeemedAt,
+    this.midtransOrderId,
   });
 
   Map<String, dynamic> toMap() {
@@ -70,6 +72,7 @@ class Transaksi {
       'status': status,
       'created_at': createdAt.toIso8601String(),
       'redeemed_at': redeemedAt?.toIso8601String(),
+      'midtrans_order_id': midtransOrderId,
     };
   }
 
@@ -86,6 +89,7 @@ class Transaksi {
       createdAt: DateTime.parse(map['created_at']),
       redeemedAt:
           map['redeemed_at'] != null ? DateTime.parse(map['redeemed_at']) : null,
+      midtransOrderId: map['midtrans_order_id'],
     );
   }
 
