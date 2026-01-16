@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/services/server_service.dart';
+import 'package:luminara_photobooth/core/services/transaction_cloud_service.dart';
 import 'package:luminara_photobooth/model/transaksi.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -55,22 +56,13 @@ class _TransactionPageState extends State<TransactionPage> {
     });
 
     try {
-      List<Transaksi> transactions;
-      if (_selectedDateRange != null) {
-        transactions = await Transaksi.getTransactionsByDateRange(
-          _selectedDateRange!.start,
-          _selectedDateRange!.end,
-        );
-      } else {
-        transactions = await Transaksi.getAllTransaksi();
-      }
+      // AMBIL DARI CLOUD
+      final transactions = await TransactionCloudService().getAllTransactions();
 
       setState(() {
         _transactions = transactions;
-        _totalIncome = transactions.fold(
-          0,
-          (sum, item) => sum + item.totalPrice,
-        );
+        _totalIncome =
+            transactions.fold(0, (sum, item) => sum + item.totalPrice);
         _isLoading = false;
       });
     } catch (e) {

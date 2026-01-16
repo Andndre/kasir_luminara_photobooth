@@ -9,6 +9,7 @@ import 'package:luminara_photobooth/core/services/server_service.dart';
 import 'package:luminara_photobooth/core/services/midtrans_service.dart';
 import 'package:luminara_photobooth/core/components/payment_webview_launcher.dart';
 import 'package:luminara_photobooth/core/preferences/settings_preferences.dart';
+import 'package:luminara_photobooth/core/services/transaction_cloud_service.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:async';
@@ -830,9 +831,32 @@ class _KasirState extends State<Kasir> {
     );
 
     try {
-      await Transaksi.createTransaksi(transaction);
+      // Tampilkan Loading untuk Sync ke Cloud
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (c) => const Center(child: CircularProgressIndicator()),
+        );
+      }
 
-      // Broadcast via WebSocket
+      // SIMPAN KE CLOUD (LARAVEL)
+      final success =
+          await TransactionCloudService().saveTransaction(transaction);
+
+      if (mounted) Navigator.pop(context); // Tutup Loading
+
+      if (!success) {
+        if (mounted) {
+          SnackBarHelper.showError(
+            context,
+            'Gagal sinkronisasi transaksi ke Cloud. Silakan periksa internet.',
+          );
+        }
+        return; // Jangan lanjut cetak jika gagal simpan (Demi integritas data)
+      }
+
+      // Broadcast via WebSocket (Local Sync tetap jalan)
       ServerService().broadcast('REFRESH_QUEUE');
 
       // Print Ticket

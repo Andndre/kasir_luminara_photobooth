@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/features/home/home.dart';
+import 'package:luminara_photobooth/core/services/auth_service.dart';
+import 'package:luminara_photobooth/features/auth/login_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -19,18 +21,26 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _initializeApp() async {
-    // Simulasi inisialisasi data (jika ada)
+    // Simulasi inisialisasi data
     await Future.delayed(const Duration(seconds: 2));
 
     if (mounted) {
       setState(() {
-        _statusText = 'Siap digunakan!';
+        _statusText = 'Memverifikasi sesi...';
       });
     }
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    final isLoggedIn = await AuthService.isLoggedIn();
 
     if (!mounted) return;
+
+    if (!isLoggedIn) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+      return;
+    }
 
     Navigator.pushNamedAndRemoveUntil(
       context,
