@@ -15,11 +15,14 @@ Future<Database> getDatabase() async {
     }
   }
 
+  // 2. Sekarang aman untuk memanggil getDatabasesPath()
+  final dbPath = join(await getDatabasesPath(), 'photobooth.db');
+
+  // 3. Buka Database & Buat Tabel
   Database database = await openDatabase(
-    join(await getDatabasesPath(), 'photobooth.db'),
-    version: 5, // Increment version
+    dbPath,
+    version: 1,
     onCreate: (db, version) async {
-      // Tabel: products
       await db.execute('''
         CREATE TABLE products (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,7 +31,6 @@ Future<Database> getDatabase() async {
         )
       ''');
 
-      // Tabel: transactions
       await db.execute('''
         CREATE TABLE transactions (
           uuid TEXT PRIMARY KEY,
@@ -62,32 +64,8 @@ Future<Database> getDatabase() async {
         'price': 50000,
       });
       await db.insert('products', {'name': 'Wide Angle Photo', 'price': 75000});
-    },
-    onUpgrade: (db, oldVersion, newVersion) async {
-      if (oldVersion < 3) {
-        // ... (Old migration code kept same)
-      }
 
-      if (oldVersion < 4) {
-        // Tambahkan kolom bayar_amount dan kembalian
-        try {
-          await db.execute(
-            'ALTER TABLE transactions ADD COLUMN bayar_amount INTEGER',
-          );
-          await db.execute(
-            'ALTER TABLE transactions ADD COLUMN kembalian INTEGER',
-          );
-        } catch (_) {}
-      }
-
-      if (oldVersion < 5) {
-        // Tambahkan kolom midtrans_order_id
-        try {
-          await db.execute(
-            'ALTER TABLE transactions ADD COLUMN midtrans_order_id TEXT',
-          );
-        } catch (_) {}
-      }
+      print("Database siap digunakan!");
     },
   );
 
