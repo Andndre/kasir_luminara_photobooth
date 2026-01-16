@@ -17,13 +17,10 @@ class _ProfileSectionState extends State<_ProfileSection> {
     installerStore: 'Unknown',
   );
 
-  String _patchInfo = '';
-
   @override
   void initState() {
     super.initState();
     _initPackageInfo();
-    _initPatchInfo();
   }
 
   Future<void> _initPackageInfo() async {
@@ -34,24 +31,6 @@ class _ProfileSectionState extends State<_ProfileSection> {
       });
     } catch (e) {
       print('Error getting PackageInfo: $e');
-    }
-  }
-
-  Future<void> _initPatchInfo() async {
-    try {
-      // Import perlu ditambahkan di file utama
-      final updater = ShorebirdUpdater();
-      final currentPatch = await updater.readCurrentPatch();
-      setState(() {
-        _patchInfo = currentPatch != null
-            ? 'Patch: ${currentPatch.number}'
-            : 'Original';
-      });
-    } catch (e) {
-      setState(() {
-        _patchInfo = 'Original';
-      });
-      print('Error getting patch info: $e');
     }
   }
 
@@ -89,17 +68,6 @@ class _ProfileSectionState extends State<_ProfileSection> {
                     color: Colors.grey,
                   ),
                 ),
-                if (_patchInfo.isNotEmpty) ...[
-                  Dimens.dp2.height,
-                  RegularText(
-                    _patchInfo,
-                    style: const TextStyle(
-                      fontSize: Dimens.dp10,
-                      color: Colors.blue,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),

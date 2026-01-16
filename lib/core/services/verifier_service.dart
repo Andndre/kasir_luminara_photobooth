@@ -31,8 +31,9 @@ class VerifierService {
   }
 
   Future<Map<String, dynamic>> verifyTicket(String ticketCode) async {
-    if (_baseUrl == null)
+    if (_baseUrl == null) {
       return {'valid': false, 'message': 'Not connected to server'};
+    }
 
     final response = await http.post(
       Uri.parse('$_baseUrl/api/verify'),
