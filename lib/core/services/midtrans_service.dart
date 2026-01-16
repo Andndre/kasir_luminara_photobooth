@@ -33,7 +33,7 @@ class MidtransService {
     }
   }
 
-  Future<String> checkStatus(String orderId) async {
+  Future<Map<String, dynamic>> checkStatus(String orderId) async {
     final url = Uri.parse('$baseUrl/transaction/$orderId');
 
     try {
@@ -44,12 +44,15 @@ class MidtransService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['data']['status']; // pending, paid, failed
+        return {
+          'status': data['data']['status'], // pending, paid, failed
+          'payment_type': data['data']['payment_type'], // gopay, qris, bank_transfer
+        };
       } else {
-        return 'unknown';
+        return {'status': 'unknown', 'payment_type': null};
       }
     } catch (e) {
-      return 'error';
+      return {'status': 'error', 'payment_type': null};
     }
   }
 

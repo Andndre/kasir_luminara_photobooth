@@ -682,7 +682,9 @@ class _KasirState extends State<Kasir> {
       // FORCE SYNC: Paksa Laravel cek ke Midtrans (karena Webhook tidak jalan di localhost)
       await service.syncTransaction(orderId);
 
-      final status = await service.checkStatus(orderId);
+      final result = await service.checkStatus(orderId);
+      final status = result['status'];
+      final rawPaymentType = result['payment_type'];
 
       if (status == 'paid' || status == 'settlement') {
         timer.cancel();
@@ -693,7 +695,8 @@ class _KasirState extends State<Kasir> {
                totalBayar: amount, 
                kembalian: 0, 
                isQris: true,
-               midtransOrderId: orderId, // PASS ID KE SINI
+               midtransOrderId: orderId,
+               actualPaymentMethod: _normalizePaymentMethod(rawPaymentType),
              );
         }
       } else if (status == 'failed' || status == 'expire') {
@@ -703,11 +706,38 @@ class _KasirState extends State<Kasir> {
     });
   }
 
+  String _normalizePaymentMethod(String? rawType) {
+    if (rawType == null) return 'QRIS';
+    
+    // Mapping Midtrans Technical Name -> User Friendly Name
+    switch (rawType) {
+      case 'qris': return 'QRIS';
+      case 'gopay': return 'GoPay/GoPay Later';
+      case 'shopeepay': return 'ShopeePay/SPayLater';
+      case 'akulaku': return 'Akulaku Paylater';
+      case 'kredivo': return 'Kredivo';
+      
+      // Virtual Accounts / Bank Transfer
+      case 'bank_transfer': 
+      case 'echannel': // Mandiri Bill
+      case 'permata_va':
+      case 'bca_va':
+      case 'bni_va':
+      case 'bri_va':
+      case 'cimb_va':
+      case 'other_va':
+        return 'Bank Transfer (VA)';
+        
+      default: return 'QRIS ($rawType)';
+    }
+  }
+
   void _finalizeTransaction({
     required int totalBayar, 
     int kembalian = 0, 
     bool isQris = false,
-    String? midtransOrderId, // NEW PARAMETER
+    String? midtransOrderId,
+    String? actualPaymentMethod, // NEW: Metode pembayaran asli dari Midtrans
   }) async {
     // Safety Close WebView jika masih terbuka (khusus Mobile)
     if (isQris && _isWebViewOpen && (Platform.isAndroid || Platform.isIOS)) {
@@ -741,9 +771,9 @@ class _KasirState extends State<Kasir> {
       totalPrice: _totalPrice,
       bayarAmount: totalBayar,
       kembalian: kembalian,
-      paymentMethod: _paymentMethod,
+      paymentMethod: actualPaymentMethod ?? _paymentMethod, // USE ACTUAL IF AVAILABLE
       createdAt: DateTime.now(),
-      midtransOrderId: midtransOrderId, // SAVE TO DB
+      midtransOrderId: midtransOrderId,
     );
 
     try {
