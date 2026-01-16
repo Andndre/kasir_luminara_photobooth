@@ -36,7 +36,9 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(mode == AppMode.server ? 'Server Dashboard' : 'Verifier Dashboard'),
+        title: Text(
+          mode == AppMode.server ? 'Server Dashboard' : 'Verifier Dashboard',
+        ),
         backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         foregroundColor: theme.appBarTheme.foregroundColor,
@@ -55,15 +57,17 @@ class _HomePageState extends State<HomePage> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-  
+
             final statistics = snapshot.data ?? {};
-  
+
             return LayoutBuilder(
               builder: (context, constraints) {
                 // Enforce minimum width of 400px to prevent overflow on tiny windows
                 const double minWidth = 400.0;
-                final double contentWidth = constraints.maxWidth < minWidth ? minWidth : constraints.maxWidth;
-  
+                final double contentWidth = constraints.maxWidth < minWidth
+                    ? minWidth
+                    : constraints.maxWidth;
+
                 return SingleChildScrollView(
                   scrollDirection: Axis.vertical,
                   child: SingleChildScrollView(
@@ -82,11 +86,11 @@ class _HomePageState extends State<HomePage> {
                               const ServerMonitor(),
                               const SizedBox(height: 24),
                             ],
-  
+
                             // Welcome Section
                             _buildWelcomeSection(),
                             const SizedBox(height: 24),
-  
+
                             // Today's Performance
                             _buildSectionHeader('Kinerja Hari Ini'),
                             const SizedBox(height: 12),
@@ -95,10 +99,13 @@ class _HomePageState extends State<HomePage> {
                                 Expanded(
                                   child: _buildStatCard(
                                     title: 'Pemasukan',
-                                    value: _formatCurrency(statistics['today_income'] ?? 0),
+                                    value: _formatCurrency(
+                                      statistics['today_income'] ?? 0,
+                                    ),
                                     icon: Icons.monetization_on,
                                     color: Colors.green,
-                                    subtitle: '${statistics['today_transactions'] ?? 0} transaksi',
+                                    subtitle:
+                                        '${statistics['today_transactions'] ?? 0} transaksi',
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -114,7 +121,7 @@ class _HomePageState extends State<HomePage> {
                               ],
                             ),
                             const SizedBox(height: 24),
-  
+
                             // Quick Stats Grid
                             _buildSectionHeader('Statistik Cepat'),
                             const SizedBox(height: 12),
@@ -122,11 +129,19 @@ class _HomePageState extends State<HomePage> {
                               builder: (context, constraints) {
                                 // Use the constraints from this inner LayoutBuilder (which matches contentWidth)
                                 // If contentWidth is 400, constraints.maxWidth here is ~368 (minus padding)
-                                final int crossAxisCount = (constraints.maxWidth / 200).floor().clamp(2, 4);
-                                final double itemWidth = (constraints.maxWidth - ((crossAxisCount - 1) * 12)) / crossAxisCount;
+                                final int crossAxisCount =
+                                    (constraints.maxWidth / 200).floor().clamp(
+                                      2,
+                                      4,
+                                    );
+                                final double itemWidth =
+                                    (constraints.maxWidth -
+                                        ((crossAxisCount - 1) * 12)) /
+                                    crossAxisCount;
                                 const double targetHeight = 140.0;
-                                final double aspectRatio = itemWidth / targetHeight;
-  
+                                final double aspectRatio =
+                                    itemWidth / targetHeight;
+
                                 return GridView.count(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
@@ -206,8 +221,10 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
-                      .format(DateTime.now()),
+                  DateFormat(
+                    'EEEE, dd MMMM yyyy',
+                    'id_ID',
+                  ).format(DateTime.now()),
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
               ],
@@ -298,7 +315,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildQuickStatCard(String title, String value, IconData icon, Color color, {VoidCallback? onTap}) {
+  Widget _buildQuickStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
     final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
@@ -352,6 +375,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   String _formatCurrency(int amount) {
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(amount);
   }
 }

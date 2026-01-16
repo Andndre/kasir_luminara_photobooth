@@ -17,10 +17,13 @@ class _ItemSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimens.radius)),
+        borderRadius: BorderRadius.circular(Dimens.radius),
+      ),
       child: ListTile(
-        title: Text(product.name,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          product.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         subtitle: Text(formatCurrency(product.price)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,

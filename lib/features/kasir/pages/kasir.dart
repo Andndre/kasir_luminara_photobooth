@@ -27,7 +27,7 @@ class _KasirState extends State<Kasir> {
   List<Produk> _products = [];
   bool _isLoading = true;
   String _paymentMethod = 'TUNAI';
-  
+
   // Flag untuk safety pop
   bool _isWebViewOpen = false;
   bool _isMidtransEnabled = false;
@@ -277,7 +277,8 @@ class _KasirState extends State<Kasir> {
                 icon: Icon(Icons.money),
               ),
               ButtonSegment(
-                value: 'QRIS', // Value tetap QRIS untuk konsistensi, Label NON-TUNAI
+                value:
+                    'QRIS', // Value tetap QRIS untuk konsistensi, Label NON-TUNAI
                 label: Text('NON-TUNAI'),
                 icon: Icon(Icons.qr_code),
               ),
@@ -641,10 +642,10 @@ class _KasirState extends State<Kasir> {
         // Offline Flow (Manual Transfer/EDC Terpisah)
         // Langsung finalize dengan metode NON-TUNAI
         _finalizeTransaction(
-          totalBayar: totalBayar, 
-          kembalian: 0, 
+          totalBayar: totalBayar,
+          kembalian: 0,
           isQris: false, // False agar tidak trigger pop webview
-          actualPaymentMethod: 'NON-TUNAI (MANUAL)'
+          actualPaymentMethod: 'NON-TUNAI (MANUAL)',
         );
       }
       return;
@@ -672,7 +673,9 @@ class _KasirState extends State<Kasir> {
       final redirectUrl = response['redirect_url'];
       final orderId = response['order_id'];
 
-      debugPrint("🔗 LINK PEMBAYARAN MIDTRANS: $redirectUrl"); // <--- KLIK LINK INI DI TERMINAL
+      debugPrint(
+        "🔗 LINK PEMBAYARAN MIDTRANS: $redirectUrl",
+      ); // <--- KLIK LINK INI DI TERMINAL
       debugPrint("💳 ORDER ID: $orderId");
 
       // Launch WebView
@@ -681,14 +684,13 @@ class _KasirState extends State<Kasir> {
         context,
         redirectUrl,
         onClose: () {
-           _isWebViewOpen = false;
-           debugPrint("WebView closed manually");
-        }
+          _isWebViewOpen = false;
+          debugPrint("WebView closed manually");
+        },
       );
 
       // Start Polling
       _startPaymentPolling(orderId, amount);
-
     } catch (e) {
       if (mounted) {
         Navigator.pop(context); // Dismiss Loading if error
@@ -705,7 +707,7 @@ class _KasirState extends State<Kasir> {
       }
 
       final service = MidtransService();
-      
+
       // FORCE SYNC: Paksa Laravel cek ke Midtrans (karena Webhook tidak jalan di localhost)
       await service.syncTransaction(orderId);
 
@@ -715,37 +717,43 @@ class _KasirState extends State<Kasir> {
 
       if (status == 'paid' || status == 'settlement') {
         timer.cancel();
-        
+
         if (mounted) {
-             // Finalize
-             _finalizeTransaction(
-               totalBayar: amount, 
-               kembalian: 0, 
-               isQris: true,
-               midtransOrderId: orderId,
-               actualPaymentMethod: _normalizePaymentMethod(rawPaymentType),
-             );
+          // Finalize
+          _finalizeTransaction(
+            totalBayar: amount,
+            kembalian: 0,
+            isQris: true,
+            midtransOrderId: orderId,
+            actualPaymentMethod: _normalizePaymentMethod(rawPaymentType),
+          );
         }
       } else if (status == 'failed' || status == 'expire') {
         timer.cancel();
-        if (mounted) SnackBarHelper.showError(context, 'Pembayaran Gagal/Kadaluarsa');
+        if (mounted)
+          SnackBarHelper.showError(context, 'Pembayaran Gagal/Kadaluarsa');
       }
     });
   }
 
   String _normalizePaymentMethod(String? rawType) {
     if (rawType == null) return 'QRIS';
-    
+
     // Mapping Midtrans Technical Name -> User Friendly Name
     switch (rawType) {
-      case 'qris': return 'QRIS';
-      case 'gopay': return 'GoPay/GoPay Later';
-      case 'shopeepay': return 'ShopeePay/SPayLater';
-      case 'akulaku': return 'Akulaku Paylater';
-      case 'kredivo': return 'Kredivo';
-      
+      case 'qris':
+        return 'QRIS';
+      case 'gopay':
+        return 'GoPay/GoPay Later';
+      case 'shopeepay':
+        return 'ShopeePay/SPayLater';
+      case 'akulaku':
+        return 'Akulaku Paylater';
+      case 'kredivo':
+        return 'Kredivo';
+
       // Virtual Accounts / Bank Transfer
-      case 'bank_transfer': 
+      case 'bank_transfer':
       case 'echannel': // Mandiri Bill
       case 'permata_va':
       case 'bca_va':
@@ -754,31 +762,32 @@ class _KasirState extends State<Kasir> {
       case 'cimb_va':
       case 'other_va':
         return 'Bank Transfer (VA)';
-        
-      default: return 'QRIS ($rawType)';
+
+      default:
+        return 'QRIS ($rawType)';
     }
   }
 
   void _finalizeTransaction({
-    required int totalBayar, 
-    int kembalian = 0, 
+    required int totalBayar,
+    int kembalian = 0,
     bool isQris = false,
     String? midtransOrderId,
     String? actualPaymentMethod,
   }) async {
     // Safety Close WebView jika masih terbuka
     if (isQris) {
-        // Mobile: Pop Dialog
-        if (_isWebViewOpen && (Platform.isAndroid || Platform.isIOS)) {
-          if (Navigator.canPop(context)) {
-            Navigator.pop(context);
-          }
-          _isWebViewOpen = false;
+      // Mobile: Pop Dialog
+      if (_isWebViewOpen && (Platform.isAndroid || Platform.isIOS)) {
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
         }
-        
-        // Windows/macOS: Close Window Programmatically
-        // Note: This is skipped for Linux in the helper itself to prevent crashes.
-        PaymentWebViewLauncher.close();
+        _isWebViewOpen = false;
+      }
+
+      // Windows/macOS: Close Window Programmatically
+      // Note: This is skipped for Linux in the helper itself to prevent crashes.
+      PaymentWebViewLauncher.close();
     }
 
     final uuid = Transaksi.generateUuid();
@@ -805,7 +814,8 @@ class _KasirState extends State<Kasir> {
       totalPrice: _totalPrice,
       bayarAmount: totalBayar,
       kembalian: kembalian,
-      paymentMethod: actualPaymentMethod ?? _paymentMethod, // USE ACTUAL IF AVAILABLE
+      paymentMethod:
+          actualPaymentMethod ?? _paymentMethod, // USE ACTUAL IF AVAILABLE
       createdAt: DateTime.now(),
       midtransOrderId: midtransOrderId,
     );
@@ -828,11 +838,12 @@ class _KasirState extends State<Kasir> {
         date: transaction.createdAt,
       );
 
-            if (!mounted) return;
-            
-            // OLD CODE REMOVED: Safety pop is now handled at start of function
-      
-            if (!printResult) {        ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+
+      // OLD CODE REMOVED: Safety pop is now handled at start of function
+
+      if (!printResult) {
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Gagal mencetak tiket, pastikan printer terhubung'),
           ),

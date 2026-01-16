@@ -16,52 +16,58 @@ void main(List<String> args) {
     return;
   }
 
-  runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-    // Initialize Database
-    await getDatabase();
+      // Initialize Database
+      await getDatabase();
 
-    // Initialize Background Service (Android/iOS)
-    if (Platform.isAndroid || Platform.isIOS) {
-      if (Platform.isAndroid) {
-        final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-            FlutterLocalNotificationsPlugin();
-        await flutterLocalNotificationsPlugin
-            .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()
-            ?.createNotificationChannel(const AndroidNotificationChannel(
-              notificationChannelId,
-              'Luminara Server Service',
-              description: 'Menjaga server tetap aktif di latar belakang.',
-              importance: Importance.low,
-            ));
+      // Initialize Background Service (Android/iOS)
+      if (Platform.isAndroid || Platform.isIOS) {
+        if (Platform.isAndroid) {
+          final FlutterLocalNotificationsPlugin
+          flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+          await flutterLocalNotificationsPlugin
+              .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin
+              >()
+              ?.createNotificationChannel(
+                const AndroidNotificationChannel(
+                  notificationChannelId,
+                  'Luminara Server Service',
+                  description: 'Menjaga server tetap aktif di latar belakang.',
+                  importance: Importance.low,
+                ),
+              );
+        }
+        await initializeBackgroundService();
       }
-      await initializeBackgroundService();
-    }
 
-    Bloc.observer = AppBlocObserver();
+      Bloc.observer = AppBlocObserver();
 
-    // Request permissions only on Mobile
-    if (Platform.isAndroid || Platform.isIOS) {
-      await [
-        Permission.notification,
-        Permission.bluetooth,
-        Permission.bluetoothScan,
-        Permission.bluetoothConnect,
-        Permission.location,
-      ].request();
-    }
+      // Request permissions only on Mobile
+      if (Platform.isAndroid || Platform.isIOS) {
+        await [
+          Permission.notification,
+          Permission.bluetooth,
+          Permission.bluetoothScan,
+          Permission.bluetoothConnect,
+          Permission.location,
+        ].request();
+      }
 
-    await initializeDateFormatting('id_ID', null);
+      await initializeDateFormatting('id_ID', null);
 
-    _setupErrorHandling();
+      _setupErrorHandling();
 
-    runApp(const MyApp());
-  }, (error, stack) {
-    debugPrint('GLOBAL ERROR: $error');
-    debugPrint('STACKTRACE: $stack');
-  });
+      runApp(const MyApp());
+    },
+    (error, stack) {
+      debugPrint('GLOBAL ERROR: $error');
+      debugPrint('STACKTRACE: $stack');
+    },
+  );
 }
 
 void _setupErrorHandling() {
@@ -84,9 +90,10 @@ void _setupErrorHandling() {
               const Text(
                 'Terjadi Kesalahan UI!',
                 style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
               ),
               const SizedBox(height: 12),
               Text(details.exception.toString(), textAlign: TextAlign.center),

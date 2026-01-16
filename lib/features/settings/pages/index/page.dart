@@ -435,17 +435,17 @@ class _SettingPageState extends State<SettingPage> {
                           context.watch<AppState>().themeMode == ThemeMode.dark,
                       onChanged: (value) {
                         context.read<AppState>().setThemeMode(
-                              value ? ThemeMode.dark : ThemeMode.light,
-                            );
+                          value ? ThemeMode.dark : ThemeMode.light,
+                        );
                       },
                     ),
                     onTap: () {
                       final current = context.read<AppState>().themeMode;
                       context.read<AppState>().setThemeMode(
-                            current == ThemeMode.light
-                                ? ThemeMode.dark
-                                : ThemeMode.light,
-                          );
+                        current == ThemeMode.light
+                            ? ThemeMode.dark
+                            : ThemeMode.light,
+                      );
                     },
                   ),
                 ],
@@ -479,20 +479,21 @@ class _SettingPageState extends State<SettingPage> {
                   ),
                 ],
               ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(Dimens.dp16),
-                                        child: OutlinedButton(
-                                          key: ValueKey('exit_button_${theme.brightness.name}'),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: theme.colorScheme.error,
-                                            side: BorderSide(color: theme.colorScheme.error),
-                                          ),
-                                          onPressed: () {
-                                            _showExitDialog(context);
-                                          },
-                                          child: const Text('Keluar Aplikasi'),
-                                        ),
-                                      ),            ],
+              Padding(
+                padding: const EdgeInsets.all(Dimens.dp16),
+                child: OutlinedButton(
+                  key: ValueKey('exit_button_${theme.brightness.name}'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                    side: BorderSide(color: theme.colorScheme.error),
+                  ),
+                  onPressed: () {
+                    _showExitDialog(context);
+                  },
+                  child: const Text('Keluar Aplikasi'),
+                ),
+              ),
+            ],
           ),
         ),
       ),

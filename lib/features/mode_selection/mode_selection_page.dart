@@ -30,7 +30,8 @@ class ModeSelectionPage extends StatelessWidget {
                 _ModeCard(
                   title: 'SERVER (KASIR)',
                   icon: Icons.computer,
-                  description: 'Manage transactions, print receipts, and host local server.',
+                  description:
+                      'Manage transactions, print receipts, and host local server.',
                   onTap: () {
                     context.read<AppState>().setMode(AppMode.server);
                   },
@@ -70,7 +71,9 @@ class _ModeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimens.radius)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Dimens.radius),
+      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(Dimens.radius),

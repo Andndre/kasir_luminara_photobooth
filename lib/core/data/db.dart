@@ -57,8 +57,10 @@ Future<Database> getDatabase() async {
       ''');
 
       // Seed default data
-      await db
-          .insert('products', {'name': 'Self Photo 15 Menit', 'price': 50000});
+      await db.insert('products', {
+        'name': 'Self Photo 15 Menit',
+        'price': 50000,
+      });
       await db.insert('products', {'name': 'Wide Angle Photo', 'price': 75000});
     },
     onUpgrade: (db, oldVersion, newVersion) async {
@@ -69,15 +71,21 @@ Future<Database> getDatabase() async {
       if (oldVersion < 4) {
         // Tambahkan kolom bayar_amount dan kembalian
         try {
-          await db.execute('ALTER TABLE transactions ADD COLUMN bayar_amount INTEGER');
-          await db.execute('ALTER TABLE transactions ADD COLUMN kembalian INTEGER');
+          await db.execute(
+            'ALTER TABLE transactions ADD COLUMN bayar_amount INTEGER',
+          );
+          await db.execute(
+            'ALTER TABLE transactions ADD COLUMN kembalian INTEGER',
+          );
         } catch (_) {}
       }
 
       if (oldVersion < 5) {
         // Tambahkan kolom midtrans_order_id
         try {
-          await db.execute('ALTER TABLE transactions ADD COLUMN midtrans_order_id TEXT');
+          await db.execute(
+            'ALTER TABLE transactions ADD COLUMN midtrans_order_id TEXT',
+          );
         } catch (_) {}
       }
     },
@@ -91,8 +99,11 @@ Future<Map<String, dynamic>> getStatistics() async {
   final db = await getDatabase();
 
   final now = DateTime.now();
-  final todayStr =
-      DateTime(now.year, now.month, now.day).toIso8601String().substring(0, 10);
+  final todayStr = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).toIso8601String().substring(0, 10);
 
   // Today's Income (Menggunakan total_price baru)
   final todayIncomeResult = await db.rawQuery(
@@ -113,8 +124,9 @@ Future<Map<String, dynamic>> getStatistics() async {
   final queueCount = Sqflite.firstIntValue(queueResult) ?? 0;
 
   // Total Products
-  final totalProdukResult =
-      await db.rawQuery('SELECT COUNT(*) as total FROM products');
+  final totalProdukResult = await db.rawQuery(
+    'SELECT COUNT(*) as total FROM products',
+  );
   final totalProduk = Sqflite.firstIntValue(totalProdukResult) ?? 0;
 
   return {
@@ -127,11 +139,7 @@ Future<Map<String, dynamic>> getStatistics() async {
 
 // Growth placeholder for new schema compatibility
 Future<Map<String, dynamic>> getSalesGrowth() async {
-  return {
-    'this_month': 0,
-    'last_month': 0,
-    'growth_percentage': 0.0,
-  };
+  return {'this_month': 0, 'last_month': 0, 'growth_percentage': 0.0};
 }
 
 // Low stock placeholder (Photobooth doesn't really have stock, it's time-based/service-based)

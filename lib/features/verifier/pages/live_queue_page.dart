@@ -10,18 +10,18 @@ class LiveQueuePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Antrean Real-time'),
-      ),
+      appBar: AppBar(title: const Text('Antrean Real-time')),
       body: SafeArea(
         child: BlocBuilder<VerifierBloc, VerifierState>(
           builder: (context, state) {
             if (state.status == VerifierStatus.disconnected) {
               return const Center(
-                child: Text('Belum terhubung ke server.\nSilakan ke menu Koneksi.'),
+                child: Text(
+                  'Belum terhubung ke server.\nSilakan ke menu Koneksi.',
+                ),
               );
             }
-  
+
             if (state.status == VerifierStatus.error) {
               return Center(
                 child: Padding(
@@ -38,7 +38,8 @@ class LiveQueuePage extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton(
-                        onPressed: () => context.read<VerifierBloc>().add(RefreshQueue()),
+                        onPressed: () =>
+                            context.read<VerifierBloc>().add(RefreshQueue()),
                         child: const Text('Coba Lagi'),
                       ),
                     ],
@@ -46,13 +47,11 @@ class LiveQueuePage extends StatelessWidget {
                 ),
               );
             }
-  
+
             if (state.queue.isEmpty) {
-              return const Center(
-                child: Text('Tidak ada antrean saat ini.'),
-              );
+              return const Center(child: Text('Tidak ada antrean saat ini.'));
             }
-  
+
             return RefreshIndicator(
               onRefresh: () async {
                 context.read<VerifierBloc>().add(RefreshQueue());
@@ -62,18 +61,23 @@ class LiveQueuePage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final item = state.queue[index];
                   final items = (item['items'] as List?) ?? [];
-                  
+
                   String timeStr = '-';
                   try {
                     if (item['created_at'] != null) {
-                      timeStr = DateFormat('HH:mm').format(DateTime.parse(item['created_at']));
+                      timeStr = DateFormat(
+                        'HH:mm',
+                      ).format(DateTime.parse(item['created_at']));
                     }
                   } catch (e) {
                     // ignore error
                   }
-  
+
                   return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: ListTile(
@@ -87,7 +91,9 @@ class LiveQueuePage extends StatelessWidget {
                           children: [
                             Text(
                               item['customer_name'] ?? 'Pelanggan',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             Text(
                               timeStr,
@@ -106,21 +112,29 @@ class LiveQueuePage extends StatelessWidget {
                               if (items.isEmpty)
                                 Text(item['product_name'] ?? '-')
                               else
-                                ...items.map((i) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 2),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.check_circle_outline, size: 14, color: Colors.green),
-                                          const SizedBox(width: 4),
-                                          Expanded(
-                                            child: Text(
-                                              '${i['product_name']} x${i['quantity']}',
-                                              style: const TextStyle(fontSize: 13),
+                                ...items.map(
+                                  (i) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 2),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle_outline,
+                                          size: 14,
+                                          color: Colors.green,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            '${i['product_name']} x${i['quantity']}',
+                                            style: const TextStyle(
+                                              fontSize: 13,
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                    )),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               const SizedBox(height: 4),
                               Text(
                                 'ID: ${item['uuid']}',

@@ -22,7 +22,7 @@ class _TransactionPageState extends State<TransactionPage> {
   List<Transaksi> _transactions = [];
   bool _isLoading = true;
   StreamSubscription<String>? _eventSubscription;
-  
+
   // Filter State
   DateTimeRange? _selectedDateRange;
   String _filterLabel = 'Hari Ini';
@@ -67,8 +67,10 @@ class _TransactionPageState extends State<TransactionPage> {
 
       setState(() {
         _transactions = transactions;
-        _totalIncome =
-            transactions.fold(0, (sum, item) => sum + item.totalPrice);
+        _totalIncome = transactions.fold(
+          0,
+          (sum, item) => sum + item.totalPrice,
+        );
         _isLoading = false;
       });
     } catch (e) {
@@ -92,7 +94,7 @@ class _TransactionPageState extends State<TransactionPage> {
   Future<void> _showMonthPicker() async {
     try {
       final months = await Transaksi.getAvailableTransactionMonths();
-      
+
       if (!mounted) return;
 
       if (months.isEmpty) {
@@ -120,15 +122,18 @@ class _TransactionPageState extends State<TransactionPage> {
                   itemBuilder: (context, index) {
                     final date = months[index];
                     final label = DateFormat('MMMM yyyy', 'id_ID').format(date);
-                    
+
                     return ListTile(
                       title: Text(label, textAlign: TextAlign.center),
                       onTap: () {
                         // Create range for full month
                         final start = DateTime(date.year, date.month, 1);
                         final end = DateTime(date.year, date.month + 1, 0);
-                        
-                        _applyFilter(label, DateTimeRange(start: start, end: end));
+
+                        _applyFilter(
+                          label,
+                          DateTimeRange(start: start, end: end),
+                        );
                         Navigator.pop(context);
                       },
                     );
@@ -183,59 +188,58 @@ class _TransactionPageState extends State<TransactionPage> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _transactions.isEmpty
-                      ? const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.receipt_long_outlined,
-                                size: 64,
-                                color: Colors.grey,
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'Belum ada transaksi',
-                                style:
-                                    TextStyle(fontSize: 16, color: Colors.grey),
-                              ),
-                            ],
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.receipt_long_outlined,
+                            size: 64,
+                            color: Colors.grey,
                           ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: _loadTransactions,
-                          child: isDesktop
-                              ? GridView.builder(
-                                  padding: const EdgeInsets.all(16),
-                                  gridDelegate:
-                                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                          SizedBox(height: 16),
+                          Text(
+                            'Belum ada transaksi',
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _loadTransactions,
+                      child: isDesktop
+                          ? GridView.builder(
+                              padding: const EdgeInsets.all(16),
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
                                     maxCrossAxisExtent: 400,
                                     crossAxisSpacing: 16,
                                     mainAxisSpacing: 16,
                                     mainAxisExtent: 130,
                                   ),
-                                  itemCount: _transactions.length,
-                                  itemBuilder: (context, index) {
-                                    final transaction = _transactions[index];
-                                    return _ItemSection(
-                                      transaksi: transaction,
-                                      onDelete: () =>
-                                          _deleteTransaction(transaction),
-                                    );
-                                  },
-                                )
-                              : ListView.builder(
-                                  padding: const EdgeInsets.all(8),
-                                  itemCount: _transactions.length,
-                                  itemBuilder: (context, index) {
-                                    final transaction = _transactions[index];
-                                    return _ItemSection(
-                                      transaksi: transaction,
-                                      onDelete: () =>
-                                          _deleteTransaction(transaction),
-                                    );
-                                  },
-                                ),
-                        ),
+                              itemCount: _transactions.length,
+                              itemBuilder: (context, index) {
+                                final transaction = _transactions[index];
+                                return _ItemSection(
+                                  transaksi: transaction,
+                                  onDelete: () =>
+                                      _deleteTransaction(transaction),
+                                );
+                              },
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(8),
+                              itemCount: _transactions.length,
+                              itemBuilder: (context, index) {
+                                final transaction = _transactions[index];
+                                return _ItemSection(
+                                  transaksi: transaction,
+                                  onDelete: () =>
+                                      _deleteTransaction(transaction),
+                                );
+                              },
+                            ),
+                    ),
             ),
           ],
         ),
@@ -271,8 +275,9 @@ class _TransactionPageState extends State<TransactionPage> {
 
       // Data Rows
       for (var t in _transactions) {
-        final itemsSummary =
-            t.items.map((i) => '${i.productName} (x${i.quantity})').join(', ');
+        final itemsSummary = t.items
+            .map((i) => '${i.productName} (x${i.quantity})')
+            .join(', ');
 
         sheet.appendRow([
           TextCellValue(t.uuid),
@@ -283,9 +288,11 @@ class _TransactionPageState extends State<TransactionPage> {
           IntCellValue(t.totalPrice),
           TextCellValue(t.paymentMethod),
           TextCellValue(t.status),
-          TextCellValue(t.redeemedAt != null
-              ? '${dateFormatter.format(t.redeemedAt!)} ${timeFormatter.format(t.redeemedAt!)}'
-              : '-'),
+          TextCellValue(
+            t.redeemedAt != null
+                ? '${dateFormatter.format(t.redeemedAt!)} ${timeFormatter.format(t.redeemedAt!)}'
+                : '-',
+          ),
         ]);
       }
 
@@ -301,7 +308,7 @@ class _TransactionPageState extends State<TransactionPage> {
         final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
         final fileName = 'Laporan_Luminara_$timestamp.xlsx';
         final path = '${directory.path}/$fileName';
-        
+
         File(path)
           ..createSync(recursive: true)
           ..writeAsBytesSync(excel.save()!);
@@ -386,7 +393,10 @@ class _TransactionPageState extends State<TransactionPage> {
           const SizedBox(width: 8),
           _buildFilterChip('Kemarin', () {
             final yesterday = DateTime.now().subtract(const Duration(days: 1));
-            _applyFilter('Kemarin', DateTimeRange(start: yesterday, end: yesterday));
+            _applyFilter(
+              'Kemarin',
+              DateTimeRange(start: yesterday, end: yesterday),
+            );
           }),
           const SizedBox(width: 8),
           _buildFilterChip('Bulan Ini', () {

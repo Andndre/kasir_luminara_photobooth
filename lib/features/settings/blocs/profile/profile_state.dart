@@ -1,11 +1,7 @@
 part of 'profile_bloc.dart';
 
 class ProfileState extends Equatable {
-  const ProfileState({
-    this.error,
-    this.status = Status.initial,
-    this.user,
-  });
+  const ProfileState({this.error, this.status = Status.initial, this.user});
 
   factory ProfileState.initial() {
     return const ProfileState();
@@ -15,11 +11,7 @@ class ProfileState extends Equatable {
   final Status status;
   final String? error;
 
-  ProfileState copyWith({
-    UserModel? user,
-    Status? status,
-    String? error,
-  }) {
+  ProfileState copyWith({UserModel? user, Status? status, String? error}) {
     return ProfileState(
       error: error,
       status: status ?? this.status,

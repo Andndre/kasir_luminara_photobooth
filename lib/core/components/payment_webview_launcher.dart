@@ -7,7 +7,11 @@ import 'package:url_launcher/url_launcher.dart';
 class PaymentWebViewLauncher {
   static Webview? _activeWebview;
 
-  static Future<void> launch(BuildContext context, String url, {VoidCallback? onClose}) async {
+  static Future<void> launch(
+    BuildContext context,
+    String url, {
+    VoidCallback? onClose,
+  }) async {
     // Linux Specific: Open in External Browser
     if (Platform.isLinux) {
       if (await canLaunchUrl(Uri.parse(url))) {
@@ -24,19 +28,18 @@ class PaymentWebViewLauncher {
           titleBarTopPadding: Platform.isMacOS ? 20 : 0,
         ),
       );
-      
+
       _activeWebview = webview;
       webview.launch(url);
-      
+
       webview.onClose.then((_) {
         if (onClose != null) onClose();
         _activeWebview = null;
       });
-      
     } else {
       // Mobile (Android/iOS)
       if (!context.mounted) return;
-      
+
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -96,8 +99,7 @@ class _MobileWebViewDialogState extends State<_MobileWebViewDialog> {
             height: double.infinity,
             child: WebViewWidget(controller: _controller),
           ),
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator()),
+          if (_isLoading) const Center(child: CircularProgressIndicator()),
           Positioned(
             top: 40,
             right: 16,

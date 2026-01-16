@@ -45,87 +45,91 @@ class MainPage extends StatelessWidget {
       builder: (context, index) {
         final safeIndex = index >= pages.length ? 0 : index;
 
-                return Scaffold(
-                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                  body: SafeArea(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (isDesktop)
-                          NavigationRail(
-                            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                            selectedIndex: safeIndex,
-                            onDestinationSelected: (i) =>
-                                context.read<BottomNavBloc>().add(TapBottomNavEvent(i)),
-                            labelType: NavigationRailLabelType.all,
-                            indicatorColor: AppColors.primary,
-                            selectedIconTheme: const IconThemeData(color: Colors.white),
-                            unselectedIconTheme:
-                                const IconThemeData(color: AppColors.textDisabled),
-                            leading: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 24),
-                              child: Image.asset(MainAssets.logo, width: 40),
-                            ),
-                            trailing: Padding(
-                              padding: const EdgeInsets.only(top: 24, bottom: 24),
-                              child: FloatingActionButton(
-                                onPressed: () => _handleFabAction(context, mode),
-                                foregroundColor: Colors.white,
-                                child: Icon(mode == AppMode.server
-                                    ? Icons.point_of_sale
-                                    : Icons.qr_code_scanner),
-                              ),
-                            ),
-                            destinations: mode == AppMode.server
-                                ? [
-                                    const NavigationRailDestination(
-                                      icon: Icon(AppIcons.storefront),
-                                      label: Text('Beranda'),
-                                    ),
-                                    const NavigationRailDestination(
-                                      icon: Icon(AppIcons.receipt),
-                                      label: Text('Transaksi'),
-                                    ),
-                                    const NavigationRailDestination(
-                                      icon: Icon(AppIcons.product),
-                                      label: Text('Produk'),
-                                    ),
-                                    const NavigationRailDestination(
-                                      icon: Icon(AppIcons.settings),
-                                      label: Text('Setelan'),
-                                    ),
-                                  ]
-                                : [
-                                    const NavigationRailDestination(
-                                      icon: Icon(AppIcons.storefront),
-                                      label: Text('Beranda'),
-                                    ),
-                                    const NavigationRailDestination(
-                                      icon: Icon(Icons.list_alt),
-                                      label: Text('Antrean'),
-                                    ),
-                                    const NavigationRailDestination(
-                                      icon: Icon(Icons.link),
-                                      label: Text('Koneksi'),
-                                    ),
-                                    const NavigationRailDestination(
-                                      icon: Icon(Icons.settings),
-                                      label: Text('Setelan'),
-                                    ),
-                                  ],
-                          ),
-                        Expanded(
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 1200),
-                              child: pages[safeIndex],
-                            ),
-                          ),
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          body: SafeArea(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isDesktop)
+                  NavigationRail(
+                    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                    selectedIndex: safeIndex,
+                    onDestinationSelected: (i) =>
+                        context.read<BottomNavBloc>().add(TapBottomNavEvent(i)),
+                    labelType: NavigationRailLabelType.all,
+                    indicatorColor: AppColors.primary,
+                    selectedIconTheme: const IconThemeData(color: Colors.white),
+                    unselectedIconTheme: const IconThemeData(
+                      color: AppColors.textDisabled,
+                    ),
+                    leading: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Image.asset(MainAssets.logo, width: 40),
+                    ),
+                    trailing: Padding(
+                      padding: const EdgeInsets.only(top: 24, bottom: 24),
+                      child: FloatingActionButton(
+                        onPressed: () => _handleFabAction(context, mode),
+                        foregroundColor: Colors.white,
+                        child: Icon(
+                          mode == AppMode.server
+                              ? Icons.point_of_sale
+                              : Icons.qr_code_scanner,
                         ),
-                      ],
+                      ),
+                    ),
+                    destinations: mode == AppMode.server
+                        ? [
+                            const NavigationRailDestination(
+                              icon: Icon(AppIcons.storefront),
+                              label: Text('Beranda'),
+                            ),
+                            const NavigationRailDestination(
+                              icon: Icon(AppIcons.receipt),
+                              label: Text('Transaksi'),
+                            ),
+                            const NavigationRailDestination(
+                              icon: Icon(AppIcons.product),
+                              label: Text('Produk'),
+                            ),
+                            const NavigationRailDestination(
+                              icon: Icon(AppIcons.settings),
+                              label: Text('Setelan'),
+                            ),
+                          ]
+                        : [
+                            const NavigationRailDestination(
+                              icon: Icon(AppIcons.storefront),
+                              label: Text('Beranda'),
+                            ),
+                            const NavigationRailDestination(
+                              icon: Icon(Icons.list_alt),
+                              label: Text('Antrean'),
+                            ),
+                            const NavigationRailDestination(
+                              icon: Icon(Icons.link),
+                              label: Text('Koneksi'),
+                            ),
+                            const NavigationRailDestination(
+                              icon: Icon(Icons.settings),
+                              label: Text('Setelan'),
+                            ),
+                          ],
+                  ),
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1200),
+                      child: pages[safeIndex],
                     ),
                   ),
-                  bottomNavigationBar: isDesktop              ? null
+                ),
+              ],
+            ),
+          ),
+          bottomNavigationBar: isDesktop
+              ? null
               : BottomAppBar(
                   shape: const CircularNotchedRectangle(),
                   clipBehavior: Clip.antiAlias,
@@ -144,9 +148,9 @@ class MainPage extends StatelessWidget {
                                   label: 'Beranda',
                                   isActive: safeIndex == 0,
                                   onTap: () {
-                                    context
-                                        .read<BottomNavBloc>()
-                                        .add(TapBottomNavEvent(0));
+                                    context.read<BottomNavBloc>().add(
+                                      TapBottomNavEvent(0),
+                                    );
                                   },
                                 ),
                               ),
@@ -156,9 +160,9 @@ class MainPage extends StatelessWidget {
                                   label: 'Transaksi',
                                   isActive: safeIndex == 1,
                                   onTap: () {
-                                    context
-                                        .read<BottomNavBloc>()
-                                        .add(TapBottomNavEvent(1));
+                                    context.read<BottomNavBloc>().add(
+                                      TapBottomNavEvent(1),
+                                    );
                                   },
                                 ),
                               ),
@@ -169,9 +173,9 @@ class MainPage extends StatelessWidget {
                                   label: 'Produk',
                                   isActive: safeIndex == 2,
                                   onTap: () {
-                                    context
-                                        .read<BottomNavBloc>()
-                                        .add(TapBottomNavEvent(2));
+                                    context.read<BottomNavBloc>().add(
+                                      TapBottomNavEvent(2),
+                                    );
                                   },
                                 ),
                               ),
@@ -181,9 +185,9 @@ class MainPage extends StatelessWidget {
                                   label: 'Pengaturan',
                                   isActive: safeIndex == 3,
                                   onTap: () {
-                                    context
-                                        .read<BottomNavBloc>()
-                                        .add(TapBottomNavEvent(3));
+                                    context.read<BottomNavBloc>().add(
+                                      TapBottomNavEvent(3),
+                                    );
                                   },
                                 ),
                               ),
@@ -195,9 +199,9 @@ class MainPage extends StatelessWidget {
                                   label: 'Beranda',
                                   isActive: safeIndex == 0,
                                   onTap: () {
-                                    context
-                                        .read<BottomNavBloc>()
-                                        .add(TapBottomNavEvent(0));
+                                    context.read<BottomNavBloc>().add(
+                                      TapBottomNavEvent(0),
+                                    );
                                   },
                                 ),
                               ),
@@ -207,9 +211,9 @@ class MainPage extends StatelessWidget {
                                   label: 'Antrean',
                                   isActive: safeIndex == 1,
                                   onTap: () {
-                                    context
-                                        .read<BottomNavBloc>()
-                                        .add(TapBottomNavEvent(1));
+                                    context.read<BottomNavBloc>().add(
+                                      TapBottomNavEvent(1),
+                                    );
                                   },
                                 ),
                               ),
@@ -220,9 +224,9 @@ class MainPage extends StatelessWidget {
                                   label: 'Koneksi',
                                   isActive: safeIndex == 2,
                                   onTap: () {
-                                    context
-                                        .read<BottomNavBloc>()
-                                        .add(TapBottomNavEvent(2));
+                                    context.read<BottomNavBloc>().add(
+                                      TapBottomNavEvent(2),
+                                    );
                                   },
                                 ),
                               ),
@@ -232,9 +236,9 @@ class MainPage extends StatelessWidget {
                                   label: 'Setelan',
                                   isActive: safeIndex == 3,
                                   onTap: () {
-                                    context
-                                        .read<BottomNavBloc>()
-                                        .add(TapBottomNavEvent(3));
+                                    context.read<BottomNavBloc>().add(
+                                      TapBottomNavEvent(3),
+                                    );
                                   },
                                 ),
                               ),
@@ -250,15 +254,19 @@ class MainPage extends StatelessWidget {
               : FloatingActionButton(
                   onPressed: () => _handleFabAction(context, mode),
                   foregroundColor: Colors.white,
-                  tooltip:
-                      mode == AppMode.server ? 'Tambah Transaksi' : 'Scan Tiket',
+                  tooltip: mode == AppMode.server
+                      ? 'Tambah Transaksi'
+                      : 'Scan Tiket',
                   elevation: 2.0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(50),
                   ),
-                  child: Icon(mode == AppMode.server
-                      ? Icons.point_of_sale
-                      : Icons.qr_code_scanner, size: 32),
+                  child: Icon(
+                    mode == AppMode.server
+                        ? Icons.point_of_sale
+                        : Icons.qr_code_scanner,
+                    size: 32,
+                  ),
                 ),
         );
       },

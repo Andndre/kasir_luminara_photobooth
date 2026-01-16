@@ -6,7 +6,7 @@ class AppState extends ChangeNotifier {
   AppMode? _mode;
   ThemeMode _themeMode = ThemeMode.light;
   static const String _themeKey = 'theme_mode';
-  
+
   AppMode? get mode => _mode;
   ThemeMode get themeMode => _themeMode;
   bool get hasMode => _mode != null;
@@ -30,7 +30,7 @@ class AppState extends ChangeNotifier {
   Future<void> setThemeMode(ThemeMode themeMode) async {
     _themeMode = themeMode;
     notifyListeners();
-    
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_themeKey, themeMode == ThemeMode.dark);
   }

@@ -4,8 +4,8 @@ import 'package:flutter/gestures.dart';
 class AppScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
-        PointerDeviceKind.touch,
-        // REMOVED PointerDeviceKind.mouse to prevent click interception on Linux
-        PointerDeviceKind.trackpad,
-      };
+    PointerDeviceKind.touch,
+    // REMOVED PointerDeviceKind.mouse to prevent click interception on Linux
+    PointerDeviceKind.trackpad,
+  };
 }

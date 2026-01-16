@@ -38,5 +38,12 @@ class ServerState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [status, ipAddress, port, connectedClients, errorMessage, hasFirewallIssue];
+  List<Object?> get props => [
+    status,
+    ipAddress,
+    port,
+    connectedClients,
+    errorMessage,
+    hasFirewallIssue,
+  ];
 }

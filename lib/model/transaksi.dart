@@ -76,7 +76,10 @@ class Transaksi {
     };
   }
 
-  factory Transaksi.fromMap(Map<String, dynamic> map, List<TransaksiItem> items) {
+  factory Transaksi.fromMap(
+    Map<String, dynamic> map,
+    List<TransaksiItem> items,
+  ) {
     return Transaksi(
       uuid: map['uuid'],
       customerName: map['customer_name'],
@@ -87,8 +90,9 @@ class Transaksi {
       paymentMethod: map['payment_method'] ?? 'TUNAI',
       status: map['status'],
       createdAt: DateTime.parse(map['created_at']),
-      redeemedAt:
-          map['redeemed_at'] != null ? DateTime.parse(map['redeemed_at']) : null,
+      redeemedAt: map['redeemed_at'] != null
+          ? DateTime.parse(map['redeemed_at'])
+          : null,
       midtransOrderId: map['midtrans_order_id'],
     );
   }
@@ -105,10 +109,7 @@ class Transaksi {
 
       // 2. Insert Items
       for (var item in transaksi.items) {
-        await txn.insert(
-          'transaction_items',
-          item.toMap(transaksi.uuid),
-        );
+        await txn.insert('transaction_items', item.toMap(transaksi.uuid));
       }
     });
   }
@@ -134,7 +135,9 @@ class Transaksi {
   }
 
   static Future<List<Transaksi>> getTransactionsByDateRange(
-      DateTime start, DateTime end) async {
+    DateTime start,
+    DateTime end,
+  ) async {
     final db = await getDatabase();
     final startOfDay = DateTime(start.year, start.month, start.day, 0, 0, 0);
     final endOfDay = DateTime(end.year, end.month, end.day, 23, 59, 59);
@@ -167,11 +170,7 @@ class Transaksi {
         where: 'transaction_uuid = ?',
         whereArgs: [uuid],
       );
-      await txn.delete(
-        'transactions',
-        where: 'uuid = ?',
-        whereArgs: [uuid],
-      );
+      await txn.delete('transactions', where: 'uuid = ?', whereArgs: [uuid]);
     });
   }
 
@@ -189,7 +188,9 @@ class Transaksi {
   static String generateUuid() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final random = Random();
-    return List.generate(8, (index) => chars[random.nextInt(chars.length)])
-        .join();
+    return List.generate(
+      8,
+      (index) => chars[random.nextInt(chars.length)],
+    ).join();
   }
 }
