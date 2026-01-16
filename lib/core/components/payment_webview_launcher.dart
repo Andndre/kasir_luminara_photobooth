@@ -2,10 +2,22 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:desktop_webview_window/desktop_webview_window.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PaymentWebViewLauncher {
+  static Webview? _activeWebview;
+
   static Future<void> launch(BuildContext context, String url, {VoidCallback? onClose}) async {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    // Linux Specific: Open in External Browser
+    if (Platform.isLinux) {
+      if (await canLaunchUrl(Uri.parse(url))) {
+        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      }
+      return;
+    }
+
+    // Windows / macOS: Desktop Window
+    if (Platform.isWindows || Platform.isMacOS) {
       final webview = await WebviewWindow.create(
         configuration: CreateConfiguration(
           title: 'Pembayaran Midtrans',
@@ -13,10 +25,12 @@ class PaymentWebViewLauncher {
         ),
       );
       
+      _activeWebview = webview;
       webview.launch(url);
       
       webview.onClose.then((_) {
         if (onClose != null) onClose();
+        _activeWebview = null;
       });
       
     } else {
@@ -28,6 +42,16 @@ class PaymentWebViewLauncher {
         barrierDismissible: false,
         builder: (context) => _MobileWebViewDialog(url: url, onClose: onClose),
       );
+    }
+  }
+
+  // Method to close active desktop webview (Safe for Windows/macOS)
+  static void close() {
+    if (Platform.isWindows || Platform.isMacOS) {
+      if (_activeWebview != null) {
+        _activeWebview!.close();
+        _activeWebview = null;
+      }
     }
   }
 }

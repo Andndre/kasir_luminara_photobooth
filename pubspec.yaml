@@ -65,6 +65,7 @@ dependencies:
   flutter_local_notifications: ^19.5.0
   webview_flutter: ^4.13.1
   desktop_webview_window: ^0.2.3
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

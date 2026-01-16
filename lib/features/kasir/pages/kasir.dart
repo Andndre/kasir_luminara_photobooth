@@ -739,15 +739,20 @@ class _KasirState extends State<Kasir> {
     String? midtransOrderId,
     String? actualPaymentMethod,
   }) async {
-    // Safety Close WebView jika masih terbuka (khusus Mobile)
-    if (isQris && _isWebViewOpen && (Platform.isAndroid || Platform.isIOS)) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-      _isWebViewOpen = false;
+    // Safety Close WebView jika masih terbuka
+    if (isQris) {
+        // Mobile: Pop Dialog
+        if (_isWebViewOpen && (Platform.isAndroid || Platform.isIOS)) {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+          _isWebViewOpen = false;
+        }
+        
+        // Windows/macOS: Close Window Programmatically
+        // Note: This is skipped for Linux in the helper itself to prevent crashes.
+        PaymentWebViewLauncher.close();
     }
-    
-    // Note: On Desktop, we let the user close the window manually to avoid GTK crashes.
 
     final uuid = Transaksi.generateUuid();
 
