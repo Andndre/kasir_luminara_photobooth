@@ -737,7 +737,7 @@ class _KasirState extends State<Kasir> {
     int kembalian = 0, 
     bool isQris = false,
     String? midtransOrderId,
-    String? actualPaymentMethod, // NEW: Metode pembayaran asli dari Midtrans
+    String? actualPaymentMethod,
   }) async {
     // Safety Close WebView jika masih terbuka (khusus Mobile)
     if (isQris && _isWebViewOpen && (Platform.isAndroid || Platform.isIOS)) {
@@ -746,6 +746,8 @@ class _KasirState extends State<Kasir> {
       }
       _isWebViewOpen = false;
     }
+    
+    // Note: On Desktop, we let the user close the window manually to avoid GTK crashes.
 
     final uuid = Transaksi.generateUuid();
 

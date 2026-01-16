@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
@@ -11,11 +10,14 @@ class MidtransService {
 
   Future<Map<String, dynamic>> createTransaction(int amount) async {
     final url = Uri.parse('$baseUrl/transaction');
-    
+
     try {
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode({'amount': amount}),
       );
 
@@ -43,7 +45,8 @@ class MidtransService {
         final data = jsonDecode(response.body);
         return {
           'status': data['data']['status'], // pending, paid, failed
-          'payment_type': data['data']['payment_type'], // gopay, qris, bank_transfer
+          'payment_type':
+              data['data']['payment_type'], // gopay, qris, bank_transfer
         };
       } else {
         return {'status': 'unknown', 'payment_type': null};
