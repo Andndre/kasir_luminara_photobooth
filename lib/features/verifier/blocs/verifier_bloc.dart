@@ -6,6 +6,7 @@ import 'package:luminara_photobooth/core/services/verifier_service.dart';
 import 'package:luminara_photobooth/core/preferences/verifier_preferences.dart';
 
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
+import 'package:luminara_photobooth/model/log.dart';
 
 abstract class VerifierEvent extends Equatable {
   const VerifierEvent();
@@ -72,6 +73,7 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
       );
       add(RefreshQueue());
     } catch (e) {
+      Log.insertLog('Verifier Connect Error: $e', isError: true);
       emit(
         state.copyWith(
           status: VerifierStatus.error,
@@ -100,6 +102,7 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
       final queue = await service.getQueue();
       emit(state.copyWith(queue: queue, status: VerifierStatus.connected));
     } catch (e) {
+      Log.insertLog('Refresh Queue Error: $e', isError: true);
       emit(
         state.copyWith(
           status: VerifierStatus.error,

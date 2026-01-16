@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/model/log.dart';
 import 'package:luminara_photobooth/model/produk.dart';
 
 part 'sections/item_section.dart';
@@ -35,6 +36,7 @@ class _ProductPageState extends State<ProductPage> {
     } catch (e) {
       setState(() => isLoading = false);
       if (mounted) {
+        Log.insertLog('Error loading products: $e', isError: true);
         SnackBarHelper.showError(context, 'Error loading products: $e');
       }
     }

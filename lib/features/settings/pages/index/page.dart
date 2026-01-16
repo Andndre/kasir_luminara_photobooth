@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/features/settings/pages/logs/logs.dart';
 import 'package:luminara_photobooth/features/settings/pages/printer/page.dart';
 import 'package:luminara_photobooth/features/settings/pages/privacy_policy/page.dart';
 import 'package:luminara_photobooth/features/settings/settings.dart';
+import 'package:luminara_photobooth/model/log.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:luminara_photobooth/core/preferences/app_state.dart';
@@ -170,6 +172,18 @@ class _SettingPageState extends State<SettingPage> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => const PrivacyPolicyPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  ItemMenuSetting(
+                    title: 'Logs',
+                    icon: AppIcons.logs,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LogsPage(),
                         ),
                       );
                     },

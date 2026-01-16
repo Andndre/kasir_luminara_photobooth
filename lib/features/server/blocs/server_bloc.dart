@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:luminara_photobooth/core/services/server_service.dart';
+import 'package:luminara_photobooth/model/log.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'server_state.dart';
 
@@ -111,6 +112,7 @@ class ServerBloc extends Bloc<ServerEvent, ServerState> {
         emit(state.copyWith(ipAddress: ip ?? '127.0.0.1'));
       }
     } catch (e) {
+      Log.insertLog('Server Start Error: $e', isError: true);
       emit(
         state.copyWith(
           status: ServerStatus.offline,
@@ -133,6 +135,7 @@ class ServerBloc extends Bloc<ServerEvent, ServerState> {
         emit(state.copyWith(status: ServerStatus.offline, connectedClients: 0));
       }
     } catch (e) {
+      Log.insertLog('Server Stop Error: $e', isError: true);
       emit(state.copyWith(errorMessage: e.toString()));
     }
   }

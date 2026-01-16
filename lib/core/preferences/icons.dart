@@ -1,6 +1,5 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
-/// Class for custom icons used in the application.
 class AppIcons {
   static const String _fontFamily = 'CustomIcons';
 
@@ -33,4 +32,5 @@ class AppIcons {
   static const IconData qrCode = IconData(0xe915, fontFamily: _fontFamily);
   static const IconData star = IconData(0xe916, fontFamily: _fontFamily);
   static const IconData verified = IconData(0xe917, fontFamily: _fontFamily);
+  static const IconData logs = Icons.document_scanner_outlined;
 }

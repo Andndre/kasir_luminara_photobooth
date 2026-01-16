@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Luminara Photobooth"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.2.4"
 #define MyAppPublisher "Andndre"
 #define MyAppURL "https://github.com/Andndre/kasir_luminara_photobooth"
 #define MyAppExeName "luminara_photobooth.exe"

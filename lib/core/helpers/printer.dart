@@ -1,3 +1,4 @@
+import 'package:luminara_photobooth/model/log.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart' as esc;
 import 'package:intl/intl.dart';
@@ -269,6 +270,7 @@ class PrinterHelper {
       return result;
     } catch (e) {
       print('🎟️ Print ticket error: $e');
+      Log.insertLog('Print ticket error: $e', isError: true);
 
       return false;
     }

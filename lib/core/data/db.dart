@@ -41,7 +41,7 @@ Future<Database> getDatabase() async {
   // ------------------------------------------------------------------
   Database database = await openDatabase(
     dbPath,
-    version: 1,
+    version: 2,
     onCreate: (db, version) async {
       print("Creating new database tables...");
 
@@ -82,6 +82,16 @@ Future<Database> getDatabase() async {
         )
       ''');
 
+      // Tabel: logs
+      await db.execute('''
+        CREATE TABLE logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          timestamp TEXT NOT NULL,
+          message TEXT NOT NULL,
+          is_error INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+
       // Seed default data (Data awal)
       await db.insert('products', {
         'name': 'Self Photo 15 Menit',
@@ -90,6 +100,22 @@ Future<Database> getDatabase() async {
       await db.insert('products', {'name': 'Wide Angle Photo', 'price': 75000});
 
       print("✅ Database siap digunakan!");
+    },
+    onUpgrade: (db, oldVersion, newVersion) async {
+      if (oldVersion < 2) {
+        print("Upgrading database from version $oldVersion to $newVersion...");
+
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            message TEXT NOT NULL,
+            is_error INTEGER NOT NULL DEFAULT 0
+          )
+        ''');
+
+        print("✅ Database upgraded to version $newVersion");
+      }
     },
   );
 

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/model/log.dart';
 import 'package:luminara_photobooth/model/produk.dart';
 import 'package:luminara_photobooth/model/transaksi.dart';
 import 'package:luminara_photobooth/core/services/server_service.dart';
@@ -712,6 +713,7 @@ class _KasirState extends State<Kasir> {
       // Start Polling
       _startPaymentPolling(orderId, amount);
     } catch (e) {
+      Log.insertLog('Gagal inisiasi pembayaran: $e', isError: true);
       if (mounted) {
         Navigator.pop(context); // Dismiss Loading if error
         SnackBarHelper.showError(context, 'Gagal inisiasi pembayaran: $e');
@@ -877,6 +879,7 @@ class _KasirState extends State<Kasir> {
       HapticFeedback.heavyImpact();
     } catch (e) {
       if (!mounted) return;
+      Log.insertLog('Gagal menyimpan transaksi: $e', isError: true);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));

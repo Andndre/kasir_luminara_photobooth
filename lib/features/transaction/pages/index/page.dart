@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:excel/excel.dart';
+import 'package:luminara_photobooth/model/log.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
@@ -78,6 +79,7 @@ class _TransactionPageState extends State<TransactionPage> {
         _isLoading = false;
       });
       if (mounted) {
+        Log.insertLog('Error loading transactions: $e', isError: true);
         SnackBarHelper.showError(context, 'Error loading transactions: $e');
       }
     }
@@ -147,6 +149,7 @@ class _TransactionPageState extends State<TransactionPage> {
       );
     } catch (e) {
       if (mounted) {
+        Log.insertLog('Gagal memuat data bulan: $e', isError: true);
         SnackBarHelper.showError(context, 'Gagal memuat data bulan: $e');
       }
     }
@@ -319,6 +322,7 @@ class _TransactionPageState extends State<TransactionPage> {
       }
     } catch (e) {
       if (mounted) {
+        Log.insertLog('Gagal export data: $e', isError: true);
         SnackBarHelper.showError(context, 'Gagal export data: $e');
       }
     }
@@ -462,6 +466,7 @@ class _TransactionPageState extends State<TransactionPage> {
         }
       } catch (e) {
         if (mounted) {
+          Log.insertLog('Gagal menghapus transaksi: $e', isError: true);
           SnackBarHelper.showError(context, 'Gagal menghapus transaksi: $e');
         }
       }

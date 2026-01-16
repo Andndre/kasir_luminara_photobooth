@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:alfred/alfred.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:luminara_photobooth/core/data/db.dart';
+import 'package:luminara_photobooth/model/log.dart';
 
 class ServerService {
   static final ServerService _instance = ServerService._internal();
@@ -110,6 +111,7 @@ class ServerService {
         }
         return results;
       } catch (e) {
+        Log.insertLog('Error fetching queue: $e', isError: true);
         return [];
       }
     });

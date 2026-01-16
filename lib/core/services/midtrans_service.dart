@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:luminara_photobooth/model/log.dart';
 
 class MidtransService {
   // Production URL
@@ -30,7 +31,7 @@ class MidtransService {
         throw Exception('Failed to create transaction: ${response.body}');
       }
     } catch (e) {
-      debugPrint('Midtrans Error: $e');
+      Log.insertLog('Midtrans Error: $e', isError: true);
       rethrow;
     }
   }
@@ -55,6 +56,7 @@ class MidtransService {
         return {'status': 'unknown', 'payment_type': null};
       }
     } catch (e) {
+      Log.insertLog('Midtrans Error: $e', isError: true);
       return {'status': 'error', 'payment_type': null};
     }
   }
@@ -63,6 +65,8 @@ class MidtransService {
     final url = Uri.parse('$baseUrl/transaction/$orderId/sync');
     try {
       await http.post(url);
-    } catch (_) {}
+    } catch (_) {
+      Log.insertLog('Midtrans Sync Error for orderId: $orderId', isError: true);
+    }
   }
 }

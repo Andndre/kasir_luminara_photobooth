@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/features/settings/settings.dart';
+import 'package:luminara_photobooth/model/log.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileService {
@@ -15,6 +16,7 @@ class ProfileService {
 
       return user;
     } catch (e) {
+      Log.insertLog('Insert Profile Error: $e', isError: true);
       throw ErrorDescription(e.toString());
     }
   }
@@ -31,6 +33,7 @@ class ProfileService {
 
       return null;
     } catch (e) {
+      Log.insertLog('Get Profile Error: $e', isError: true);
       throw ErrorDescription(e.toString());
     }
   }

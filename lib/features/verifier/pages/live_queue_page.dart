@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_bloc.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
 import 'package:intl/intl.dart';
+import 'package:luminara_photobooth/model/log.dart';
 
 class LiveQueuePage extends StatelessWidget {
   const LiveQueuePage({super.key});
@@ -75,7 +76,10 @@ class LiveQueuePage extends StatelessWidget {
                             ).format(DateTime.parse(item['created_at']));
                           }
                         } catch (e) {
-                          // ignore error
+                          Log.insertLog(
+                            'Error parsing time: $e',
+                            isError: true,
+                          );
                         }
 
                         return Card(
