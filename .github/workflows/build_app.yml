@@ -76,7 +76,7 @@ jobs:
       # Perintah ini menggantikan 3 perintah manual Anda menjadi 1 kali jalan
       # Hasilnya akan otomatis create 3 APK: v7a (arm), v8a (arm64), x64
       - name: Build APKs (Split per ABI)
-        run: flutter build apk --release --split-per-abi --analyze-size
+        run: flutter build apk --release --split-per-abi
 
       # Upload Artifact agar bisa didownload manual di menu Actions
       - name: Upload Android Artifacts
