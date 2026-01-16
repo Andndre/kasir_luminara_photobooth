@@ -4,13 +4,10 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
 class MidtransService {
-  // Ganti URL ini sesuai IP komputer Laravel Anda jalankan
-  // Android Emulator: 10.0.2.2
-  // Real Device (Vivo I2218): Gunakan IP Laptop -> 192.168.2.109:8000
-  static const String _baseUrlAndroid = "http://192.168.2.109:8000/api";
-  static const String _baseUrlDesktop = "http://127.0.0.1:8000/api";
+  // Production URL
+  static const String _baseUrl = "https://luminarabali.com/api";
 
-  String get baseUrl => (Platform.isAndroid || Platform.isIOS) ? _baseUrlAndroid : _baseUrlDesktop;
+  String get baseUrl => _baseUrl;
 
   Future<Map<String, dynamic>> createTransaction(int amount) async {
     final url = Uri.parse('$baseUrl/transaction');
