@@ -8,6 +8,7 @@ import 'package:luminara_photobooth/model/transaksi.dart';
 import 'package:luminara_photobooth/core/services/server_service.dart';
 import 'package:luminara_photobooth/core/services/midtrans_service.dart';
 import 'package:luminara_photobooth/core/components/payment_webview_launcher.dart';
+import 'package:luminara_photobooth/core/preferences/settings_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:async'; // Added for Timer
@@ -29,11 +30,20 @@ class _KasirState extends State<Kasir> {
   
   // Flag untuk safety pop
   bool _isWebViewOpen = false;
+  bool _isMidtransEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _loadProducts();
+    _checkPaymentSettings();
+  }
+
+  Future<void> _checkPaymentSettings() async {
+    final enabled = await SettingsPreferences.isMidtransEnabled();
+    setState(() {
+      _isMidtransEnabled = enabled;
+    });
   }
 
   Future<void> _loadProducts() async {
@@ -77,41 +87,46 @@ class _KasirState extends State<Kasir> {
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: isDesktop
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Left: Product Selection
-                          Expanded(flex: 2, child: _buildProductSection()),
-                          const SizedBox(width: 32),
-                          // Right: Checkout & Details
-                          SizedBox(
-                            width: 450,
-                            child: Card(
-                              elevation: 4,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  Dimens.radius,
+            : Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: isDesktop
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Left: Product Selection
+                              Expanded(flex: 2, child: _buildProductSection()),
+                              const SizedBox(width: 32),
+                              // Right: Checkout & Details
+                              SizedBox(
+                                width: 450,
+                                child: Card(
+                                  elevation: 4,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      Dimens.radius,
+                                    ),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: _buildCheckoutSection(),
+                                  ),
                                 ),
                               ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(24.0),
-                                child: _buildCheckoutSection(),
-                              ),
-                            ),
+                            ],
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _buildProductSection()),
+                              const SizedBox(height: 16),
+                              _buildCheckoutSection(),
+                            ],
                           ),
-                        ],
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _buildProductSection()),
-                          const SizedBox(height: 16),
-                          _buildCheckoutSection(),
-                        ],
-                      ),
+                  ),
+                ),
               ),
       ),
     );
@@ -262,7 +277,7 @@ class _KasirState extends State<Kasir> {
                 icon: Icon(Icons.money),
               ),
               ButtonSegment(
-                value: 'QRIS',
+                value: 'QRIS', // Value tetap QRIS untuk konsistensi, Label NON-TUNAI
                 label: Text('NON-TUNAI'),
                 icon: Icon(Icons.qr_code),
               ),
@@ -619,7 +634,19 @@ class _KasirState extends State<Kasir> {
 
   void _executePayment({required int totalBayar, int kembalian = 0}) async {
     if (_paymentMethod == 'QRIS') {
-      await _handleQrisPayment(totalBayar);
+      if (_isMidtransEnabled) {
+        // Online Flow (Midtrans)
+        await _handleQrisPayment(totalBayar);
+      } else {
+        // Offline Flow (Manual Transfer/EDC Terpisah)
+        // Langsung finalize dengan metode NON-TUNAI
+        _finalizeTransaction(
+          totalBayar: totalBayar, 
+          kembalian: 0, 
+          isQris: false, // False agar tidak trigger pop webview
+          actualPaymentMethod: 'NON-TUNAI (MANUAL)'
+        );
+      }
       return;
     }
 

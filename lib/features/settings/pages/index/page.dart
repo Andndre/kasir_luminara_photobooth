@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shorebird_code_push/shorebird_code_push.dart';
 
 import 'package:luminara_photobooth/core/preferences/app_state.dart';
+import 'package:luminara_photobooth/core/preferences/settings_preferences.dart';
 import 'package:provider/provider.dart';
 
 part 'sections/profile_section.dart';
@@ -21,6 +22,20 @@ class SettingPage extends StatefulWidget {
 
 class _SettingPageState extends State<SettingPage> {
   final ShorebirdUpdater _updater = ShorebirdUpdater();
+  bool _isMidtransEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final enabled = await SettingsPreferences.isMidtransEnabled();
+    setState(() {
+      _isMidtransEnabled = enabled;
+    });
+  }
 
   void _showExitDialog(BuildContext context) {
     showDialog(
@@ -380,6 +395,26 @@ class _SettingPageState extends State<SettingPage> {
                           builder: (context) => const PrinterPage(),
                         ),
                       );
+                    },
+                  ),
+                  ItemMenuSetting(
+                    title: 'Metode Pembayaran',
+                    icon: Icons.payment,
+                    trailing: Switch(
+                      value: _isMidtransEnabled,
+                      onChanged: (value) async {
+                        await SettingsPreferences.setMidtransEnabled(value);
+                        setState(() {
+                          _isMidtransEnabled = value;
+                        });
+                      },
+                    ),
+                    onTap: () async {
+                      final newValue = !_isMidtransEnabled;
+                      await SettingsPreferences.setMidtransEnabled(newValue);
+                      setState(() {
+                        _isMidtransEnabled = newValue;
+                      });
                     },
                   ),
                 ],
