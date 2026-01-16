@@ -25,10 +25,7 @@ class ClientHomePage extends StatelessWidget {
             backgroundColor: theme.appBarTheme.backgroundColor,
             elevation: 0,
             foregroundColor: theme.appBarTheme.foregroundColor,
-            actions: [
-              _buildConnectionChip(state),
-              const SizedBox(width: 16),
-            ],
+            actions: [_buildConnectionChip(state), const SizedBox(width: 16)],
           ),
           body: SafeArea(
             child: SingleChildScrollView(
@@ -52,11 +49,11 @@ class ClientHomePage extends StatelessWidget {
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
                         const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 200,
-                      mainAxisExtent: 160,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
+                          maxCrossAxisExtent: 200,
+                          mainAxisExtent: 160,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
                     itemCount: 4,
                     itemBuilder: (context, index) {
                       final items = [
@@ -77,25 +74,27 @@ class ClientHomePage extends StatelessWidget {
                           'title': 'Antrean Live',
                           'icon': Icons.list_alt,
                           'color': Colors.orange,
-                          'onTap': () => context
-                              .read<BottomNavBloc>()
-                              .add(TapBottomNavEvent(1)),
+                          'onTap': () => context.read<BottomNavBloc>().add(
+                            TapBottomNavEvent(1),
+                          ),
                         },
                         {
-                          'title': isConnected ? 'Koneksi Aktif' : 'Status Koneksi',
+                          'title': isConnected
+                              ? 'Koneksi Aktif'
+                              : 'Status Koneksi',
                           'icon': isConnected ? Icons.wifi : Icons.wifi_off,
                           'color': isConnected ? Colors.green : Colors.red,
-                          'onTap': () => context
-                              .read<BottomNavBloc>()
-                              .add(TapBottomNavEvent(2)),
+                          'onTap': () => context.read<BottomNavBloc>().add(
+                            TapBottomNavEvent(2),
+                          ),
                         },
                         {
                           'title': 'Pengaturan',
                           'icon': Icons.settings,
                           'color': Colors.grey,
-                          'onTap': () => context
-                              .read<BottomNavBloc>()
-                              .add(TapBottomNavEvent(3)),
+                          'onTap': () => context.read<BottomNavBloc>().add(
+                            TapBottomNavEvent(3),
+                          ),
                         },
                       ];
 
@@ -215,8 +214,10 @@ class ClientHomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
-                      .format(DateTime.now()),
+                  DateFormat(
+                    'EEEE, dd MMMM yyyy',
+                    'id_ID',
+                  ).format(DateTime.now()),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -236,7 +237,8 @@ class ClientHomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuCard(BuildContext context, {
+  Widget _buildMenuCard(
+    BuildContext context, {
     required String title,
     required IconData icon,
     required Color color,

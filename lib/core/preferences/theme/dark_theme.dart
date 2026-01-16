@@ -14,14 +14,54 @@ class DarkTheme {
   DarkTheme(this.primaryColor);
 
   TextTheme get textTheme => TextTheme(
-    headlineLarge: TextStyle(fontSize: Dimens.dp32, fontWeight: FontWeight.bold, color: textSolidColor, fontFamily: 'Poppins'),
-    headlineMedium: TextStyle(fontSize: Dimens.dp24, fontWeight: FontWeight.w600, color: textSolidColor, fontFamily: 'Poppins'),
-    headlineSmall: TextStyle(fontSize: Dimens.dp20, fontWeight: FontWeight.w600, color: textSolidColor, fontFamily: 'Poppins'),
-    titleLarge: TextStyle(fontSize: Dimens.dp16, fontWeight: FontWeight.w600, color: textSolidColor, fontFamily: 'Poppins'),
-    titleMedium: TextStyle(fontSize: Dimens.dp14, fontWeight: FontWeight.w600, color: textSolidColor, fontFamily: 'Poppins'),
-    bodyLarge: TextStyle(fontSize: Dimens.dp16, fontWeight: FontWeight.w500, color: textSolidColor, fontFamily: 'Poppins'),
-    bodyMedium: TextStyle(fontSize: Dimens.dp14, fontWeight: FontWeight.normal, color: textSolidColor, fontFamily: 'Poppins'),
-    labelMedium: TextStyle(fontSize: Dimens.dp12, fontWeight: FontWeight.w500, color: textDisabledColor, fontFamily: 'Poppins'),
+    headlineLarge: TextStyle(
+      fontSize: Dimens.dp32,
+      fontWeight: FontWeight.bold,
+      color: textSolidColor,
+      fontFamily: 'Poppins',
+    ),
+    headlineMedium: TextStyle(
+      fontSize: Dimens.dp24,
+      fontWeight: FontWeight.w600,
+      color: textSolidColor,
+      fontFamily: 'Poppins',
+    ),
+    headlineSmall: TextStyle(
+      fontSize: Dimens.dp20,
+      fontWeight: FontWeight.w600,
+      color: textSolidColor,
+      fontFamily: 'Poppins',
+    ),
+    titleLarge: TextStyle(
+      fontSize: Dimens.dp16,
+      fontWeight: FontWeight.w600,
+      color: textSolidColor,
+      fontFamily: 'Poppins',
+    ),
+    titleMedium: TextStyle(
+      fontSize: Dimens.dp14,
+      fontWeight: FontWeight.w600,
+      color: textSolidColor,
+      fontFamily: 'Poppins',
+    ),
+    bodyLarge: TextStyle(
+      fontSize: Dimens.dp16,
+      fontWeight: FontWeight.w500,
+      color: textSolidColor,
+      fontFamily: 'Poppins',
+    ),
+    bodyMedium: TextStyle(
+      fontSize: Dimens.dp14,
+      fontWeight: FontWeight.normal,
+      color: textSolidColor,
+      fontFamily: 'Poppins',
+    ),
+    labelMedium: TextStyle(
+      fontSize: Dimens.dp12,
+      fontWeight: FontWeight.w500,
+      color: textDisabledColor,
+      fontFamily: 'Poppins',
+    ),
   );
 
   ThemeData get theme {
@@ -78,7 +118,9 @@ class DarkTheme {
           fontFamily: 'Poppins',
         ),
         contentPadding: const EdgeInsets.symmetric(
-            horizontal: Dimens.defaultSize, vertical: Dimens.dp12),
+          horizontal: Dimens.defaultSize,
+          vertical: Dimens.dp12,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(Dimens.radius),
           borderSide: BorderSide(color: borderColor),

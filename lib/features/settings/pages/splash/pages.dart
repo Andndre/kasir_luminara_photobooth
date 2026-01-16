@@ -345,9 +345,9 @@ class _SplashScreenState extends State<SplashScreen> {
                     width: MediaQuery.of(context).size.width / 4,
                   ),
                 ),
-  
+
                 Dimens.defaultSize.height,
-  
+
                 // App title
                 HeadingText(
                   'Luminara Photobooth',
@@ -357,9 +357,9 @@ class _SplashScreenState extends State<SplashScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-  
+
                 const SizedBox(height: 40),
-  
+
                 // Progress indicator and status
                 Column(
                   children: [

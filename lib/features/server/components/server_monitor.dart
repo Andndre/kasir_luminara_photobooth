@@ -11,20 +11,18 @@ class ServerMonitor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return BlocBuilder<ServerBloc, ServerState>(
       builder: (context, state) {
         final isOnline = state.status == ServerStatus.online;
         final statusColor = isOnline ? Colors.green : Colors.red;
-        
+
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: theme.cardTheme.color,
             borderRadius: BorderRadius.circular(Dimens.radius),
-            border: Border.all(
-              color: statusColor.withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: statusColor.withValues(alpha: 0.3)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
@@ -40,7 +38,7 @@ class ServerMonitor extends StatelessWidget {
                 builder: (context, constraints) {
                   // Switch to column layout on narrow screens (< 450px)
                   final isNarrow = constraints.maxWidth < 450;
-                  
+
                   Widget statusWidget = Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -108,14 +106,21 @@ class ServerMonitor extends StatelessWidget {
               if (isOnline) ...[
                 _buildInfoRow('IP Address', state.ipAddress ?? '-', theme),
                 _buildInfoRow('Port', '${state.port}', theme),
-                _buildInfoRow('Connected Clients', '${state.connectedClients}', theme),
+                _buildInfoRow(
+                  'Connected Clients',
+                  '${state.connectedClients}',
+                  theme,
+                ),
               ],
               if (state.errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
                     'Error: ${state.errorMessage}',
-                    style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+                    style: TextStyle(
+                      color: theme.colorScheme.error,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
             ],
@@ -151,7 +156,7 @@ class ServerMonitor extends StatelessWidget {
 
   void _showPairingQR(BuildContext context, ServerState state) {
     final pairingData = '${state.ipAddress}:${state.port}';
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

@@ -255,7 +255,7 @@ class _PrinterPageState extends State<PrinterPage> {
                   ],
                 ),
               ),
-  
+
               // Test Print Button
               if (_isConnected)
                 Padding(
@@ -275,7 +275,7 @@ class _PrinterPageState extends State<PrinterPage> {
                     ],
                   ),
                 ),
-  
+
               // Device List
               Expanded(
                 child: _isScanning
@@ -293,7 +293,7 @@ class _PrinterPageState extends State<PrinterPage> {
                           final device = _devices[index];
                           final isCurrentDevice =
                               PrinterHelper.connectedPrinterName == device.name;
-  
+
                           return ListTile(
                             leading: Icon(
                               Icons.print,
@@ -311,7 +311,9 @@ class _PrinterPageState extends State<PrinterPage> {
                             subtitle: Text(
                               device.macAdress,
                               style: TextStyle(
-                                color: isCurrentDevice ? Colors.green[600] : null,
+                                color: isCurrentDevice
+                                    ? Colors.green[600]
+                                    : null,
                               ),
                             ),
                             trailing: isCurrentDevice

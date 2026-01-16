@@ -19,7 +19,7 @@ class ServerService {
   Alfred? _alfred;
   HttpServer? _server;
   final List<WebSocket> _clients = [];
-  
+
   final _clientCountController = StreamController<int>.broadcast();
   Stream<int> get clientCountStream => _clientCountController.stream;
   int get clientCount => _clients.length;
@@ -30,7 +30,7 @@ class ServerService {
 
   final _statusController = StreamController<bool>.broadcast();
   Stream<bool> get statusStream => _statusController.stream;
-  
+
   bool get isRunning => _server != null;
   bool _isServiceRunning = false;
   bool get isServiceRunning => _isServiceRunning;
@@ -93,17 +93,19 @@ class ServerService {
             where: 'transaction_uuid = ?',
             whereArgs: [t['uuid']],
           );
-          
+
           final Map<String, dynamic> transactionWithItems = Map.from(t);
           transactionWithItems['items'] = items;
-          
+
           // Legacy support: for verifier screens that still expect a single product_name
           if (items.isNotEmpty) {
-            transactionWithItems['product_name'] = items.map((e) => "${e['product_name']} (x${e['quantity']})").join(", ");
+            transactionWithItems['product_name'] = items
+                .map((e) => "${e['product_name']} (x${e['quantity']})")
+                .join(", ");
           } else {
             transactionWithItems['product_name'] = "-";
           }
-          
+
           results.add(transactionWithItems);
         }
         return results;
@@ -123,7 +125,11 @@ class ServerService {
       }
 
       final db = await getDatabase();
-      final result = await db.query('transactions', where: 'uuid = ?', whereArgs: [ticketCode]);
+      final result = await db.query(
+        'transactions',
+        where: 'uuid = ?',
+        whereArgs: [ticketCode],
+      );
 
       if (result.isEmpty) {
         res.statusCode = 404;
@@ -145,7 +151,10 @@ class ServerService {
 
       await db.update(
         'transactions',
-        {'status': 'COMPLETED', 'redeemed_at': DateTime.now().toIso8601String()},
+        {
+          'status': 'COMPLETED',
+          'redeemed_at': DateTime.now().toIso8601String(),
+        },
         where: 'uuid = ?',
         whereArgs: [ticketCode],
       );
@@ -153,9 +162,11 @@ class ServerService {
       broadcast('TICKET_REDEEMED');
       _appEventController.add('REFRESH_TRANSACTIONS');
 
-      final productName = items.isNotEmpty 
-        ? items.map((e) => "${e['product_name']} (x${e['quantity']})").join(", ")
-        : "-";
+      final productName = items.isNotEmpty
+          ? items
+                .map((e) => "${e['product_name']} (x${e['quantity']})")
+                .join(", ")
+          : "-";
 
       return {
         'valid': true,
@@ -165,7 +176,7 @@ class ServerService {
           'product_name': productName,
           'items': items,
           'status': 'COMPLETED',
-        }
+        },
       };
     });
 
@@ -174,9 +185,9 @@ class ServerService {
       final socket = await WebSocketTransformer.upgrade(req);
       _clients.add(socket);
       _clientCountController.add(_clients.length);
-      
+
       socket.listen(
-        (_) {}, 
+        (_) {},
         onDone: () {
           _clients.remove(socket);
           _clientCountController.add(_clients.length);
@@ -184,7 +195,7 @@ class ServerService {
         onError: (_) {
           _clients.remove(socket);
           _clientCountController.add(_clients.length);
-        }
+        },
       );
     });
 
@@ -218,4 +229,3 @@ class ServerService {
     }
   }
 }
-

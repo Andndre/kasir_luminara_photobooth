@@ -14,7 +14,9 @@ abstract class ServerEvent extends Equatable {
 }
 
 class StartServer extends ServerEvent {}
+
 class StopServer extends ServerEvent {}
+
 class RefreshServerInfo extends ServerEvent {}
 
 class UpdateClientCount extends ServerEvent {
@@ -59,15 +61,20 @@ class ServerBloc extends Bloc<ServerEvent, ServerState> {
     return super.close();
   }
 
-  Future<void> _onStartServer(StartServer event, Emitter<ServerState> emit) async {
+  Future<void> _onStartServer(
+    StartServer event,
+    Emitter<ServerState> emit,
+  ) async {
     if (state.status == ServerStatus.online) return;
-    
+
     emit(state.copyWith(status: ServerStatus.starting));
     try {
       String? ip = await _networkInfo.getWifiIP();
-      
+
       if (ip == null || ip.isEmpty) {
-        final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
+        final interfaces = await NetworkInterface.list(
+          type: InternetAddressType.IPv4,
+        );
         for (var interface in interfaces) {
           for (var addr in interface.addresses) {
             if (!addr.isLoopback) {
@@ -80,62 +87,77 @@ class ServerBloc extends Bloc<ServerEvent, ServerState> {
       }
 
       await _serverService.start(port: state.port);
-      
+
       // Listen to client count changes
       _clientCountSubscription?.cancel();
-      _clientCountSubscription = _serverService.clientCountStream.listen((count) {
+      _clientCountSubscription = _serverService.clientCountStream.listen((
+        count,
+      ) {
         add(UpdateClientCount(count));
       });
 
       // If not on Android, we can immediately emit online
       // On Android, the background service will eventually emit its status
       if (!Platform.isAndroid) {
-        emit(state.copyWith(
-          status: ServerStatus.online,
-          ipAddress: ip ?? '127.0.0.1',
-          connectedClients: _serverService.clientCount,
-        ));
+        emit(
+          state.copyWith(
+            status: ServerStatus.online,
+            ipAddress: ip ?? '127.0.0.1',
+            connectedClients: _serverService.clientCount,
+          ),
+        );
       } else {
         // Just update IP, status will follow from UpdateServerStatus event
-        emit(state.copyWith(
-          ipAddress: ip ?? '127.0.0.1',
-        ));
+        emit(state.copyWith(ipAddress: ip ?? '127.0.0.1'));
       }
     } catch (e) {
-      emit(state.copyWith(
-        status: ServerStatus.offline,
-        errorMessage: e.toString(),
-      ));
+      emit(
+        state.copyWith(
+          status: ServerStatus.offline,
+          errorMessage: e.toString(),
+        ),
+      );
     }
   }
 
-  Future<void> _onStopServer(StopServer event, Emitter<ServerState> emit) async {
+  Future<void> _onStopServer(
+    StopServer event,
+    Emitter<ServerState> emit,
+  ) async {
     emit(state.copyWith(status: ServerStatus.stopping));
     try {
       _clientCountSubscription?.cancel();
       await _serverService.stop();
-      
+
       if (!Platform.isAndroid) {
         emit(state.copyWith(status: ServerStatus.offline, connectedClients: 0));
       }
     } catch (e) {
-      emit(state.copyWith(
-        errorMessage: e.toString(),
-      ));
+      emit(state.copyWith(errorMessage: e.toString()));
     }
   }
 
-  void _onRefreshServerInfo(RefreshServerInfo event, Emitter<ServerState> emit) async {
-  }
+  void _onRefreshServerInfo(
+    RefreshServerInfo event,
+    Emitter<ServerState> emit,
+  ) async {}
 
-  void _onUpdateClientCount(UpdateClientCount event, Emitter<ServerState> emit) {
+  void _onUpdateClientCount(
+    UpdateClientCount event,
+    Emitter<ServerState> emit,
+  ) {
     emit(state.copyWith(connectedClients: event.count));
   }
 
-  void _onUpdateServerStatus(UpdateServerStatus event, Emitter<ServerState> emit) {
-    emit(state.copyWith(
-      status: event.isOnline ? ServerStatus.online : ServerStatus.offline,
-      connectedClients: event.isOnline ? state.connectedClients : 0,
-    ));
+  void _onUpdateServerStatus(
+    UpdateServerStatus event,
+    Emitter<ServerState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        status: event.isOnline ? ServerStatus.online : ServerStatus.offline,
+        connectedClients: event.isOnline ? state.connectedClients : 0,
+      ),
+    );
   }
 }

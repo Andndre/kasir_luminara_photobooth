@@ -9,7 +9,7 @@ class VerifierService {
 
   String? _baseUrl;
   WebSocketChannel? _channel;
-  
+
   bool get isConnected => _baseUrl != null;
 
   void connect(String ip, int port) {
@@ -21,7 +21,7 @@ class VerifierService {
 
   Future<List<Map<String, dynamic>>> getQueue() async {
     if (_baseUrl == null) return [];
-    
+
     final response = await http.get(Uri.parse('$_baseUrl/api/queue'));
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -31,14 +31,15 @@ class VerifierService {
   }
 
   Future<Map<String, dynamic>> verifyTicket(String ticketCode) async {
-    if (_baseUrl == null) return {'valid': false, 'message': 'Not connected to server'};
-    
+    if (_baseUrl == null)
+      return {'valid': false, 'message': 'Not connected to server'};
+
     final response = await http.post(
       Uri.parse('$_baseUrl/api/verify'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'ticket_code': ticketCode}),
     );
-    
+
     return jsonDecode(response.body);
   }
 

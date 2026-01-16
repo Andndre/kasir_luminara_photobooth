@@ -6,26 +6,14 @@ class Produk {
   final String name;
   final int price;
 
-  Produk({
-    this.id,
-    required this.name,
-    required this.price,
-  });
+  Produk({this.id, required this.name, required this.price});
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'price': price,
-    };
+    return {'id': id, 'name': name, 'price': price};
   }
 
   factory Produk.fromMap(Map<String, dynamic> map) {
-    return Produk(
-      id: map['id'],
-      name: map['name'],
-      price: map['price'],
-    );
+    return Produk(id: map['id'], name: map['name'], price: map['price']);
   }
 
   static Future<int> createProduk(Produk produk) async {
@@ -60,7 +48,9 @@ class Produk {
     return await db.delete('products', where: 'id = ?', whereArgs: [id]);
   }
 
-  static Future<List<Map<String, dynamic>>> searchProdukByName(String query) async {
+  static Future<List<Map<String, dynamic>>> searchProdukByName(
+    String query,
+  ) async {
     final db = await getDatabase();
     return await db.query(
       'products',

@@ -103,48 +103,46 @@ class _ProductPageState extends State<ProductPage> {
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : filteredProducts.isEmpty
-                      ? const Center(child: Text('Tidak ada paket.'))
-                      : RefreshIndicator(
-                          onRefresh: _loadProducts,
-                          child: isDesktop
-                              ? GridView.builder(
-                                  padding: const EdgeInsets.all(16),
-                                  gridDelegate:
-                                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                  ? const Center(child: Text('Tidak ada paket.'))
+                  : RefreshIndicator(
+                      onRefresh: _loadProducts,
+                      child: isDesktop
+                          ? GridView.builder(
+                              padding: const EdgeInsets.all(16),
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
                                     maxCrossAxisExtent: 400,
                                     crossAxisSpacing: 16,
                                     mainAxisSpacing: 16,
                                     mainAxisExtent: 130,
                                   ),
-                                  itemCount: filteredProducts.length,
-                                  itemBuilder: (context, index) {
-                                    final product = filteredProducts[index];
-                                    return _ItemSection(
-                                      product: product,
-                                      onEdit: () =>
-                                          _showEditProductDialog(product),
-                                      onDelete: () => _deleteProduct(product),
-                                      formatCurrency: _formatCurrency,
-                                    );
-                                  },
-                                )
-                              : ListView.separated(
-                                  padding: const EdgeInsets.all(16.0),
-                                  itemBuilder: (context, index) {
-                                    final product = filteredProducts[index];
-                                    return _ItemSection(
-                                      product: product,
-                                      onEdit: () =>
-                                          _showEditProductDialog(product),
-                                      onDelete: () => _deleteProduct(product),
-                                      formatCurrency: _formatCurrency,
-                                    );
-                                  },
-                                  separatorBuilder: (context, index) =>
-                                      const SizedBox(height: 12),
-                                  itemCount: filteredProducts.length,
-                                ),
-                        ),
+                              itemCount: filteredProducts.length,
+                              itemBuilder: (context, index) {
+                                final product = filteredProducts[index];
+                                return _ItemSection(
+                                  product: product,
+                                  onEdit: () => _showEditProductDialog(product),
+                                  onDelete: () => _deleteProduct(product),
+                                  formatCurrency: _formatCurrency,
+                                );
+                              },
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.all(16.0),
+                              itemBuilder: (context, index) {
+                                final product = filteredProducts[index];
+                                return _ItemSection(
+                                  product: product,
+                                  onEdit: () => _showEditProductDialog(product),
+                                  onDelete: () => _deleteProduct(product),
+                                  formatCurrency: _formatCurrency,
+                                );
+                              },
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 12),
+                              itemCount: filteredProducts.length,
+                            ),
+                    ),
             ),
           ],
         ),
@@ -175,18 +173,22 @@ class _ProductPageState extends State<ProductPage> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
           ElevatedButton(
             onPressed: () async {
-              if (nameController.text.isNotEmpty && priceController.text.isNotEmpty) {
+              if (nameController.text.isNotEmpty &&
+                  priceController.text.isNotEmpty) {
                 final p = Produk(
                   name: nameController.text,
                   price: int.parse(priceController.text),
                 );
-                
+
                 final navigator = Navigator.of(context);
                 await Produk.createProduk(p);
-                
+
                 if (!mounted) return;
                 navigator.pop();
                 _loadProducts();
@@ -201,7 +203,9 @@ class _ProductPageState extends State<ProductPage> {
 
   void _showEditProductDialog(Produk product) {
     final nameController = TextEditingController(text: product.name);
-    final priceController = TextEditingController(text: product.price.toString());
+    final priceController = TextEditingController(
+      text: product.price.toString(),
+    );
 
     showDialog(
       context: context,
@@ -223,8 +227,9 @@ class _ProductPageState extends State<ProductPage> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal')),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.isNotEmpty &&
@@ -257,12 +262,15 @@ class _ProductPageState extends State<ProductPage> {
         title: const Text('Hapus Paket'),
         content: Text('Hapus paket "${product.name}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
           TextButton(
             onPressed: () async {
               final navigator = Navigator.of(context);
               await Produk.deleteProduk(product.id!);
-              
+
               if (!mounted) return;
               navigator.pop();
               _loadProducts();

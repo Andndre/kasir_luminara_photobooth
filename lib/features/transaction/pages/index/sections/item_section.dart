@@ -104,6 +104,11 @@ class _ItemSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Kode: ${transaksi.uuid}'),
+              if (transaksi.midtransOrderId != null)
+                Text(
+                  'Order ID: ${transaksi.midtransOrderId}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               Text('Nama: ${transaksi.customerName}'),
               Text('Metode: ${transaksi.paymentMethod}'),
               Text('Status: ${transaksi.status}'),

@@ -9,54 +9,65 @@ import 'package:luminara_photobooth/app/app.dart';
 import 'package:luminara_photobooth/core/services/background_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:desktop_webview_window/desktop_webview_window.dart';
 
-void main() {
-  runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
+void main(List<String> args) {
+  if (runWebViewTitleBarWidget(args)) {
+    return;
+  }
 
-    // Initialize Database
-    await getDatabase();
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-    // Initialize Background Service (Android/iOS)
-    if (Platform.isAndroid || Platform.isIOS) {
-      if (Platform.isAndroid) {
-        final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-            FlutterLocalNotificationsPlugin();
-        await flutterLocalNotificationsPlugin
-            .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()
-            ?.createNotificationChannel(const AndroidNotificationChannel(
-              notificationChannelId,
-              'Luminara Server Service',
-              description: 'Menjaga server tetap aktif di latar belakang.',
-              importance: Importance.low,
-            ));
+      // Initialize Database
+      await getDatabase();
+
+      // Initialize Background Service (Android/iOS)
+      if (Platform.isAndroid || Platform.isIOS) {
+        if (Platform.isAndroid) {
+          final FlutterLocalNotificationsPlugin
+          flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+          await flutterLocalNotificationsPlugin
+              .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin
+              >()
+              ?.createNotificationChannel(
+                const AndroidNotificationChannel(
+                  notificationChannelId,
+                  'Luminara Server Service',
+                  description: 'Menjaga server tetap aktif di latar belakang.',
+                  importance: Importance.low,
+                ),
+              );
+        }
+        await initializeBackgroundService();
       }
-      await initializeBackgroundService();
-    }
 
-    Bloc.observer = AppBlocObserver();
+      Bloc.observer = AppBlocObserver();
 
-    // Request permissions only on Mobile
-    if (Platform.isAndroid || Platform.isIOS) {
-      await [
-        Permission.notification,
-        Permission.bluetooth,
-        Permission.bluetoothScan,
-        Permission.bluetoothConnect,
-        Permission.location,
-      ].request();
-    }
+      // Request permissions only on Mobile
+      if (Platform.isAndroid || Platform.isIOS) {
+        await [
+          Permission.notification,
+          Permission.bluetooth,
+          Permission.bluetoothScan,
+          Permission.bluetoothConnect,
+          Permission.location,
+        ].request();
+      }
 
-    await initializeDateFormatting('id_ID', null);
+      await initializeDateFormatting('id_ID', null);
 
-    _setupErrorHandling();
+      _setupErrorHandling();
 
-    runApp(const MyApp());
-  }, (error, stack) {
-    debugPrint('GLOBAL ERROR: $error');
-    debugPrint('STACKTRACE: $stack');
-  });
+      runApp(const MyApp());
+    },
+    (error, stack) {
+      debugPrint('GLOBAL ERROR: $error');
+      debugPrint('STACKTRACE: $stack');
+    },
+  );
 }
 
 void _setupErrorHandling() {
@@ -79,9 +90,10 @@ void _setupErrorHandling() {
               const Text(
                 'Terjadi Kesalahan UI!',
                 style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
               ),
               const SizedBox(height: 12),
               Text(details.exception.toString(), textAlign: TextAlign.center),

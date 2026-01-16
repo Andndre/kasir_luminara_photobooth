@@ -1,11 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/model/produk.dart';
 import 'package:luminara_photobooth/model/transaksi.dart';
 import 'package:luminara_photobooth/core/services/server_service.dart';
+import 'package:luminara_photobooth/core/services/midtrans_service.dart';
+import 'package:luminara_photobooth/core/components/payment_webview_launcher.dart';
+import 'package:luminara_photobooth/core/preferences/settings_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'dart:async'; // Added for Timer
 
 class Kasir extends StatefulWidget {
   const Kasir({super.key});
@@ -22,10 +28,22 @@ class _KasirState extends State<Kasir> {
   bool _isLoading = true;
   String _paymentMethod = 'TUNAI';
 
+  // Flag untuk safety pop
+  bool _isWebViewOpen = false;
+  bool _isMidtransEnabled = false;
+
   @override
   void initState() {
     super.initState();
     _loadProducts();
+    _checkPaymentSettings();
+  }
+
+  Future<void> _checkPaymentSettings() async {
+    final enabled = await SettingsPreferences.isMidtransEnabled();
+    setState(() {
+      _isMidtransEnabled = enabled;
+    });
   }
 
   Future<void> _loadProducts() async {
@@ -69,41 +87,46 @@ class _KasirState extends State<Kasir> {
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: isDesktop
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Left: Product Selection
-                          Expanded(flex: 2, child: _buildProductSection()),
-                          const SizedBox(width: 32),
-                          // Right: Checkout & Details
-                          SizedBox(
-                            width: 450,
-                            child: Card(
-                              elevation: 4,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  Dimens.radius,
+            : Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: isDesktop
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Left: Product Selection
+                              Expanded(flex: 2, child: _buildProductSection()),
+                              const SizedBox(width: 32),
+                              // Right: Checkout & Details
+                              SizedBox(
+                                width: 450,
+                                child: Card(
+                                  elevation: 4,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      Dimens.radius,
+                                    ),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: _buildCheckoutSection(),
+                                  ),
                                 ),
                               ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(24.0),
-                                child: _buildCheckoutSection(),
-                              ),
-                            ),
+                            ],
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _buildProductSection()),
+                              const SizedBox(height: 16),
+                              _buildCheckoutSection(),
+                            ],
                           ),
-                        ],
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _buildProductSection()),
-                          const SizedBox(height: 16),
-                          _buildCheckoutSection(),
-                        ],
-                      ),
+                  ),
+                ),
               ),
       ),
     );
@@ -254,8 +277,9 @@ class _KasirState extends State<Kasir> {
                 icon: Icon(Icons.money),
               ),
               ButtonSegment(
-                value: 'QRIS',
-                label: Text('QRIS'),
+                value:
+                    'QRIS', // Value tetap QRIS untuk konsistensi, Label NON-TUNAI
+                label: Text('NON-TUNAI'),
                 icon: Icon(Icons.qr_code),
               ),
             ],
@@ -610,6 +634,162 @@ class _KasirState extends State<Kasir> {
   }
 
   void _executePayment({required int totalBayar, int kembalian = 0}) async {
+    if (_paymentMethod == 'QRIS') {
+      if (_isMidtransEnabled) {
+        // Online Flow (Midtrans)
+        await _handleQrisPayment(totalBayar);
+      } else {
+        // Offline Flow (Manual Transfer/EDC Terpisah)
+        // Langsung finalize dengan metode NON-TUNAI
+        _finalizeTransaction(
+          totalBayar: totalBayar,
+          kembalian: 0,
+          isQris: false, // False agar tidak trigger pop webview
+          actualPaymentMethod: 'NON-TUNAI (MANUAL)',
+        );
+      }
+      return;
+    }
+
+    // Flow Tunai (Langsung Finalize)
+    _finalizeTransaction(totalBayar: totalBayar, kembalian: kembalian);
+  }
+
+  Future<void> _handleQrisPayment(int amount) async {
+    // Show Loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final service = MidtransService();
+      final response = await service.createTransaction(amount);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss Loading
+
+      final redirectUrl = response['redirect_url'];
+      final orderId = response['order_id'];
+
+      debugPrint(
+        "🔗 LINK PEMBAYARAN MIDTRANS: $redirectUrl",
+      ); // <--- KLIK LINK INI DI TERMINAL
+      debugPrint("💳 ORDER ID: $orderId");
+
+      // Launch WebView
+      _isWebViewOpen = true;
+      PaymentWebViewLauncher.launch(
+        context,
+        redirectUrl,
+        onClose: () {
+          _isWebViewOpen = false;
+          debugPrint("WebView closed manually");
+        },
+      );
+
+      // Start Polling
+      _startPaymentPolling(orderId, amount);
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Dismiss Loading if error
+        SnackBarHelper.showError(context, 'Gagal inisiasi pembayaran: $e');
+      }
+    }
+  }
+
+  void _startPaymentPolling(String orderId, int amount) {
+    Timer.periodic(const Duration(seconds: 3), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      final service = MidtransService();
+
+      // FORCE SYNC: Paksa Laravel cek ke Midtrans (karena Webhook tidak jalan di localhost)
+      await service.syncTransaction(orderId);
+
+      final result = await service.checkStatus(orderId);
+      final status = result['status'];
+      final rawPaymentType = result['payment_type'];
+
+      if (status == 'paid' || status == 'settlement') {
+        timer.cancel();
+
+        if (mounted) {
+          // Finalize
+          _finalizeTransaction(
+            totalBayar: amount,
+            kembalian: 0,
+            isQris: true,
+            midtransOrderId: orderId,
+            actualPaymentMethod: _normalizePaymentMethod(rawPaymentType),
+          );
+        }
+      } else if (status == 'failed' || status == 'expire') {
+        timer.cancel();
+        if (mounted)
+          SnackBarHelper.showError(context, 'Pembayaran Gagal/Kadaluarsa');
+      }
+    });
+  }
+
+  String _normalizePaymentMethod(String? rawType) {
+    if (rawType == null) return 'QRIS';
+
+    // Mapping Midtrans Technical Name -> User Friendly Name
+    switch (rawType) {
+      case 'qris':
+        return 'QRIS';
+      case 'gopay':
+        return 'GoPay/GoPay Later';
+      case 'shopeepay':
+        return 'ShopeePay/SPayLater';
+      case 'akulaku':
+        return 'Akulaku Paylater';
+      case 'kredivo':
+        return 'Kredivo';
+
+      // Virtual Accounts / Bank Transfer
+      case 'bank_transfer':
+      case 'echannel': // Mandiri Bill
+      case 'permata_va':
+      case 'bca_va':
+      case 'bni_va':
+      case 'bri_va':
+      case 'cimb_va':
+      case 'other_va':
+        return 'Bank Transfer (VA)';
+
+      default:
+        return 'QRIS ($rawType)';
+    }
+  }
+
+  void _finalizeTransaction({
+    required int totalBayar,
+    int kembalian = 0,
+    bool isQris = false,
+    String? midtransOrderId,
+    String? actualPaymentMethod,
+  }) async {
+    // Safety Close WebView jika masih terbuka
+    if (isQris) {
+      // Mobile: Pop Dialog
+      if (_isWebViewOpen && (Platform.isAndroid || Platform.isIOS)) {
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+        _isWebViewOpen = false;
+      }
+
+      // Windows/macOS: Close Window Programmatically
+      // Note: This is skipped for Linux in the helper itself to prevent crashes.
+      PaymentWebViewLauncher.close();
+    }
+
     final uuid = Transaksi.generateUuid();
 
     // Prepare items list
@@ -634,8 +814,10 @@ class _KasirState extends State<Kasir> {
       totalPrice: _totalPrice,
       bayarAmount: totalBayar,
       kembalian: kembalian,
-      paymentMethod: _paymentMethod,
+      paymentMethod:
+          actualPaymentMethod ?? _paymentMethod, // USE ACTUAL IF AVAILABLE
       createdAt: DateTime.now(),
+      midtransOrderId: midtransOrderId,
     );
 
     try {
@@ -657,6 +839,8 @@ class _KasirState extends State<Kasir> {
       );
 
       if (!mounted) return;
+
+      // OLD CODE REMOVED: Safety pop is now handled at start of function
 
       if (!printResult) {
         ScaffoldMessenger.of(context).showSnackBar(

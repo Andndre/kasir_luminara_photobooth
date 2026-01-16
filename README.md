@@ -6,6 +6,7 @@
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
+![Midtrans](https://img.shields.io/badge/Midtrans-Payment-blue?style=for-the-badge&logo=credit-card&logoColor=white)
 
 **Modern Photobooth Management for Local Networks**
 
@@ -18,6 +19,8 @@
 ## 📖 About
 
 **Luminara Photobooth** is a comprehensive management system built with Flutter, designed for photobooth businesses. It operates on a local network (LAN) using a dual-mode architecture (Server/Cashier & Client/Verifier), allowing for real-time synchronization and offline operation.
+
+The system now supports **Digital Payments (QRIS)** via Midtrans, seamlessly integrated into both Desktop and Mobile interfaces.
 
 ### 🎯 **Target Users**
 
@@ -32,6 +35,10 @@
 ### 🛒 **Server Mode (Cashier)**
 
 - **Transaction Management**: Select packages and create transactions.
+- **Digital Payments (QRIS)**:
+  - **Native Integration**: Integrated WebView for payment flow (no external browser needed).
+  - **Multi-Platform**: Works on Android (Dialog) and Desktop Linux/Windows (Pop-up Window).
+  - **Auto-Sync**: Automatically detects payment success and prints tickets.
 - **Embedded Server**: Automatically hosts an Alfred HTTP & WebSocket server.
 - **Ticket Printing**: Print thermal receipts with unique QR codes for verification.
 - **Pairing QR**: Display IP and Port for mobile client connection.
@@ -47,8 +54,9 @@
 ### 📊 **Analytics & Infrastructure**
 
 - **Dashboard**: Real-time sales statistics and queue count.
+- **Audit Trail**: Tracks Midtrans Order IDs for payment reconciliation.
 - **Isolate-Based Server**: Ensures UI responsiveness on Linux/Windows desktops.
-- **Offline-First**: Operates entirely without internet connection.
+- **Offline-First**: Operates entirely without internet connection (except for QRIS payment initiation).
 
 ---
 
@@ -56,10 +64,15 @@
 
 ### **Core**
 
-- **Flutter**: Cross-platform UI framework.
+- **Flutter**: Cross-platform UI framework (Android, Linux, Windows).
 - **Dart**: Programming language.
-- **Alfred**: Embedded HTTP/WebSocket server.
+- **Alfred**: Embedded HTTP/WebSocket server for LAN sync.
 - **SQLite (FFI)**: Local database for Server mode.
+
+### **Integrations**
+
+- **Midtrans**: Payment Gateway (QRIS, VA, E-Wallet).
+- **Luminara Transaksi**: Backend Service (Laravel) for payment processing.
 
 ---
 
@@ -67,9 +80,10 @@
 
 ### **Prerequisites**
 
-- Flutter SDK
+- Flutter SDK (3.9.2+)
 - Android Studio / VS Code
 - Local Wi-Fi Network
+- **Luminara Transaksi** (Backend Service) running on the same network.
 
 ### **Setup Steps**
 
@@ -95,12 +109,16 @@
 
 ## 🔧 Configuration
 
-### **Linux Firewall**
+### **Network & Firewall (Linux)**
 
-Allow port 3000 for incoming connections:
-```bash
-sudo ufw allow 3000/tcp
-```
+To ensure smooth LAN connectivity and Payment Sync:
+
+1. **Allow Server Port (3000):**
+   ```bash
+   sudo ufw allow 3000/tcp
+   ```
+2. **Allow Backend Port (8000/80):**
+   Ensure the device hosting the Laravel Backend allows incoming connections on the API port.
 
 ---
 

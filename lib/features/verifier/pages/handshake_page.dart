@@ -130,18 +130,21 @@ class _HandshakePageState extends State<HandshakePage> {
                     final parts = _ipController.text.split(':');
                     if (parts.isNotEmpty) {
                       final ip = parts[0];
-                      final port =
-                          parts.length > 1 ? int.parse(parts[1]) : 3000;
-                      context
-                          .read<VerifierBloc>()
-                          .add(ConnectToServer(ip, port));
+                      final port = parts.length > 1
+                          ? int.parse(parts[1])
+                          : 3000;
+                      context.read<VerifierBloc>().add(
+                        ConnectToServer(ip, port),
+                      );
                       // Navigate to Live Queue (Index 0)
                       context.read<BottomNavBloc>().add(TapBottomNavEvent(0));
                     }
                   },
-            child: Text(state.status == VerifierStatus.connecting
-                ? 'Menghubungkan...'
-                : 'Hubungkan'),
+            child: Text(
+              state.status == VerifierStatus.connecting
+                  ? 'Menghubungkan...'
+                  : 'Hubungkan',
+            ),
           ),
         ),
         const SizedBox(height: 24),
@@ -184,7 +187,7 @@ class _HandshakePageState extends State<HandshakePage> {
 
   void _scanPairingQR() {
     setState(() => _isProcessing = false); // Reset before scan
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -200,14 +203,16 @@ class _HandshakePageState extends State<HandshakePage> {
                 final parts = data.split(':');
                 if (parts.isNotEmpty) {
                   setState(() => _isProcessing = true);
-                  
+
                   final ip = parts[0];
                   final port = parts.length > 1 ? int.parse(parts[1]) : 3000;
                   context.read<VerifierBloc>().add(ConnectToServer(ip, port));
-                  
+
                   if (context.mounted) {
                     Navigator.pop(context); // Close scanner safely
-                    context.read<BottomNavBloc>().add(TapBottomNavEvent(0)); // Go to Queue
+                    context.read<BottomNavBloc>().add(
+                      TapBottomNavEvent(0),
+                    ); // Go to Queue
                   }
                 }
               }

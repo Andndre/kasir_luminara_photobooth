@@ -24,7 +24,9 @@ class MyApp extends StatelessWidget {
           BlocProvider(create: (context) => BottomNavBloc()),
           BlocProvider(create: (context) => ProfileBloc()),
           BlocProvider(create: (context) => ServerBloc()),
-          BlocProvider(create: (context) => VerifierBloc()..add(InitializeVerifier())),
+          BlocProvider(
+            create: (context) => VerifierBloc()..add(InitializeVerifier()),
+          ),
         ],
         child: Consumer<AppState>(
           builder: (context, appState, _) {
@@ -43,7 +45,9 @@ class MyApp extends StatelessWidget {
                   child: child!,
                 );
               },
-              home: appState.hasMode ? const SplashScreen() : const ModeSelectionPage(),
+              home: appState.hasMode
+                  ? const SplashScreen()
+                  : const ModeSelectionPage(),
             );
           },
         ),

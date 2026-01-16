@@ -21,7 +21,7 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
         child: MobileScanner(
           onDetect: (capture) async {
             if (_isProcessing) return;
-            
+
             final List<Barcode> barcodes = capture.barcodes;
             for (final barcode in barcodes) {
               if (barcode.rawValue != null) {
@@ -39,7 +39,9 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
 
   Future<void> _verifyTicket(String code) async {
     try {
-      final result = await context.read<VerifierBloc>().service.verifyTicket(code);
+      final result = await context.read<VerifierBloc>().service.verifyTicket(
+        code,
+      );
       if (mounted) {
         _showResult(result);
       } else {
@@ -48,9 +50,9 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
       // Reset state on error to allow retry
       setState(() => _isProcessing = false);
@@ -92,7 +94,10 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
               ),
               Text(
                 '${data['customer_name']}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const Divider(height: 24),
               const Text(
@@ -103,21 +108,23 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
               if (items.isEmpty)
                 Text(data['product_name'] ?? '-')
               else
-                ...items.map((i) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.shopping_bag_outlined, size: 16),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '${i['product_name']} x${i['quantity']}',
-                              style: const TextStyle(fontSize: 14),
-                            ),
+                ...items.map(
+                  (i) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.shopping_bag_outlined, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${i['product_name']} x${i['quantity']}',
+                            style: const TextStyle(fontSize: 14),
                           ),
-                        ],
-                      ),
-                    )),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               const SizedBox(height: 16),
               Container(
                 width: double.infinity,
@@ -136,7 +143,8 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
             ] else ...[
               Center(
                 child: Text(
-                  result['message'] ?? 'Tiket tidak ditemukan atau sudah dipakai.',
+                  result['message'] ??
+                      'Tiket tidak ditemukan atau sudah dipakai.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 16),
                 ),
@@ -151,7 +159,7 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
               onPressed: () {
                 Navigator.pop(context);
                 setState(() => _isProcessing = false); // Resume scanning
-                
+
                 if (result['valid']) {
                   Navigator.pop(context); // Close scanner on success
                 }
