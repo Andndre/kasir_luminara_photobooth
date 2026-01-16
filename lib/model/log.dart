@@ -34,7 +34,11 @@ class Log {
     final db = await getDatabase();
     await db.insert(
       'logs',
-      Log(timestamp: DateTime.now(), message: message).toJson(),
+      Log(
+        timestamp: DateTime.now(),
+        message: message,
+        isError: isError,
+      ).toJson(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
