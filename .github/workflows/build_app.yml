@@ -1,0 +1,96 @@
+name: Build App (Windows & Android)
+
+on:
+  push:
+    tags:
+      - "v*" # Trigger saat push tag (contoh: v1.0.0)
+  workflow_dispatch: # Trigger manual
+
+permissions:
+  contents: write
+
+jobs:
+  # JOB 1: WINDOWS
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build Windows Release
+        run: flutter build windows --release
+
+      - name: Install Inno Setup
+        run: choco install innosetup
+
+      - name: Compile Installer
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          & $iscc windows\installer.iss
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-Installer
+          path: build/windows/x64/runner/Release/LuminaraPhotobooth_Setup.exe
+
+      - name: Release Windows
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/windows/x64/runner/Release/LuminaraPhotobooth_Setup.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # JOB 2: ANDROID (Jalan Paralel)
+  build-android:
+    runs-on: ubuntu-latest # Lebih cepat untuk Android daripada Windows
+    steps:
+      - uses: actions/checkout@v4
+
+      # Setup Java (Wajib untuk Android Build)
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      # Perintah ini menggantikan 3 perintah manual Anda menjadi 1 kali jalan
+      # Hasilnya akan otomatis create 3 APK: v7a (arm), v8a (arm64), x64
+      - name: Build APKs (Split per ABI)
+        run: flutter build apk --release --split-per-abi --analyze-size
+
+      # Upload Artifact agar bisa didownload manual di menu Actions
+      - name: Upload Android Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-APKs
+          path: build/app/outputs/flutter-apk/*.apk
+
+      # Upload ke Release Page (Jika trigger via Tag)
+      - name: Release Android
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/app/outputs/flutter-apk/*.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
