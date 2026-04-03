@@ -84,7 +84,7 @@ class ServerService {
           'transactions',
           where: 'status = ?',
           whereArgs: ['PAID'],
-          orderBy: 'created_at ASC',
+          orderBy: 'queue_date ASC, queue_number ASC',
         );
 
         List<Map<String, dynamic>> results = [];

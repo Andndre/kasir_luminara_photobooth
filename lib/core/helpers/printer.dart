@@ -86,6 +86,7 @@ class PrinterHelper {
     int? bayarAmount,
     int? kembalian,
     DateTime? date,
+    int? queueNumber,
     String storeName = 'LUMINARA PHOTOBOOTH',
     String tagline = 'Capture Your Best Moments',
   }) async {
@@ -114,6 +115,21 @@ class PrinterHelper {
       );
 
       bytes += generator.hr(ch: "=");
+
+      // Queue Number (BIG)
+      if (queueNumber != null) {
+        bytes += generator.text(
+          'ANTRIAN #$queueNumber',
+          styles: const esc.PosStyles(
+            align: esc.PosAlign.center,
+            bold: true,
+            height: esc.PosTextSize.size2,
+            width: esc.PosTextSize.size2,
+          ),
+        );
+        bytes += generator.hr(ch: "-");
+      }
+
       // Ticket Info
       bytes += generator.text(
         'TIKET PHOTOBOOTH',

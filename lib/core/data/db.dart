@@ -41,7 +41,7 @@ Future<Database> getDatabase() async {
   // ------------------------------------------------------------------
   Database database = await openDatabase(
     dbPath,
-    version: 2,
+    version: 3,
     onCreate: (db, version) async {
       print("Creating new database tables...");
 
@@ -66,7 +66,9 @@ Future<Database> getDatabase() async {
           status TEXT NOT NULL DEFAULT 'PAID',
           created_at TEXT NOT NULL,
           redeemed_at TEXT,
-          midtrans_order_id TEXT
+          midtrans_order_id TEXT,
+          queue_number INTEGER,
+          queue_date TEXT
         )
       ''');
 
@@ -92,6 +94,14 @@ Future<Database> getDatabase() async {
         )
       ''');
 
+      // Tabel: daily_queue_counter
+      await db.execute('''
+        CREATE TABLE daily_queue_counter (
+          date TEXT PRIMARY KEY,
+          last_number INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+
       // Seed default data (Data awal)
       await db.insert('products', {
         'name': 'Self Photo 15 Menit',
@@ -111,6 +121,25 @@ Future<Database> getDatabase() async {
             timestamp TEXT NOT NULL,
             message TEXT NOT NULL,
             is_error INTEGER NOT NULL DEFAULT 0
+          )
+        ''');
+
+        print("✅ Database upgraded to version 2");
+      }
+      if (oldVersion < 3) {
+        print("Upgrading database from version $oldVersion to $newVersion...");
+
+        await db.execute(
+          'ALTER TABLE transactions ADD COLUMN queue_number INTEGER',
+        );
+        await db.execute(
+          'ALTER TABLE transactions ADD COLUMN queue_date TEXT',
+        );
+
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS daily_queue_counter (
+            date TEXT PRIMARY KEY,
+            last_number INTEGER NOT NULL DEFAULT 0
           )
         ''');
 

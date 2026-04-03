@@ -25,6 +25,13 @@ class _ItemSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(Dimens.radius),
       ),
       child: ListTile(
+        leading: transaksi.queueNumber != null
+            ? CircleAvatar(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                child: Text('#${transaksi.queueNumber}'),
+              )
+            : null,
         title: Text(transaksi.customerName ?? 'Pelanggan'),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,6 +110,15 @@ class _ItemSection extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (transaksi.queueNumber != null)
+                Text(
+                  'Antrian: #${transaksi.queueNumber}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.blue,
+                  ),
+                ),
               Text('Kode: ${transaksi.uuid}'),
               if (transaksi.midtransOrderId != null)
                 Text(
@@ -209,6 +225,7 @@ class _ItemSection extends StatelessWidget {
                 date: transaksi.createdAt,
                 bayarAmount: transaksi.bayarAmount,
                 kembalian: transaksi.kembalian,
+                queueNumber: transaksi.queueNumber,
               );
 
               if (context.mounted) {

@@ -1,6 +1,7 @@
 import 'package:luminara_photobooth/core/data/db.dart';
 import 'dart:math';
 import 'package:sqflite/sqflite.dart';
+import 'package:intl/intl.dart';
 
 class TransaksiItem {
   final int? id;
@@ -45,7 +46,9 @@ class Transaksi {
   final String status;
   final DateTime createdAt;
   final DateTime? redeemedAt;
-  final String? midtransOrderId; // NEW FIELD
+  final String? midtransOrderId;
+  final int? queueNumber;
+  final String? queueDate;
 
   Transaksi({
     required this.uuid,
@@ -59,6 +62,8 @@ class Transaksi {
     required this.createdAt,
     this.redeemedAt,
     this.midtransOrderId,
+    this.queueNumber,
+    this.queueDate,
   });
 
   Map<String, dynamic> toMap() {
@@ -73,6 +78,8 @@ class Transaksi {
       'created_at': createdAt.toIso8601String(),
       'redeemed_at': redeemedAt?.toIso8601String(),
       'midtrans_order_id': midtransOrderId,
+      'queue_number': queueNumber,
+      'queue_date': queueDate,
     };
   }
 
@@ -94,16 +101,28 @@ class Transaksi {
           ? DateTime.parse(map['redeemed_at'])
           : null,
       midtransOrderId: map['midtrans_order_id'],
+      queueNumber: map['queue_number'],
+      queueDate: map['queue_date'],
     );
   }
 
-  static Future<void> createTransaksi(Transaksi transaksi) async {
+  static Future<int> createTransaksi(Transaksi transaksi) async {
     final db = await getDatabase();
+    late int queueNumber;
     await db.transaction((txn) async {
+      // Generate queue number within transaction
+      queueNumber = await _generateQueueNumber(txn);
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+      // Prepare map with queue fields
+      final map = transaksi.toMap();
+      map['queue_number'] = queueNumber;
+      map['queue_date'] = today;
+
       // 1. Insert Transaction header
       await txn.insert(
         'transactions',
-        transaksi.toMap(),
+        map,
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
 
@@ -112,6 +131,35 @@ class Transaksi {
         await txn.insert('transaction_items', item.toMap(transaksi.uuid));
       }
     });
+    return queueNumber;
+  }
+
+  static Future<int> _generateQueueNumber(DatabaseExecutor db) async {
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    final result = await db.query(
+      'daily_queue_counter',
+      where: 'date = ?',
+      whereArgs: [today],
+    );
+
+    int nextNumber;
+    if (result.isEmpty) {
+      nextNumber = 1;
+      await db.insert('daily_queue_counter', {
+        'date': today,
+        'last_number': 1,
+      });
+    } else {
+      nextNumber = (result.first['last_number'] as int) + 1;
+      await db.update(
+        'daily_queue_counter',
+        {'last_number': nextNumber},
+        where: 'date = ?',
+        whereArgs: [today],
+      );
+    }
+    return nextNumber;
   }
 
   static Future<List<Transaksi>> getAllTransaksi() async {
