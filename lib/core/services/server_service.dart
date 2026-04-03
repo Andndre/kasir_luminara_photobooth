@@ -84,7 +84,14 @@ class ServerService {
           'transactions',
           where: 'status = ?',
           whereArgs: ['PAID'],
-          orderBy: 'created_at ASC',
+          // NULL queue_number means legacy transaction — sort those by created_at at the end.
+          // New transactions (queue_number IS NOT NULL) come first: by queue_date, then queue_number.
+          orderBy: '''
+            CASE WHEN queue_number IS NULL THEN 1 ELSE 0 END ASC,
+            queue_date ASC,
+            queue_number ASC,
+            created_at ASC
+          ''',
         );
 
         List<Map<String, dynamic>> results = [];

@@ -844,7 +844,7 @@ class _KasirState extends State<Kasir> {
     );
 
     try {
-      await Transaksi.createTransaksi(transaction);
+      final queueNumber = await Transaksi.createTransaksi(transaction);
 
       // Broadcast via WebSocket
       ServerService().broadcast('REFRESH_QUEUE');
@@ -859,6 +859,7 @@ class _KasirState extends State<Kasir> {
         bayarAmount: totalBayar,
         kembalian: kembalian,
         date: transaction.createdAt,
+        queueNumber: queueNumber,
       );
 
       if (!mounted) return;
@@ -874,7 +875,7 @@ class _KasirState extends State<Kasir> {
       }
 
       // Show Success Dialog with Ticket QR
-      _showTicketDialog(transaction, totalBayar, kembalian);
+      _showTicketDialog(transaction, totalBayar, kembalian, queueNumber);
 
       HapticFeedback.heavyImpact();
     } catch (e) {
@@ -886,7 +887,7 @@ class _KasirState extends State<Kasir> {
     }
   }
 
-  void _showTicketDialog(Transaksi transaction, int totalBayar, int kembalian) {
+  void _showTicketDialog(Transaksi transaction, int totalBayar, int kembalian, int queueNumber) {
     final currencyFormat = NumberFormat.currency(
       locale: 'id_ID',
       symbol: 'Rp ',
@@ -903,6 +904,15 @@ class _KasirState extends State<Kasir> {
           children: [
             const Icon(Icons.check_circle, color: Colors.green, size: 64),
             const SizedBox(height: 16),
+            Text(
+              'ANTRIAN #$queueNumber',
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+              ),
+            ),
+            const SizedBox(height: 8),
             if (_paymentMethod == 'TUNAI') ...[
               Text('Bayar: ${currencyFormat.format(totalBayar)}'),
               Text(

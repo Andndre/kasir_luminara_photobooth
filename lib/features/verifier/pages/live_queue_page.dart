@@ -93,7 +93,9 @@ class LiveQueuePage extends StatelessWidget {
                               leading: CircleAvatar(
                                 backgroundColor: Theme.of(context).primaryColor,
                                 foregroundColor: Colors.white,
-                                child: Text('${index + 1}'),
+                                child: Text(
+                                  '#${item['queue_number'] ?? (index + 1)}',
+                                ),
                               ),
                               title: Row(
                                 mainAxisAlignment:
