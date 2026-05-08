@@ -138,6 +138,11 @@ class ClientHomePage extends StatelessWidget {
         label = 'Error';
         icon = Icons.error;
         break;
+      case VerifierStatus.reconnecting:
+        color = Colors.orange;
+        label = 'Reconnecting';
+        icon = Icons.refresh;
+        break;
       case VerifierStatus.disconnected:
         color = Colors.grey;
         label = 'Offline';
@@ -172,7 +177,12 @@ class ClientHomePage extends StatelessWidget {
 
   Widget _buildWelcomeSection(BuildContext context, VerifierState state) {
     final isConnected = state.status == VerifierStatus.connected;
-    final primaryColor = isConnected ? Colors.purple : Colors.blueGrey;
+    final isReconnecting = state.status == VerifierStatus.reconnecting;
+    final primaryColor = isConnected
+        ? Colors.purple
+        : isReconnecting
+            ? Colors.orange
+            : Colors.blueGrey;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -198,7 +208,11 @@ class ClientHomePage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isConnected ? 'Server Terhubung' : 'Server Terputus',
+                  isConnected
+                      ? 'Server Terhubung'
+                      : isReconnecting
+                          ? 'Mencoba Menghubungkan...'
+                          : 'Server Terputus',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
@@ -209,7 +223,9 @@ class ClientHomePage extends StatelessWidget {
                 Text(
                   isConnected
                       ? 'Siap memverifikasi tiket di ${state.serverIp}'
-                      : 'Silakan hubungkan ke server di menu Koneksi.',
+                      : isReconnecting
+                          ? 'Sedang mencoba menghubungkan kembali...'
+                          : 'Silakan hubungkan ke server di menu Koneksi.',
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 16),
@@ -228,7 +244,11 @@ class ClientHomePage extends StatelessWidget {
             ),
           ),
           Icon(
-            isConnected ? Icons.verified_user : Icons.gpp_maybe,
+            isConnected
+                ? Icons.verified_user
+                : isReconnecting
+                    ? Icons.sync
+                    : Icons.gpp_maybe,
             color: Colors.white,
             size: 64,
           ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -9,15 +10,39 @@ class VerifierService {
 
   String? _baseUrl;
   WebSocketChannel? _channel;
+  final StreamController<bool> _connectionController =
+      StreamController<bool>.broadcast();
 
-  bool get isConnected => _baseUrl != null;
+  Stream<bool> get connectionStream => _connectionController.stream;
+
+  bool get isConnected => _channel != null;
 
   void connect(String ip, int port) {
     _baseUrl = 'http://$ip:$port';
     _channel = WebSocketChannel.connect(Uri.parse('ws://$ip:$port/ws'));
+
+    _channel!.stream.listen(
+      (data) {},
+      onError: (error) {
+        _connectionController.add(false);
+      },
+      onDone: () {
+        _connectionController.add(false);
+      },
+    );
   }
 
   Stream<dynamic>? get eventStream => _channel?.stream;
+
+  Future<bool> testConnection() async {
+    if (_baseUrl == null) return false;
+    try {
+      final response = await http.get(Uri.parse('$_baseUrl/health'));
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
 
   Future<List<Map<String, dynamic>>> getQueue() async {
     if (_baseUrl == null) return [];

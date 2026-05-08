@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum VerifierStatus { disconnected, connecting, connected, error }
+enum VerifierStatus { disconnected, connecting, connected, error, reconnecting }
 
 class VerifierState extends Equatable {
   final VerifierStatus status;
