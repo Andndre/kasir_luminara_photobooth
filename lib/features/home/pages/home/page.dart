@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/data/db.dart';
+import 'package:luminara_photobooth/core/preferences/app_state.dart';
 import 'package:intl/intl.dart';
 import 'package:luminara_photobooth/features/server/components/server_monitor.dart';
 import 'package:luminara_photobooth/core/constants/app_mode.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,6 +22,28 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _statisticsFuture = getStatistics();
+
+    // Listen untuk refresh setelah restore
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = context.read<AppState>();
+      appState.addListener(_onAppStateChanged);
+    });
+  }
+
+  @override
+  void dispose() {
+    // Cleanup listener
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AppState>().removeListener(_onAppStateChanged);
+      }
+    });
+    super.dispose();
+  }
+
+  void _onAppStateChanged() {
+    // Refresh statistics saat AppState memberi signal
+    _refreshStatistics();
   }
 
   void _refreshStatistics() {

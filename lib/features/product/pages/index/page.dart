@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/core/preferences/app_state.dart';
 import 'package:luminara_photobooth/model/log.dart';
 import 'package:luminara_photobooth/model/produk.dart';
+import 'package:provider/provider.dart';
 
 part 'sections/item_section.dart';
 
@@ -21,6 +23,28 @@ class _ProductPageState extends State<ProductPage> {
   @override
   void initState() {
     super.initState();
+    _loadProducts();
+
+    // Listen untuk refresh setelah restore
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = context.read<AppState>();
+      appState.addListener(_onAppStateChanged);
+    });
+  }
+
+  @override
+  void dispose() {
+    // Cleanup listener
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AppState>().removeListener(_onAppStateChanged);
+      }
+    });
+    super.dispose();
+  }
+
+  void _onAppStateChanged() {
+    // Refresh products saat AppState memberi signal
     _loadProducts();
   }
 

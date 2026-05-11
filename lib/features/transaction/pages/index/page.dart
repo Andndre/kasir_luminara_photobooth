@@ -5,10 +5,12 @@ import 'package:luminara_photobooth/model/log.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/core/preferences/app_state.dart';
 import 'package:luminara_photobooth/core/services/server_service.dart';
 import 'package:luminara_photobooth/model/transaksi.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:provider/provider.dart';
 
 part 'sections/item_section.dart';
 
@@ -42,12 +44,29 @@ class _TransactionPageState extends State<TransactionPage> {
         _loadTransactions();
       }
     });
+
+    // Listen untuk refresh setelah restore
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = context.read<AppState>();
+      appState.addListener(_onAppStateChanged);
+    });
   }
 
   @override
   void dispose() {
     _eventSubscription?.cancel();
+    // Cleanup listener
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AppState>().removeListener(_onAppStateChanged);
+      }
+    });
     super.dispose();
+  }
+
+  void _onAppStateChanged() {
+    // Refresh transactions saat AppState memberi signal
+    _loadTransactions();
   }
 
   Future<void> _loadTransactions() async {

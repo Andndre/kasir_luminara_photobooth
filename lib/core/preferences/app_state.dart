@@ -34,4 +34,10 @@ class AppState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_themeKey, themeMode == ThemeMode.dark);
   }
+
+  /// Trigger refresh event setelah restore data
+  /// Semua widget yang listen ke ini akan me-refresh data mereka
+  void notifyDataRestored() {
+    notifyListeners();
+  }
 }
