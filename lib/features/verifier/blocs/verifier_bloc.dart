@@ -26,6 +26,14 @@ class DisconnectFromServer extends VerifierEvent {}
 
 class RefreshQueue extends VerifierEvent {}
 
+class VerifyTransaction extends VerifierEvent {
+  final String uuid;
+  const VerifyTransaction(this.uuid);
+
+  @override
+  List<Object> get props => [uuid];
+}
+
 class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
   final VerifierService service = VerifierService();
   StreamSubscription? _eventSubscription;
@@ -35,6 +43,7 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
     on<ConnectToServer>(_onConnect);
     on<DisconnectFromServer>(_onDisconnect);
     on<RefreshQueue>(_onRefreshQueue);
+    on<VerifyTransaction>(_onVerifyTransaction);
   }
 
   Future<void> _onInitialize(
@@ -107,6 +116,44 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
         state.copyWith(
           status: VerifierStatus.error,
           errorMessage: 'Refresh Failed: $e',
+        ),
+      );
+    }
+  }
+
+  Future<void> _onVerifyTransaction(
+    VerifyTransaction event,
+    Emitter<VerifierState> emit,
+  ) async {
+    emit(
+      state.copyWith(verifyingUuid: event.uuid, verifySuccess: false),
+    );
+    try {
+      final result = await service.verifyTicket(event.uuid);
+      if (result['valid'] == true) {
+        emit(
+          state.copyWith(
+            verifyingUuid: null,
+            verifySuccess: true,
+          ),
+        );
+        add(RefreshQueue());
+      } else {
+        emit(
+          state.copyWith(
+            verifyingUuid: null,
+            verifySuccess: false,
+            errorMessage: result['message'] ?? 'Verifikasi gagal',
+          ),
+        );
+      }
+    } catch (e) {
+      Log.insertLog('Verify Transaction Error: $e', isError: true);
+      emit(
+        state.copyWith(
+          verifyingUuid: null,
+          verifySuccess: false,
+          errorMessage: 'Verification Failed: $e',
         ),
       );
     }
