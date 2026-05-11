@@ -235,9 +235,9 @@ class _TransactionPageState extends State<TransactionPage> {
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
                                     maxCrossAxisExtent: 400,
-                                    crossAxisSpacing: 16,
-                                    mainAxisSpacing: 16,
-                                    mainAxisExtent: 130,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                    mainAxisExtent: 110,
                                   ),
                               itemCount: _transactions.length,
                               itemBuilder: (context, index) {
@@ -375,10 +375,12 @@ class _TransactionPageState extends State<TransactionPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
             children: [
               const Icon(Icons.monetization_on_outlined, color: Colors.white70),
-              const SizedBox(width: 8),
               Text(
                 'Total Pemasukan ($_filterLabel)',
                 style: const TextStyle(color: Colors.white70, fontSize: 14),

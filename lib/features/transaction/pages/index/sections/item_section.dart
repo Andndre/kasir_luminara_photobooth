@@ -8,23 +8,22 @@ class _ItemSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ');
+    final formatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
     final dateFormatter = DateFormat('dd/MM/yyyy • HH:mm');
 
     // Generate products summary
-    String productSummary = transaksi.items
+    final String productSummary = transaksi.items
         .map((e) => e.productName)
         .join(', ');
-    if (productSummary.length > 30) {
-      productSummary = '${productSummary.substring(0, 27)}...';
-    }
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Dimens.radius),
       ),
       child: ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
         leading: transaksi.queueNumber != null
             ? CircleAvatar(
                 backgroundColor: AppColors.primary,
@@ -32,14 +31,31 @@ class _ItemSection extends StatelessWidget {
                 child: Text('#${transaksi.queueNumber}'),
               )
             : null,
-        title: Text(transaksi.customerName ?? 'Pelanggan'),
+        title: Text(
+          transaksi.customerName ?? 'Pelanggan',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(productSummary),
-            Text(dateFormatter.format(transaksi.createdAt)),
+            Text(
+              productSummary,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+            ),
+            Text(
+              dateFormatter.format(transaksi.createdAt),
+              style: const TextStyle(fontSize: 11),
+            ),
             const SizedBox(height: 4),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -56,15 +72,16 @@ class _ItemSection extends StatelessWidget {
                     transaksi.status,
                     style: TextStyle(
                       color: _getStatusColor(transaksi.status),
-                      fontSize: 10,
+                      fontSize: 9,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
                 Text(
                   transaksi.paymentMethod,
-                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 9, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -75,6 +92,7 @@ class _ItemSection extends StatelessWidget {
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.blue,
+            fontSize: 14,
           ),
         ),
         onTap: () {
