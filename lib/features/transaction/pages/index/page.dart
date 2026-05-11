@@ -112,64 +112,42 @@ class _TransactionPageState extends State<TransactionPage> {
     _loadTransactions();
   }
 
-  Future<void> _showMonthPicker() async {
+  Future<void> _showDateRangePicker() async {
     try {
-      final months = await Transaksi.getAvailableTransactionMonths();
-
-      if (!mounted) return;
-
-      if (months.isEmpty) {
-        SnackBarHelper.showWarning(context, 'Belum ada data transaksi.');
-        return;
-      }
-
-      await showModalBottomSheet(
+      // Gunakan DatePicker untuk memilih rentang tanggal
+      final DateTimeRange? picked = await showDateRangePicker(
         context: context,
-        builder: (context) {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'Pilih Bulan Laporan',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: months.length,
-                  itemBuilder: (context, index) {
-                    final date = months[index];
-                    final label = DateFormat('MMMM yyyy', 'id_ID').format(date);
-
-                    return ListTile(
-                      title: Text(label, textAlign: TextAlign.center),
-                      onTap: () {
-                        // Create range for full month
-                        final start = DateTime(date.year, date.month, 1);
-                        final end = DateTime(date.year, date.month + 1, 0);
-
-                        _applyFilter(
-                          label,
-                          DateTimeRange(start: start, end: end),
-                        );
-                        Navigator.pop(context);
-                      },
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
+        firstDate: DateTime(2020), // Tanggal awal minimum
+        lastDate: DateTime.now(), // Tanggal akhir maksimum
+        initialDateRange: _selectedDateRange, // Gunakan range saat ini jika ada
+        helpText: 'Pilih Rentang Tanggal',
+        confirmText: 'Pilih',
+        cancelText: 'Batal',
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: Theme.of(context).colorScheme.copyWith(
+                    primary: AppColors.primary,
+                    onPrimary: Colors.white,
+                  ),
+            ),
+            child: child!,
           );
         },
       );
+
+      if (picked != null) {
+        // Format label untuk display
+        final dateFormatter = DateFormat('dd MMM yyyy', 'id_ID');
+        final label =
+            '${dateFormatter.format(picked.start)} - ${dateFormatter.format(picked.end)}';
+
+        _applyFilter(label, picked);
+      }
     } catch (e) {
       if (mounted) {
-        Log.insertLog('Gagal memuat data bulan: $e', isError: true);
-        SnackBarHelper.showError(context, 'Gagal memuat data bulan: $e');
+        Log.insertLog('Gagal membuka date picker: $e', isError: true);
+        SnackBarHelper.showError(context, 'Gagal membuka date picker: $e');
       }
     }
   }
@@ -432,9 +410,9 @@ class _TransactionPageState extends State<TransactionPage> {
           }),
           const SizedBox(width: 8),
           ActionChip(
-            avatar: const Icon(Icons.calendar_view_month, size: 16),
-            label: const Text('Pilih Bulan'),
-            onPressed: _showMonthPicker,
+            avatar: const Icon(Icons.date_range, size: 16),
+            label: const Text('Rentang Tanggal'),
+            onPressed: _showDateRangePicker,
             backgroundColor: theme.cardTheme.color,
             side: BorderSide(color: theme.dividerTheme.color ?? Colors.grey),
           ),
