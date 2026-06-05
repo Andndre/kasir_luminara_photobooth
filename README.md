@@ -10,7 +10,7 @@
 
 **Modern Photobooth Management for Local Networks**
 
-[Features](#-features) • [Installation](#-installation) • [Architecture](#-architecture) • [Usage](#-usage)
+[About](#-about) • [Features](#-features) • [Screenshots](#-screenshots) • [Technical Stack](#-technical-stack) • [Installation](#-installation) • [Configuration](#-configuration)
 
 </div>
 
@@ -57,6 +57,43 @@ The system now supports **Digital Payments (QRIS)** via Midtrans, seamlessly int
 - **Audit Trail**: Tracks Midtrans Order IDs for payment reconciliation.
 - **Isolate-Based Server**: Ensures UI responsiveness on Linux/Windows desktops.
 - **Offline-First**: Operates entirely without internet connection (except for QRIS payment initiation).
+
+---
+
+## 📸 Screenshots
+
+<table width="100%">
+  <tr>
+    <td width="50%" align="center">
+      <b>Dashboard</b><br/>
+      <img src="docs/screenshots/dashboard.jpg" alt="Dashboard" width="100%">
+    </td>
+    <td width="50%" align="center">
+      <b>Transactions</b><br/>
+      <img src="docs/screenshots/transaction.jpg" alt="Transactions" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <b>Products</b><br/>
+      <img src="docs/screenshots/products.jpg" alt="Products" width="100%">
+    </td>
+    <td width="50%" align="center">
+      <b>Discounts</b><br/>
+      <img src="docs/screenshots/discounts.jpg" alt="Discounts" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <b>Scanner (Client Mode)</b><br/>
+      <img src="docs/screenshots/scanner.jpg" alt="Scanner" width="100%">
+    </td>
+    <td width="50%" align="center">
+      <b>Settings</b><br/>
+      <img src="docs/screenshots/settings.jpg" alt="Settings" width="100%">
+    </td>
+  </tr>
+</table>
 
 ---
 
