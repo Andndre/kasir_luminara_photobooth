@@ -14,6 +14,75 @@ import 'package:provider/provider.dart';
 
 part 'sections/item_section.dart';
 
+/// Jepit rentang ke [firstDate]–[lastDate] sebelum diberikan ke
+/// `showDateRangePicker`.
+///
+/// Tanpa ini picker gagal terbuka lewat assertion: filter "Bulan Ini" memakai
+/// akhir bulan yang masih di masa depan, sementara `lastDate` dipatok hari ini.
+@visibleForTesting
+DateTimeRange? clampRange(
+  DateTimeRange? range,
+  DateTime firstDate,
+  DateTime lastDate,
+) {
+  if (range == null) return null;
+
+  var start = range.start.isBefore(firstDate) ? firstDate : range.start;
+  var end = range.end.isAfter(lastDate) ? lastDate : range.end;
+
+  if (start.isAfter(lastDate)) start = lastDate;
+  if (end.isBefore(firstDate)) end = firstDate;
+  if (end.isBefore(start)) end = start;
+
+  return DateTimeRange(start: start, end: end);
+}
+
+/// Item di dalam track filter. Aktif = pil ivory terangkat di atas track.
+class _FilterPill extends StatelessWidget {
+  const _FilterPill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surfaces = context.surfaces;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(
+          horizontal: Dimens.dp16,
+          vertical: Dimens.dp10,
+        ),
+        decoration: BoxDecoration(
+          // JANGAN Colors.transparent: itu HITAM dengan alpha 0, jadi lerp
+          // ivory → transparan melewati hitam semi-transparan dan berkedip
+          // gelap. Fade ke warna yang sama, cuma alpha-nya yang turun.
+          color: theme.colorScheme.surface.withValues(alpha: selected ? 1 : 0),
+          borderRadius: BorderRadius.circular(Dimens.rFull),
+          boxShadow: selected ? surfaces.cardShadow : const [],
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: selected ? theme.colorScheme.primary : surfaces.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class TransactionPage extends StatefulWidget {
   const TransactionPage({super.key});
 
@@ -114,12 +183,15 @@ class _TransactionPageState extends State<TransactionPage> {
 
   Future<void> _showDateRangePicker() async {
     try {
+      final firstDate = DateTime(2020);
+      final lastDate = DateTime.now();
+
       // Gunakan DatePicker untuk memilih rentang tanggal
       final DateTimeRange? picked = await showDateRangePicker(
         context: context,
-        firstDate: DateTime(2020), // Tanggal awal minimum
-        lastDate: DateTime.now(), // Tanggal akhir maksimum
-        initialDateRange: _selectedDateRange, // Gunakan range saat ini jika ada
+        firstDate: firstDate,
+        lastDate: lastDate,
+        initialDateRange: clampRange(_selectedDateRange, firstDate, lastDate),
         helpText: 'Pilih Rentang Tanggal',
         confirmText: 'Pilih',
         cancelText: 'Batal',
@@ -209,13 +281,13 @@ class _TransactionPageState extends State<TransactionPage> {
                       onRefresh: _loadTransactions,
                       child: isDesktop
                           ? GridView.builder(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
-                                    maxCrossAxisExtent: 400,
+                                    maxCrossAxisExtent: 420,
                                     crossAxisSpacing: 12,
-                                    mainAxisSpacing: 12,
-                                    mainAxisExtent: 110,
+                                    mainAxisSpacing: 0,
+                                    mainAxisExtent: 126,
                                   ),
                               itemCount: _transactions.length,
                               itemBuilder: (context, index) {
@@ -228,7 +300,7 @@ class _TransactionPageState extends State<TransactionPage> {
                               },
                             )
                           : ListView.builder(
-                              padding: const EdgeInsets.all(8),
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                               itemCount: _transactions.length,
                               itemBuilder: (context, index) {
                                 final transaction = _transactions[index];
@@ -332,107 +404,75 @@ class _TransactionPageState extends State<TransactionPage> {
       decimalDigits: 0,
     );
 
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.blue[800]!],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(Dimens.radius),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        Dimens.dp16,
+        Dimens.dp8,
+        Dimens.dp16,
+        Dimens.dp16,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              const Icon(Icons.monetization_on_outlined, color: Colors.white70),
-              Text(
-                'Total Pemasukan ($_filterLabel)',
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            currencyFormatter.format(_totalIncome),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+      child: HeroPanel(
+        label: 'Total Pemasukan · $_filterLabel',
+        value: currencyFormatter.format(_totalIncome),
+        meta: '${_transactions.length} transaksi',
       ),
     );
   }
 
   Widget _buildFilterHeader(ThemeData theme) {
+    final now = DateTime.now();
+    final yesterday = now.subtract(const Duration(days: 1));
+
+    final filters = <(String, DateTimeRange?)>[
+      ('Semua Data', null),
+      ('Hari Ini', DateTimeRange(start: now, end: now)),
+      ('Kemarin', DateTimeRange(start: yesterday, end: yesterday)),
+      (
+        'Bulan Ini',
+        DateTimeRange(
+          start: DateTime(now.year, now.month, 1),
+          end: DateTime(now.year, now.month + 1, 0),
+        ),
+      ),
+    ];
+
+    final surfaces = context.surfaces;
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: Dimens.dp16),
       child: Row(
         children: [
-          _buildFilterChip('Semua Data', () {
-            _applyFilter('Semua Data', null);
-          }),
-          const SizedBox(width: 8),
-          _buildFilterChip('Hari Ini', () {
-            final now = DateTime.now();
-            _applyFilter('Hari Ini', DateTimeRange(start: now, end: now));
-          }),
-          const SizedBox(width: 8),
-          _buildFilterChip('Kemarin', () {
-            final yesterday = DateTime.now().subtract(const Duration(days: 1));
-            _applyFilter(
-              'Kemarin',
-              DateTimeRange(start: yesterday, end: yesterday),
-            );
-          }),
-          const SizedBox(width: 8),
-          _buildFilterChip('Bulan Ini', () {
-            final now = DateTime.now();
-            final start = DateTime(now.year, now.month, 1);
-            final end = DateTime(now.year, now.month + 1, 0);
-            _applyFilter('Bulan Ini', DateTimeRange(start: start, end: end));
-          }),
-          const SizedBox(width: 8),
-          ActionChip(
-            avatar: const Icon(Icons.date_range, size: 16),
-            label: const Text('Rentang Tanggal'),
+          // Track tersegmen: satu wadah, item aktif jadi pil terangkat.
+          Container(
+            padding: const EdgeInsets.all(Dimens.dp4),
+            decoration: BoxDecoration(
+              color: surfaces.surfaceAlt,
+              borderRadius: BorderRadius.circular(Dimens.rFull),
+            ),
+            child: Row(
+              children: [
+                for (final (label, range) in filters)
+                  _FilterPill(
+                    label: label,
+                    selected: _filterLabel == label,
+                    onTap: () => _applyFilter(label, range),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: Dimens.dp8),
+          IconButton(
             onPressed: _showDateRangePicker,
-            backgroundColor: theme.cardTheme.color,
-            side: BorderSide(color: theme.dividerTheme.color ?? Colors.grey),
+            tooltip: 'Rentang Tanggal',
+            icon: const Icon(Icons.date_range_rounded, size: 20),
+            style: IconButton.styleFrom(
+              backgroundColor: surfaces.surfaceAlt,
+              minimumSize: const Size(44, 44),
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, VoidCallback onTap) {
-    final isSelected = _filterLabel == label;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => onTap(),
-      selectedColor: AppColors.primary.withValues(alpha: 0.2),
-      labelStyle: TextStyle(
-        color: isSelected ? AppColors.primary : null,
-        fontWeight: isSelected ? FontWeight.bold : null,
-      ),
-      side: isSelected ? const BorderSide(color: AppColors.primary) : null,
     );
   }
 

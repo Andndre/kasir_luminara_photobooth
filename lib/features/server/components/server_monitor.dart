@@ -15,142 +15,74 @@ class ServerMonitor extends StatelessWidget {
     return BlocBuilder<ServerBloc, ServerState>(
       builder: (context, state) {
         final isOnline = state.status == ServerStatus.online;
-        final statusColor = isOnline ? Colors.green : Colors.red;
+        final statusColor = isOnline ? AppTokens.success : AppTokens.danger;
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.cardTheme.color,
-            borderRadius: BorderRadius.circular(Dimens.radius),
-            border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
+        final surfaces = context.surfaces;
+
+        // Online: satu baris ringkas. Offline: melebar + tombol nyalakan.
+        return AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  // Switch to column layout on narrow screens (< 450px)
-                  final isNarrow = constraints.maxWidth < 450;
-
-                  Widget statusWidget = Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isOnline ? Icons.dns : Icons.dns_outlined,
-                        color: statusColor,
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          'Server Status: ${state.status.name.toUpperCase()}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: statusColor,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  );
-
-                  Widget actionButton = isOnline
-                      ? ElevatedButton.icon(
-                          onPressed: () => _showPairingQR(context, state),
-                          icon: const Icon(Icons.qr_code, size: 18),
-                          label: const Text('Pairing QR'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                          ),
-                        )
-                      : ElevatedButton.icon(
-                          onPressed: () {
-                            context.read<ServerBloc>().add(StartServer());
-                          },
-                          icon: const Icon(Icons.play_arrow, size: 18),
-                          label: const Text('Start Server'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                          ),
-                        );
-
-                  if (isNarrow) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        statusWidget,
-                        const SizedBox(height: 12),
-                        actionButton,
-                      ],
-                    );
-                  } else {
-                    return Row(
-                      children: [
-                        Expanded(child: statusWidget),
-                        const SizedBox(width: 8),
-                        actionButton,
-                      ],
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              if (isOnline) ...[
-                _buildInfoRow('IP Address', state.ipAddress ?? '-', theme),
-                _buildInfoRow('Port', '${state.port}', theme),
-                _buildInfoRow(
-                  'Connected Clients',
-                  '${state.connectedClients}',
-                  theme,
-                ),
-              ],
-              if (state.errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    'Error: ${state.errorMessage}',
-                    style: TextStyle(
-                      color: theme.colorScheme.error,
-                      fontSize: 12,
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      shape: BoxShape.circle,
                     ),
                   ),
+                  const SizedBox(width: Dimens.dp8),
+                  Expanded(
+                    child: Text(
+                      isOnline ? 'Aktif' : 'Tidak aktif',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                  if (isOnline)
+                    TextButton.icon(
+                      onPressed: () => _showPairingQR(context, state),
+                      icon: const Icon(Icons.qr_code_rounded, size: 18),
+                      label: const Text('Pairing QR'),
+                    ),
+                ],
+              ),
+              if (isOnline) ...[
+                const SizedBox(height: Dimens.dp4),
+                Text(
+                  '${state.ipAddress ?? '-'} : ${state.port}  ·  '
+                  '${state.connectedClients} perangkat terhubung',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: surfaces.textMuted,
+                  ),
                 ),
+              ] else ...[
+                const SizedBox(height: Dimens.dp12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () =>
+                        context.read<ServerBloc>().add(StartServer()),
+                    icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                    label: const Text('Nyalakan Server'),
+                  ),
+                ),
+              ],
+              if (state.errorMessage != null) ...[
+                const SizedBox(height: Dimens.dp8),
+                Text(
+                  state.errorMessage!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
             ],
           ),
         );
       },
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
-      child: Row(
-        children: [
-          Text(
-            '$label: ',
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: theme.textTheme.bodyMedium?.color,
-            ),
-          ),
-        ],
-      ),
     );
   }
 

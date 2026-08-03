@@ -37,7 +37,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(Dimens.radius),
+                  borderRadius: BorderRadius.circular(Dimens.rLg),
                   boxShadow: [
                     BoxShadow(
                       color: theme.primaryColor.withValues(alpha: 0.3),
@@ -119,7 +119,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: theme.cardTheme.color,
-                  borderRadius: BorderRadius.circular(Dimens.radius),
+                  borderRadius: BorderRadius.circular(Dimens.rLg),
                   border: Border.all(
                     color:
                         theme.dividerTheme.color ??
@@ -179,7 +179,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: theme.cardTheme.color,
-              borderRadius: BorderRadius.circular(Dimens.radius),
+              borderRadius: BorderRadius.circular(Dimens.rLg),
               border: Border.all(
                 color:
                     theme.dividerTheme.color ??

@@ -102,94 +102,56 @@ class _HomePageState extends State<HomePage> {
                         maxWidth: contentWidth,
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.fromLTRB(
+                          Dimens.dp16,
+                          Dimens.dp8,
+                          Dimens.dp16,
+                          Dimens.dp16,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (mode == AppMode.server) ...[
-                              const ServerMonitor(),
-                              const SizedBox(height: 24),
-                            ],
+                            // Uang dulu. Status server teknis turun ke bawah.
+                            HeroPanel(
+                              label: _greeting(),
+                              value: _formatCurrency(
+                                statistics['today_income'] ?? 0,
+                              ),
+                              meta:
+                                  '${statistics['today_transactions'] ?? 0} transaksi · '
+                                  '${DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(DateTime.now())}',
+                              icon: Icons.storefront_rounded,
+                            ),
+                            const SizedBox(height: Dimens.dp24),
 
-                            // Welcome Section
-                            _buildWelcomeSection(),
-                            const SizedBox(height: 24),
-
-                            // Today's Performance
-                            _buildSectionHeader('Kinerja Hari Ini'),
-                            const SizedBox(height: 12),
+                            const EyebrowText('Ringkasan Hari Ini'),
+                            const SizedBox(height: Dimens.dp12),
                             Row(
                               children: [
                                 Expanded(
-                                  child: _buildStatCard(
-                                    title: 'Pemasukan',
-                                    value: _formatCurrency(
-                                      statistics['today_income'] ?? 0,
-                                    ),
-                                    icon: Icons.monetization_on,
-                                    color: Colors.green,
-                                    subtitle:
-                                        '${statistics['today_transactions'] ?? 0} transaksi',
+                                  child: _StatTile(
+                                    label: 'Antrean',
+                                    value: '${statistics['queue_count'] ?? 0}',
+                                    hint: 'menunggu dilayani',
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: Dimens.dp12),
                                 Expanded(
-                                  child: _buildStatCard(
-                                    title: 'Antrean',
-                                    value: '${statistics['queue_count'] ?? 0}',
-                                    icon: Icons.people,
-                                    color: Colors.blue,
-                                    subtitle: 'Status: PAID',
+                                  child: _StatTile(
+                                    label: 'Paket',
+                                    value: '${statistics['total_produk'] ?? 0}',
+                                    hint: 'tersedia',
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 24),
 
-                            // Quick Stats Grid
-                            _buildSectionHeader('Statistik Cepat'),
-                            const SizedBox(height: 12),
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                // Use the constraints from this inner LayoutBuilder (which matches contentWidth)
-                                // If contentWidth is 400, constraints.maxWidth here is ~368 (minus padding)
-                                final int crossAxisCount =
-                                    (constraints.maxWidth / 200).floor().clamp(
-                                      2,
-                                      4,
-                                    );
-                                final double itemWidth =
-                                    (constraints.maxWidth -
-                                        ((crossAxisCount - 1) * 12)) /
-                                    crossAxisCount;
-                                const double targetHeight = 140.0;
-                                final double aspectRatio =
-                                    itemWidth / targetHeight;
-
-                                return GridView.count(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  crossAxisCount: crossAxisCount,
-                                  mainAxisSpacing: 12,
-                                  crossAxisSpacing: 12,
-                                  childAspectRatio: aspectRatio,
-                                  children: [
-                                    _buildQuickStatCard(
-                                      'Total Produk',
-                                      '${statistics['total_produk'] ?? 0}',
-                                      Icons.inventory,
-                                      Colors.orange,
-                                    ),
-                                    _buildQuickStatCard(
-                                      'Mode Aplikasi',
-                                      mode.name.toUpperCase(),
-                                      Icons.settings_applications,
-                                      Colors.teal,
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
+                            if (mode == AppMode.server) ...[
+                              const SizedBox(height: Dimens.dp24),
+                              const EyebrowText('Server'),
+                              const SizedBox(height: Dimens.dp12),
+                              const ServerMonitor(),
+                            ],
                           ],
                         ),
                       ),
@@ -204,198 +166,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildWelcomeSection() {
-    final theme = Theme.of(context);
+
+  String _greeting() {
     final hour = DateTime.now().hour;
-    String greeting = 'Selamat Pagi';
-    if (hour >= 12 && hour < 15) {
-      greeting = 'Selamat Siang';
-    } else if (hour >= 15 && hour < 18) {
-      greeting = 'Selamat Sore';
-    } else if (hour >= 18) {
-      greeting = 'Selamat Malam';
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.primaryColor,
-            theme.primaryColor.withValues(alpha: 0.7),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(Dimens.radius),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  greeting,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  DateFormat(
-                    'EEEE, dd MMMM yyyy',
-                    'id_ID',
-                  ).format(DateTime.now()),
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.store, color: Colors.white, size: 48),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Theme.of(context).textTheme.titleLarge?.color,
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-    String? subtitle,
-    bool isLarge = false,
-  }) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: EdgeInsets.all(isLarge ? 20 : 16),
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(Dimens.radius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: isLarge ? 24 : 20),
-              ),
-              const Spacer(),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: isLarge ? 14 : 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: isLarge ? 24 : 18,
-              fontWeight: FontWeight.bold,
-              color: theme.textTheme.headlineMedium?.color,
-            ),
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(color: Colors.grey[500], fontSize: 12),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color, {
-    VoidCallback? onTap,
-  }) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(Dimens.radius),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.cardTheme.color,
-          borderRadius: BorderRadius.circular(Dimens.radius),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const Spacer(),
-            Text(
-              title,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: theme.textTheme.titleLarge?.color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    if (hour >= 18) return 'Selamat Malam';
+    if (hour >= 15) return 'Selamat Sore';
+    if (hour >= 12) return 'Selamat Siang';
+    return 'Selamat Pagi';
   }
 
   String _formatCurrency(int amount) {
@@ -404,5 +181,50 @@ class _HomePageState extends State<HomePage> {
       symbol: 'Rp ',
       decimalDigits: 0,
     ).format(amount);
+  }
+}
+
+/// Angka besar + label kecil. Tanpa ikon berwarna-warni — angkanya yang
+/// harus terbaca dari jauh, bukan ikonnya.
+class _StatTile extends StatelessWidget {
+  const _StatTile({
+    required this.label,
+    required this.value,
+    required this.hint,
+  });
+
+  final String label;
+  final String value;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surfaces = context.surfaces;
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: Dimens.dp4),
+          Text(
+            value,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            hint,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: surfaces.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

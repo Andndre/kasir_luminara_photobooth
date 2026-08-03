@@ -17,7 +17,7 @@ class _ItemSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Dimens.radius),
+        borderRadius: BorderRadius.circular(Dimens.rLg),
       ),
       child: ListTile(
         title: Text(

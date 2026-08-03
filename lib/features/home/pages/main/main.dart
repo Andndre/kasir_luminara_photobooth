@@ -14,108 +14,89 @@ import 'package:luminara_photobooth/features/verifier/pages/scanner_page.dart';
 
 import 'package:luminara_photobooth/features/verifier/pages/home/page.dart';
 
+/// Satu entri navigasi. Dipakai bersama oleh NavigationRail (desktop) dan
+/// NavigationBar mengambang (mobile) supaya labelnya tidak pernah beda.
+typedef NavEntry = ({IconData icon, String label});
+
 class MainPage extends StatelessWidget {
   const MainPage({super.key});
 
   static const String routeName = '/main';
 
+  static const _serverNav = <NavEntry>[
+    (icon: AppIcons.storefront, label: 'Beranda'),
+    (icon: AppIcons.receipt, label: 'Transaksi'),
+    (icon: AppIcons.product, label: 'Produk'),
+    (icon: AppIcons.settings, label: 'Setelan'),
+  ];
+
+  static const _clientNav = <NavEntry>[
+    (icon: AppIcons.storefront, label: 'Beranda'),
+    (icon: Icons.list_alt_rounded, label: 'Antrean'),
+    (icon: Icons.link_rounded, label: 'Koneksi'),
+    (icon: Icons.settings_rounded, label: 'Setelan'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final mode = context.read<AppMode>();
-    final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 700;
+    final isDesktop = MediaQuery.of(context).size.width > 700;
+    final isServer = mode == AppMode.server;
 
-    final serverPages = <Widget>[
-      const HomePage(),
-      const TransactionPage(),
-      const ProductPage(),
-      const SettingPage(),
-    ];
+    final pages = isServer
+        ? const <Widget>[
+            HomePage(),
+            TransactionPage(),
+            ProductPage(),
+            SettingPage(),
+          ]
+        : const <Widget>[
+            ClientHomePage(),
+            LiveQueuePage(),
+            HandshakePage(),
+            SettingPage(),
+          ];
 
-    final clientPages = <Widget>[
-      const ClientHomePage(),
-      const LiveQueuePage(),
-      const HandshakePage(),
-      const SettingPage(),
-    ];
-
-    final pages = mode == AppMode.server ? serverPages : clientPages;
+    final nav = isServer ? _serverNav : _clientNav;
 
     return BlocBuilder<BottomNavBloc, int>(
       builder: (context, index) {
         final safeIndex = index >= pages.length ? 0 : index;
+        void select(int i) =>
+            context.read<BottomNavBloc>().add(TapBottomNavEvent(i));
 
         return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
+            bottom: false,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (isDesktop)
                   NavigationRail(
-                    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                     selectedIndex: safeIndex,
-                    onDestinationSelected: (i) =>
-                        context.read<BottomNavBloc>().add(TapBottomNavEvent(i)),
+                    onDestinationSelected: select,
                     labelType: NavigationRailLabelType.all,
-                    indicatorColor: AppColors.primary,
-                    selectedIconTheme: const IconThemeData(color: Colors.white),
-                    unselectedIconTheme: const IconThemeData(
-                      color: AppColors.textDisabled,
-                    ),
+                    minWidth: 88,
                     leading: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Image.asset(MainAssets.logo, width: 40),
-                    ),
-                    trailing: Padding(
-                      padding: const EdgeInsets.only(top: 24, bottom: 24),
-                      child: FloatingActionButton(
-                        onPressed: () => _handleFabAction(context, mode),
-                        foregroundColor: Colors.white,
-                        child: Icon(
-                          mode == AppMode.server
-                              ? Icons.point_of_sale
-                              : Icons.qr_code_scanner,
-                        ),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: Dimens.dp24,
                       ),
+                      child: Image.asset(MainAssets.logo, width: 36),
                     ),
-                    destinations: mode == AppMode.server
-                        ? [
-                            const NavigationRailDestination(
-                              icon: Icon(AppIcons.storefront),
-                              label: Text('Beranda'),
-                            ),
-                            const NavigationRailDestination(
-                              icon: Icon(AppIcons.receipt),
-                              label: Text('Transaksi'),
-                            ),
-                            const NavigationRailDestination(
-                              icon: Icon(AppIcons.product),
-                              label: Text('Produk'),
-                            ),
-                            const NavigationRailDestination(
-                              icon: Icon(AppIcons.settings),
-                              label: Text('Setelan'),
-                            ),
-                          ]
-                        : [
-                            const NavigationRailDestination(
-                              icon: Icon(AppIcons.storefront),
-                              label: Text('Beranda'),
-                            ),
-                            const NavigationRailDestination(
-                              icon: Icon(Icons.list_alt),
-                              label: Text('Antrean'),
-                            ),
-                            const NavigationRailDestination(
-                              icon: Icon(Icons.link),
-                              label: Text('Koneksi'),
-                            ),
-                            const NavigationRailDestination(
-                              icon: Icon(Icons.settings),
-                              label: Text('Setelan'),
-                            ),
-                          ],
+                    // Tanpa Expanded: rail dipasang dengan
+                    // CrossAxisAlignment.start (aturan stabilitas #7) sehingga
+                    // tingginya tidak terikat — Expanded di sini akan throw.
+                    trailing: Padding(
+                      padding: const EdgeInsets.only(top: Dimens.dp32),
+                      child: _ActionButton(mode: mode),
+                    ),
+                    destinations: [
+                      for (final e in nav)
+                        NavigationRailDestination(
+                          icon: Icon(e.icon),
+                          label: Text(e.label),
+                        ),
+                    ],
                   ),
                 Expanded(
                   child: Center(
@@ -128,233 +109,205 @@ class MainPage extends StatelessWidget {
               ],
             ),
           ),
+          floatingActionButton: isDesktop ? null : _ActionButton(mode: mode),
           bottomNavigationBar: isDesktop
               ? null
-              : BottomAppBar(
-                  shape: const CircularNotchedRectangle(),
-                  clipBehavior: Clip.antiAlias,
-                  elevation: 2.0,
-                  height: 70,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: mode == AppMode.server
-                          ? [
-                              Flexible(
-                                child: _NavItem(
-                                  icon: AppIcons.storefront,
-                                  label: 'Beranda',
-                                  isActive: safeIndex == 0,
-                                  onTap: () {
-                                    context.read<BottomNavBloc>().add(
-                                      TapBottomNavEvent(0),
-                                    );
-                                  },
-                                ),
-                              ),
-                              Flexible(
-                                child: _NavItem(
-                                  icon: AppIcons.receipt,
-                                  label: 'Transaksi',
-                                  isActive: safeIndex == 1,
-                                  onTap: () {
-                                    context.read<BottomNavBloc>().add(
-                                      TapBottomNavEvent(1),
-                                    );
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 84),
-                              Flexible(
-                                child: _NavItem(
-                                  icon: AppIcons.product,
-                                  label: 'Produk',
-                                  isActive: safeIndex == 2,
-                                  onTap: () {
-                                    context.read<BottomNavBloc>().add(
-                                      TapBottomNavEvent(2),
-                                    );
-                                  },
-                                ),
-                              ),
-                              Flexible(
-                                child: _NavItem(
-                                  icon: AppIcons.settings,
-                                  label: 'Pengaturan',
-                                  isActive: safeIndex == 3,
-                                  onTap: () {
-                                    context.read<BottomNavBloc>().add(
-                                      TapBottomNavEvent(3),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ]
-                          : [
-                              Flexible(
-                                child: _NavItem(
-                                  icon: AppIcons.storefront,
-                                  label: 'Beranda',
-                                  isActive: safeIndex == 0,
-                                  onTap: () {
-                                    context.read<BottomNavBloc>().add(
-                                      TapBottomNavEvent(0),
-                                    );
-                                  },
-                                ),
-                              ),
-                              Flexible(
-                                child: _NavItem(
-                                  icon: Icons.list_alt,
-                                  label: 'Antrean',
-                                  isActive: safeIndex == 1,
-                                  onTap: () {
-                                    context.read<BottomNavBloc>().add(
-                                      TapBottomNavEvent(1),
-                                    );
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 84),
-                              Flexible(
-                                child: _NavItem(
-                                  icon: Icons.link,
-                                  label: 'Koneksi',
-                                  isActive: safeIndex == 2,
-                                  onTap: () {
-                                    context.read<BottomNavBloc>().add(
-                                      TapBottomNavEvent(2),
-                                    );
-                                  },
-                                ),
-                              ),
-                              Flexible(
-                                child: _NavItem(
-                                  icon: Icons.settings,
-                                  label: 'Setelan',
-                                  isActive: safeIndex == 3,
-                                  onTap: () {
-                                    context.read<BottomNavBloc>().add(
-                                      TapBottomNavEvent(3),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                    ),
-                  ),
-                ),
-          floatingActionButtonLocation: isDesktop
-              ? null
-              : FloatingActionButtonLocation.centerDocked,
-          floatingActionButton: isDesktop
-              ? null
-              : FloatingActionButton(
-                  onPressed: () => _handleFabAction(context, mode),
-                  foregroundColor: Colors.white,
-                  tooltip: mode == AppMode.server
-                      ? 'Tambah Transaksi'
-                      : 'Scan Tiket',
-                  elevation: 2.0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: Icon(
-                    mode == AppMode.server
-                        ? Icons.point_of_sale
-                        : Icons.qr_code_scanner,
-                    size: 32,
-                  ),
+              : FloatingNavBar(
+                  entries: nav,
+                  selectedIndex: safeIndex,
+                  onSelect: select,
                 ),
         );
       },
     );
   }
+}
 
-  void _handleFabAction(BuildContext context, AppMode mode) {
-    if (mode == AppMode.server) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const Kasir()),
-      );
-    } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const TicketScannerPage()),
-      );
+/// Bar mengambang: margin dari tepi, sudut besar, item aktif jadi pill.
+/// Menggantikan BottomAppBar bertakik + label 8px yang lama.
+class FloatingNavBar extends StatelessWidget {
+  const FloatingNavBar({
+    super.key,
+    required this.entries,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+
+  final List<NavEntry> entries;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+
+  /// Jarak bar mengambang ke tepi bawah layar.
+  ///
+  /// SafeArea polos memberi inset penuh — di HP gesture hasilnya menggantung
+  /// terlalu tinggi. Aturannya:
+  ///   0      : tanpa system nav (desktop/tablet)      → 12
+  ///   ≤ 34   : gesture pill (Android 24, iPhone 34)   → 45%-nya, minimum 10
+  ///   > 34   : tombol navigasi 3-tombol (± 48)        → penuh + 4, jangan tertimpa
+  @visibleForTesting
+  static double bottomGapFor(double inset) {
+    if (inset <= 0) return Dimens.dp12;
+    if (inset <= 34) {
+      final half = inset * 0.45;
+      return half < 10 ? 10 : half;
     }
+    return inset + Dimens.dp4;
+  }
+
+  /// Tinggi pil item aktif. Radius bar = padding + setengah tinggi pil,
+  /// jadi sudut pil dan sudut bar benar-benar sejajar (§4 DESIGN.md).
+  static const double _pillHeight = 44;
+  static const double _barPadding = Dimens.dp8;
+  static double get _barRadius => _barPadding + _pillHeight / 2; // 30
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = context.surfaces;
+    final bottomGap = bottomGapFor(MediaQuery.viewPaddingOf(context).bottom);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(Dimens.dp16, 0, Dimens.dp16, bottomGap),
+      child: Container(
+        padding: const EdgeInsets.all(_barPadding),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(_barRadius),
+          border: Border.all(color: surfaces.border),
+          boxShadow: surfaces.cardShadow,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            for (var i = 0; i < entries.length; i++)
+              _NavPill(
+                entry: entries[i],
+                selected: i == selectedIndex,
+                height: _pillHeight,
+                onTap: () => onSelect(i),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
-// Custom Navigation Item Component with Advanced Animations
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.isActive,
+/// Item nav. Aktif = pil dengan label DI SAMPING ikon (bukan di bawahnya),
+/// non-aktif = ikon saja.
+class _NavPill extends StatelessWidget {
+  const _NavPill({
+    required this.entry,
+    required this.selected,
+    required this.height,
     required this.onTap,
   });
 
-  final IconData icon;
-  final String label;
-  final bool isActive;
+  final NavEntry entry;
+  final bool selected;
+  final double height;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(Dimens.radius),
-      child: Container(
-        constraints: const BoxConstraints(minWidth: 48),
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 1.0, end: isActive ? 1.1 : 1.0),
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.elasticOut,
-              builder: (context, scale, child) {
-                return Transform.scale(
-                  scale: scale,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: isActive ? AppColors.primary : Colors.transparent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      icon,
-                      color: isActive ? Colors.white : AppColors.textDisabled,
-                      size: isActive ? 18 : 22,
+    final theme = Theme.of(context);
+    final surfaces = context.surfaces;
+
+    return Semantics(
+      selected: selected,
+      button: true,
+      label: entry.label,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          height: height,
+          padding: EdgeInsets.symmetric(horizontal: selected ? 16 : 14),
+          decoration: BoxDecoration(
+            // Fade lewat alpha warna yang sama. Colors.transparent = hitam
+            // alpha 0, jadi lerp-nya berkedip gelap di tengah animasi.
+            color: surfaces.brandTint.withValues(alpha: selected ? 1 : 0),
+            borderRadius: BorderRadius.circular(height / 2),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                entry.icon,
+                size: 22,
+                color: selected ? theme.colorScheme.primary : surfaces.textMuted,
+              ),
+              // Label ikut menyusut jadi 0 saat tidak aktif — tanpa ini,
+              // lebar bar melompat waktu pindah tab.
+              ClipRect(
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.centerLeft,
+                  widthFactor: selected ? 1 : 0,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: Dimens.dp8),
+                    child: Text(
+                      entry.label,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
                   ),
-                );
-              },
-            ),
-            AnimatedCrossFade(
-              firstChild: const SizedBox.shrink(),
-              secondChild: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 8,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
               ),
-              crossFadeState: isActive
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              duration: const Duration(milliseconds: 300),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Aksi utama per mode: buka Kasir (server) atau Scan Tiket (verifier).
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({required this.mode});
+
+  final AppMode mode;
+
+  @override
+  Widget build(BuildContext context) {
+    final isServer = mode == AppMode.server;
+
+    return Tooltip(
+      message: isServer ? 'Transaksi Baru' : 'Scan Tiket',
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          gradient: AppTokens.heroGradient(Theme.of(context).brightness),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppTokens.brand600.withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
           ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => isServer ? const Kasir() : const TicketScannerPage(),
+              ),
+            ),
+            child: Icon(
+              isServer ? Icons.point_of_sale_rounded : Icons.qr_code_scanner_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
         ),
       ),
     );

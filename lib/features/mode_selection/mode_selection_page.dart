@@ -72,11 +72,11 @@ class _ModeCard extends StatelessWidget {
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Dimens.radius),
+        borderRadius: BorderRadius.circular(Dimens.rLg),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(Dimens.radius),
+        borderRadius: BorderRadius.circular(Dimens.rLg),
         child: Container(
           width: 400,
           padding: const EdgeInsets.all(24),

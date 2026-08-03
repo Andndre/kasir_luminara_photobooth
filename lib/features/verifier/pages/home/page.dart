@@ -59,8 +59,8 @@ class ClientHomePage extends StatelessWidget {
                       final items = [
                         {
                           'title': 'Scan Tiket',
-                          'icon': Icons.qr_code_scanner,
-                          'color': Colors.blue,
+                          'icon': Icons.qr_code_scanner_rounded,
+                          'color': theme.colorScheme.primary,
                           'onTap': () {
                             Navigator.push(
                               context,
@@ -72,8 +72,8 @@ class ClientHomePage extends StatelessWidget {
                         },
                         {
                           'title': 'Antrean Live',
-                          'icon': Icons.list_alt,
-                          'color': Colors.orange,
+                          'icon': Icons.list_alt_rounded,
+                          'color': AppTokens.accent600,
                           'onTap': () => context.read<BottomNavBloc>().add(
                             TapBottomNavEvent(1),
                           ),
@@ -82,16 +82,20 @@ class ClientHomePage extends StatelessWidget {
                           'title': isConnected
                               ? 'Koneksi Aktif'
                               : 'Status Koneksi',
-                          'icon': isConnected ? Icons.wifi : Icons.wifi_off,
-                          'color': isConnected ? Colors.green : Colors.red,
+                          'icon': isConnected
+                              ? Icons.wifi_rounded
+                              : Icons.wifi_off_rounded,
+                          'color': isConnected
+                              ? AppTokens.success
+                              : AppTokens.danger,
                           'onTap': () => context.read<BottomNavBloc>().add(
                             TapBottomNavEvent(2),
                           ),
                         },
                         {
                           'title': 'Pengaturan',
-                          'icon': Icons.settings,
-                          'color': Colors.grey,
+                          'icon': Icons.settings_rounded,
+                          'color': context.surfaces.textSecondary,
                           'onTap': () => context.read<BottomNavBloc>().add(
                             TapBottomNavEvent(3),
                           ),
@@ -124,116 +128,74 @@ class ClientHomePage extends StatelessWidget {
 
     switch (state.status) {
       case VerifierStatus.connected:
-        color = Colors.green;
+        color = AppTokens.success;
         label = 'Online';
         icon = Icons.check_circle;
         break;
       case VerifierStatus.connecting:
-        color = Colors.orange;
-        label = 'Connecting';
+        color = AppTokens.warning;
+        label = 'Menghubungkan';
         icon = Icons.sync;
         break;
       case VerifierStatus.error:
-        color = Colors.red;
+        color = AppTokens.danger;
         label = 'Error';
         icon = Icons.error;
         break;
       case VerifierStatus.disconnected:
-        color = Colors.grey;
+        color = AppTokens.wine800;
         label = 'Offline';
         icon = Icons.cloud_off;
         break;
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+    return Builder(
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Dimens.dp12,
+          vertical: 6,
+        ),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(Dimens.rFull),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(color: color),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildWelcomeSection(BuildContext context, VerifierState state) {
     final isConnected = state.status == VerifierStatus.connected;
-    final primaryColor = isConnected ? Colors.purple : Colors.blueGrey;
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [primaryColor.shade600, primaryColor.shade400],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(Dimens.radius),
-        boxShadow: [
-          BoxShadow(
-            color: primaryColor.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isConnected ? 'Server Terhubung' : 'Server Terputus',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  isConnected
-                      ? 'Siap memverifikasi tiket di ${state.serverIp}'
-                      : 'Silakan hubungkan ke server di menu Koneksi.',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  DateFormat(
-                    'EEEE, dd MMMM yyyy',
-                    'id_ID',
-                  ).format(DateTime.now()),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+    return HeroPanel(
+      label: isConnected ? 'Server Terhubung' : 'Server Terputus',
+      value: isConnected ? (state.serverIp ?? '-') : 'Belum terhubung',
+      meta: isConnected
+          ? 'Siap memverifikasi tiket · ${DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(DateTime.now())}'
+          : 'Hubungkan lewat menu Koneksi.',
+      icon: isConnected
+          ? Icons.verified_user_rounded
+          : Icons.gpp_maybe_rounded,
+      // Terputus bukan kondisi brand — pakai tinta netral, bukan wine.
+      gradient: isConnected
+          ? null
+          : const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF3D332F), Color(0xFF1A1412)],
             ),
-          ),
-          Icon(
-            isConnected ? Icons.verified_user : Icons.gpp_maybe,
-            color: Colors.white,
-            size: 64,
-          ),
-        ],
-      ),
     );
   }
 
@@ -244,50 +206,30 @@ class ClientHomePage extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(Dimens.radius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return AppCard(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 26),
+          ),
+          const SizedBox(height: Dimens.dp12),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(Dimens.radius),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: color, size: 32),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: theme.textTheme.titleMedium?.color,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
