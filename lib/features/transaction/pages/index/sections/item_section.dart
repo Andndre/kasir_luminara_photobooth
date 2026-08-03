@@ -16,103 +16,94 @@ class _ItemSection extends StatelessWidget {
         .map((e) => e.productName)
         .join(', ');
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Dimens.radius),
-      ),
-      child: ListTile(
-        dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-        leading: transaksi.queueNumber != null
-            ? CircleAvatar(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                child: Text('#${transaksi.queueNumber}'),
-              )
-            : null,
-        title: Text(
-          transaksi.customerName ?? 'Pelanggan',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Column(
+    final theme = Theme.of(context);
+    final surfaces = context.surfaces;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Dimens.dp12),
+      child: AppCard(
+        onTap: () => _showTransactionDetail(context),
+        padding: const EdgeInsets.all(Dimens.dp12),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              productSummary,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-            ),
-            Text(
-              dateFormatter.format(transaksi.createdAt),
-              style: const TextStyle(fontSize: 11),
-            ),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(
-                      transaksi.status,
-                    ).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    transaksi.status,
-                    style: TextStyle(
-                      color: _getStatusColor(transaksi.status),
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                    ),
+            if (transaksi.queueNumber != null) ...[
+              // Lingkaran: tidak menempel di sudut kartu, jadi tidak perlu
+              // radius konsentris — dan tint lebih menyatu daripada blok pekat.
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: surfaces.brandTint,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '${transaksi.queueNumber}',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
-                Text(
-                  transaksi.paymentMethod,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 9, color: Colors.grey[600]),
-                ),
-              ],
+              ),
+              const SizedBox(width: Dimens.dp12),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          transaksi.customerName ?? 'Pelanggan',
+                          style: theme.textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: Dimens.dp8),
+                      Text(
+                        formatter.format(transaksi.totalPrice),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    productSummary,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: Dimens.dp8),
+                  Row(
+                    children: [
+                      StatusBadge(transaksi.status),
+                      const SizedBox(width: Dimens.dp8),
+                      Expanded(
+                        child: Text(
+                          '${transaksi.paymentMethod} · ${dateFormatter.format(transaksi.createdAt)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: surfaces.textMuted,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-        trailing: Text(
-          formatter.format(transaksi.totalPrice),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.blue,
-            fontSize: 14,
-          ),
-        ),
-        onTap: () {
-          _showTransactionDetail(context);
-        },
       ),
     );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'PAID':
-        return Colors.green;
-      case 'COMPLETED':
-        return Colors.blue;
-      case 'CANCELLED':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
   }
 
   void _showTransactionDetail(BuildContext context) {

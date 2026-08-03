@@ -115,7 +115,7 @@ class _KasirState extends State<Kasir> {
                                   elevation: 4,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(
-                                      Dimens.radius,
+                                      Dimens.rLg,
                                     ),
                                   ),
                                   child: Padding(
@@ -166,9 +166,13 @@ class _KasirState extends State<Kasir> {
                     ? theme.primaryColor.withValues(alpha: 0.1)
                     : theme.cardTheme.color,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimens.radius),
+                  borderRadius: BorderRadius.circular(Dimens.rLg),
                   side: BorderSide(
-                    color: isSelected ? theme.primaryColor : Colors.transparent,
+                    // Alpha, bukan Colors.transparent — Material menganimasikan
+                    // shape, dan lerp ke hitam-alpha-0 berkedip gelap.
+                    color: theme.primaryColor.withValues(
+                      alpha: isSelected ? 1 : 0,
+                    ),
                     width: 2,
                   ),
                 ),
@@ -358,7 +362,7 @@ class _KasirState extends State<Kasir> {
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimens.radius),
+                  borderRadius: BorderRadius.circular(Dimens.rLg),
                 ),
               ),
               child: Text(
