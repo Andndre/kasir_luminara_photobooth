@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:luminara_photobooth/core/helpers/snackbar_helper.dart';
+import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/model/log.dart';
 
 class LogsPage extends StatefulWidget {
@@ -58,7 +58,11 @@ class _LogsPageState extends State<LogsPage> {
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _logs.isEmpty
-                  ? const Center(child: Text('Tidak ada log.'))
+                  ? const EmptyState(
+                      icon: Icons.article_outlined,
+                      title: 'Tidak ada log',
+                      message: 'Kejadian dan error aplikasi akan tercatat di sini.',
+                    )
                   : RefreshIndicator(
                       onRefresh: _loadLogs,
                       child: isDesktop
@@ -97,38 +101,43 @@ class _LogsPageState extends State<LogsPage> {
 
   Widget _ItemSection(Log log) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: 0.1,
-            ), // Note: pastikan flutter terbaru utk withValues
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    final surfaces = context.surfaces;
+
+    return AppCard(
+      padding: const EdgeInsets.all(Dimens.dp12),
+      // Error ditandai lewat latar tint, bukan teks merah — teks merah di
+      // atas krem kontrasnya lemah dan sulit dibaca.
+      color: log.isError ? surfaces.dangerTint : null,
+      borderColor: log.isError ? Colors.transparent : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize:
-            MainAxisSize.min, // Tambahkan ini agar Column se-efisien mungkin
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            DateFormat('yyyy-MM-dd HH:mm:ss').format(log.timestamp),
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-            ),
+          Row(
+            children: [
+              if (log.isError) ...[
+                Icon(
+                  Icons.error_outline,
+                  size: 14,
+                  color: surfaces.onDangerTint,
+                ),
+                const SizedBox(width: Dimens.dp4),
+              ],
+              Text(
+                DateFormat('dd MMM yyyy · HH:mm:ss').format(log.timestamp),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: log.isError
+                      ? surfaces.onDangerTint
+                      : surfaces.textMuted,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: Dimens.dp8),
           Text(
             log.message,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: log.isError ? Colors.red : null,
+              color: log.isError ? surfaces.onDangerTint : null,
             ),
           ),
         ],

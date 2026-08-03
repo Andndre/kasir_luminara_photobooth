@@ -1,5 +1,32 @@
 part of '../page.dart';
 
+/// Baris label–nilai di dialog detail. Label redup, nilai kontras penuh.
+class _DetailRow extends StatelessWidget {
+  const _DetailRow(this.label, this.value);
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Dimens.dp4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 92,
+            child: Text(label, style: theme.textTheme.bodyMedium),
+          ),
+          Expanded(child: Text(value, style: theme.textTheme.bodyLarge)),
+        ],
+      ),
+    );
+  }
+}
+
 class _ItemSection extends StatelessWidget {
   final Transaksi transaksi;
   final VoidCallback onDelete;
@@ -119,34 +146,31 @@ class _ItemSection extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (transaksi.queueNumber != null)
+              if (transaksi.queueNumber != null) ...[
+                const EyebrowText('Nomor Antrean'),
                 Text(
-                  'Antrian: #${transaksi.queueNumber}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.blue,
+                  '${transaksi.queueNumber}',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
-              Text('Kode: ${transaksi.uuid}'),
+                const SizedBox(height: Dimens.dp12),
+              ],
+              _DetailRow('Kode', transaksi.uuid),
               if (transaksi.midtransOrderId != null)
-                Text(
-                  'Order ID: ${transaksi.midtransOrderId}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              Text('Nama: ${transaksi.customerName}'),
-              Text('Metode: ${transaksi.paymentMethod}'),
-              Text('Status: ${transaksi.status}'),
-              Text('Dibuat: ${dateFormatter.format(transaksi.createdAt)}'),
+                _DetailRow('Order ID', transaksi.midtransOrderId!),
+              _DetailRow('Nama', transaksi.customerName ?? 'Pelanggan'),
+              _DetailRow('Metode', transaksi.paymentMethod),
+              _DetailRow('Status', transaksi.status),
+              _DetailRow('Dibuat', dateFormatter.format(transaksi.createdAt)),
               if (transaksi.redeemedAt != null)
-                Text(
-                  'Digunakan: ${dateFormatter.format(transaksi.redeemedAt!)}',
+                _DetailRow(
+                  'Digunakan',
+                  dateFormatter.format(transaksi.redeemedAt!),
                 ),
               const Divider(height: 24),
-              const Text(
-                'Item Pesanan:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              const EyebrowText('Item Pesanan'),
               const SizedBox(height: 8),
               ...transaksi.items.map(
                 (item) => Padding(
@@ -174,7 +198,7 @@ class _ItemSection extends StatelessWidget {
                     formatter.format(transaksi.totalPrice),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: AppTokens.brand600,
                     ),
                   ),
                 ],
@@ -220,7 +244,7 @@ class _ItemSection extends StatelessWidget {
               Navigator.pop(context);
               onDelete();
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppTokens.danger),
             child: const Text('Hapus'),
           ),
           TextButton(

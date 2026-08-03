@@ -260,22 +260,10 @@ class _TransactionPageState extends State<TransactionPage> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _transactions.isEmpty
-                  ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.receipt_long_outlined,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Belum ada transaksi',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
-                        ],
-                      ),
+                  ? EmptyState(
+                      icon: Icons.receipt_long_outlined,
+                      title: 'Belum ada transaksi',
+                      message: 'Tidak ada penjualan pada periode $_filterLabel.',
                     )
                   : RefreshIndicator(
                       onRefresh: _loadTransactions,
@@ -489,7 +477,7 @@ class _TransactionPageState extends State<TransactionPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTokens.danger),
             child: const Text('Hapus'),
           ),
         ],

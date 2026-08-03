@@ -18,29 +18,36 @@ class ModeSelectionPage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const EyebrowText('Luminara Photobooth'),
+                const SizedBox(height: Dimens.dp8),
                 Text(
-                  'Select Mode',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.headlineMedium?.color,
-                  ),
+                  'Pilih Mode Perangkat',
+                  style: Theme.of(context).textTheme.headlineLarge,
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: Dimens.dp8),
+                Text(
+                  'Bisa diganti kapan saja lewat menu Setelan.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: Dimens.dp32),
                 _ModeCard(
-                  title: 'SERVER (KASIR)',
-                  icon: Icons.computer,
+                  title: 'Kasir',
+                  icon: Icons.point_of_sale_rounded,
                   description:
-                      'Manage transactions, print receipts, and host local server.',
+                      'Menjual paket, mencetak tiket, dan menjalankan '
+                      'server di jaringan lokal.',
                   onTap: () {
                     context.read<AppState>().setMode(AppMode.server);
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: Dimens.dp16),
                 _ModeCard(
-                  title: 'CLIENT (VERIFIER)',
-                  icon: Icons.qr_code_scanner,
-                  description: 'Scan tickets and verify entry.',
+                  title: 'Verifier',
+                  icon: Icons.qr_code_scanner_rounded,
+                  description:
+                      'Memindai tiket pelanggan di booth dan melihat '
+                      'antrean secara langsung.',
                   onTap: () {
                     context.read<AppState>().setMode(AppMode.client);
                   },
@@ -69,36 +76,43 @@ class _ModeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Dimens.rLg),
-      ),
-      child: InkWell(
+    final theme = Theme.of(context);
+    final surfaces = context.surfaces;
+
+    return SizedBox(
+      width: 400,
+      child: AppCard(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(Dimens.rLg),
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Icon(icon, size: 48, color: AppColors.primary),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+        padding: const EdgeInsets.all(Dimens.dp20),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: surfaces.brandTint,
+                shape: BoxShape.circle,
               ),
-              const SizedBox(height: 8),
-              Text(
-                description,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
+              child: Icon(icon, size: 26, color: theme.colorScheme.primary),
+            ),
+            const SizedBox(width: Dimens.dp16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.titleLarge),
+                  const SizedBox(height: Dimens.dp4),
+                  Text(description, style: theme.textTheme.bodyMedium),
+                ],
               ),
-            ],
-          ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: surfaces.textMuted,
+              size: Dimens.dp20,
+            ),
+          ],
         ),
       ),
     );

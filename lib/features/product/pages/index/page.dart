@@ -93,33 +93,24 @@ class _ProductPageState extends State<ProductPage> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Paket Photobooth'),
-        backgroundColor: theme.appBarTheme.backgroundColor,
-        elevation: 0,
-        foregroundColor: theme.appBarTheme.foregroundColor,
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.add_circle,
-              color: theme.brightness == Brightness.dark
-                  ? Colors.white
-                  : AppColors.primary,
-              size: 28,
-            ),
-            onPressed: () async {
-              _showAddProductDialog();
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
+      appBar: AppBar(title: const Text('Paket Photobooth')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddProductDialog,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Tambah Paket'),
+        shape: const StadiumBorder(),
       ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.fromLTRB(
+                Dimens.dp20,
+                Dimens.dp8,
+                Dimens.dp20,
+                Dimens.dp12,
+              ),
               child: SearchTextInput(
                 hintText: 'Cari paket...',
                 onChanged: _searchProducts,
@@ -129,18 +120,37 @@ class _ProductPageState extends State<ProductPage> {
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : filteredProducts.isEmpty
-                  ? const Center(child: Text('Tidak ada paket.'))
+                  ? EmptyState(
+                      icon: searchQuery.isNotEmpty
+                          ? Icons.search_off_rounded
+                          : Icons.inventory_2_outlined,
+                      title: searchQuery.isNotEmpty
+                          ? 'Paket tidak ditemukan'
+                          : 'Belum ada paket',
+                      message: searchQuery.isNotEmpty
+                          ? 'Coba kata kunci lain.'
+                          : 'Tambahkan paket photobooth supaya bisa dijual di kasir.',
+                      actionLabel: searchQuery.isEmpty ? 'Tambah Paket' : null,
+                      onAction: searchQuery.isEmpty
+                          ? _showAddProductDialog
+                          : null,
+                    )
                   : RefreshIndicator(
                       onRefresh: _loadProducts,
                       child: isDesktop
                           ? GridView.builder(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.fromLTRB(
+                                Dimens.dp20,
+                                0,
+                                Dimens.dp20,
+                                96, // ruang untuk FAB extended
+                              ),
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
-                                    maxCrossAxisExtent: 400,
-                                    crossAxisSpacing: 16,
-                                    mainAxisSpacing: 16,
-                                    mainAxisExtent: 130,
+                                    maxCrossAxisExtent: 420,
+                                    crossAxisSpacing: Dimens.dp12,
+                                    mainAxisSpacing: Dimens.dp12,
+                                    mainAxisExtent: 76,
                                   ),
                               itemCount: filteredProducts.length,
                               itemBuilder: (context, index) {
@@ -154,7 +164,12 @@ class _ProductPageState extends State<ProductPage> {
                               },
                             )
                           : ListView.separated(
-                              padding: const EdgeInsets.all(16.0),
+                              padding: const EdgeInsets.fromLTRB(
+                                Dimens.dp20,
+                                0,
+                                Dimens.dp20,
+                                96,
+                              ),
                               itemBuilder: (context, index) {
                                 final product = filteredProducts[index];
                                 return _ItemSection(
@@ -165,7 +180,7 @@ class _ProductPageState extends State<ProductPage> {
                                 );
                               },
                               separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: Dimens.dp12),
                               itemCount: filteredProducts.length,
                             ),
                     ),
@@ -301,7 +316,7 @@ class _ProductPageState extends State<ProductPage> {
               navigator.pop();
               _loadProducts();
             },
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            child: const Text('Hapus', style: TextStyle(color: AppTokens.danger)),
           ),
         ],
       ),

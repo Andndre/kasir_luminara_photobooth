@@ -19,20 +19,8 @@ class SettingPage extends StatefulWidget {
 }
 
 class _SettingPageState extends State<SettingPage> {
-  bool _isMidtransEnabled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
-    final enabled = await SettingsPreferences.isMidtransEnabled();
-    setState(() {
-      _isMidtransEnabled = enabled;
-    });
-  }
+  // Status Midtrans dipegang oleh _MidtransMenu supaya toggle-nya tidak
+  // merebuild seluruh halaman setelan.
 
   void _showExitDialog(BuildContext context) {
     showDialog(
@@ -53,7 +41,7 @@ class _SettingPageState extends State<SettingPage> {
                 Navigator.of(context).pop();
                 SystemNavigator.pop();
               },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              style: TextButton.styleFrom(foregroundColor: AppTokens.danger),
               child: const Text('Keluar'),
             ),
           ],
@@ -67,72 +55,34 @@ class _SettingPageState extends State<SettingPage> {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Lainnya'),
-        backgroundColor: theme.appBarTheme.backgroundColor,
-        foregroundColor: theme.appBarTheme.foregroundColor,
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Setelan')),
       body: SafeArea(
         child: SingleChildScrollView(
           primary: true,
+          padding: const EdgeInsets.fromLTRB(
+            Dimens.dp20,
+            Dimens.dp8,
+            Dimens.dp20,
+            Dimens.dp32,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const _ProfileSection(),
-              const SizedBox(height: Dimens.dp8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(Dimens.dp16),
-                    child: RegularText.semiBold('Pengaturan Perangkat'),
-                  ),
-                  ItemMenuSetting(
-                    title: 'Printer',
-                    icon: Icons.print,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PrinterPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  ItemMenuSetting(
-                    title: 'Metode Pembayaran',
-                    icon: Icons.payment,
-                    trailing: Switch(
-                      value: _isMidtransEnabled,
-                      onChanged: (value) async {
-                        await SettingsPreferences.setMidtransEnabled(value);
-                        setState(() {
-                          _isMidtransEnabled = value;
-                        });
-                      },
-                    ),
-                    onTap: () async {
-                      final newValue = !_isMidtransEnabled;
-                      await SettingsPreferences.setMidtransEnabled(newValue);
-                      setState(() {
-                        _isMidtransEnabled = newValue;
-                      });
-                    },
-                  ),
-                ],
+              const SizedBox(height: Dimens.dp24),
+
+              const _SettingGroup(
+                title: 'Perangkat',
+                children: [_PrinterMenu(), _MidtransMenu()],
               ),
-              const SizedBox(height: Dimens.dp8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: Dimens.dp20),
+
+              _SettingGroup(
+                title: 'Tampilan',
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(Dimens.dp16),
-                    child: RegularText.semiBold('Tampilan'),
-                  ),
                   ItemMenuSetting(
                     title: 'Mode Gelap',
-                    icon: Icons.dark_mode,
+                    icon: Icons.dark_mode_outlined,
                     trailing: Switch(
                       value:
                           context.watch<AppState>().themeMode == ThemeMode.dark,
@@ -153,70 +103,144 @@ class _SettingPageState extends State<SettingPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: Dimens.dp8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: Dimens.dp20),
+
+              _SettingGroup(
+                title: 'Data & Info',
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(Dimens.dp16),
-                    child: RegularText.semiBold('Info Lainnya'),
-                  ),
-                  ItemMenuSetting(
-                    title: 'Kebijakan Privasi',
-                    icon: AppIcons.verified,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PrivacyPolicyPage(),
-                        ),
-                      );
-                    },
-                  ),
                   ItemMenuSetting(
                     title: 'Backup & Restore',
-                    icon: Icons.backup,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const BackupPage(),
-                        ),
-                      );
-                    },
+                    icon: Icons.backup_outlined,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const BackupPage()),
+                    ),
                   ),
                   ItemMenuSetting(
                     title: 'Logs',
                     icon: AppIcons.logs,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LogsPage(),
-                        ),
-                      );
-                    },
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LogsPage()),
+                    ),
+                  ),
+                  ItemMenuSetting(
+                    title: 'Kebijakan Privasi',
+                    icon: AppIcons.verified,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PrivacyPolicyPage(),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              Padding(
-                padding: const EdgeInsets.all(Dimens.dp16),
-                child: OutlinedButton(
-                  key: ValueKey('exit_button_${theme.brightness.name}'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.colorScheme.error,
-                    side: BorderSide(color: theme.colorScheme.error),
-                  ),
-                  onPressed: () {
-                    _showExitDialog(context);
-                  },
-                  child: const Text('Keluar Aplikasi'),
+              const SizedBox(height: Dimens.dp24),
+
+              TextButton(
+                key: ValueKey('exit_button_${theme.brightness.name}'),
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
                 ),
+                onPressed: () => _showExitDialog(context),
+                child: const Text('Keluar Aplikasi'),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Grup setelan: judul eyebrow di LUAR kartu, isinya di dalam satu kartu
+/// dengan pemisah tipis. Menggantikan daftar telanjang tanpa batas grup.
+class _SettingGroup extends StatelessWidget {
+  const _SettingGroup({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = context.surfaces;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(
+            left: Dimens.dp4,
+            bottom: Dimens.dp8,
+          ),
+          child: EyebrowText(title),
+        ),
+        AppCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              for (var i = 0; i < children.length; i++) ...[
+                if (i > 0)
+                  Divider(height: 1, indent: 52, color: surfaces.border),
+                children[i],
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Dipisah jadi widget sendiri supaya [_SettingGroup] bisa const.
+class _PrinterMenu extends StatelessWidget {
+  const _PrinterMenu();
+
+  @override
+  Widget build(BuildContext context) {
+    return ItemMenuSetting(
+      title: 'Printer',
+      icon: Icons.print_outlined,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PrinterPage()),
+      ),
+    );
+  }
+}
+
+class _MidtransMenu extends StatefulWidget {
+  const _MidtransMenu();
+
+  @override
+  State<_MidtransMenu> createState() => _MidtransMenuState();
+}
+
+class _MidtransMenuState extends State<_MidtransMenu> {
+  bool _enabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    SettingsPreferences.isMidtransEnabled().then((v) {
+      if (mounted) setState(() => _enabled = v);
+    });
+  }
+
+  Future<void> _toggle(bool value) async {
+    await SettingsPreferences.setMidtransEnabled(value);
+    if (mounted) setState(() => _enabled = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ItemMenuSetting(
+      title: 'Pembayaran Online',
+      subtitle: _enabled ? 'Midtrans aktif' : 'Hanya tunai & transfer manual',
+      icon: Icons.payment_outlined,
+      trailing: Switch(value: _enabled, onChanged: _toggle),
+      onTap: () => _toggle(!_enabled),
     );
   }
 }

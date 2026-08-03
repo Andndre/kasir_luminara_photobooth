@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:luminara_photobooth/core/helpers/printer.dart';
-import 'package:luminara_photobooth/core/helpers/snackbar_helper.dart';
+import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/preferences/printer_preferences.dart';
 import 'package:luminara_photobooth/model/log.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
@@ -243,151 +242,204 @@ class _PrinterPageState extends State<PrinterPage> {
           ],
         ),
         body: SafeArea(
-          child: Column(
-            children: [
-              // Connection Status
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                color: _isConnected ? Colors.green[100] : Colors.red[100],
-                child: Row(
-                  children: [
-                    Icon(
-                      _isConnected
-                          ? Icons.bluetooth_connected
-                          : Icons.bluetooth_disabled,
-                      color: _isConnected ? Colors.green : Colors.red,
+          child: Builder(
+            builder: (context) {
+              final theme = Theme.of(context);
+              final surfaces = context.surfaces;
+
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      Dimens.dp20,
+                      Dimens.dp8,
+                      Dimens.dp20,
+                      Dimens.dp16,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _isConnected
-                            ? 'Connected to: ${PrinterHelper.connectedPrinterName ?? "Unknown"}'
-                            : 'Not connected to any printer',
-                        style: TextStyle(
-                          color: _isConnected
-                              ? Colors.green[800]
-                              : Colors.red[800],
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    if (_isConnected)
-                      TextButton(
-                        onPressed: _disconnectPrinter,
-                        child: const Text('Disconnect'),
-                      ),
-                  ],
-                ),
-              ),
-
-              // Test Print Button
-              if (_isConnected)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: _printTest,
-                          icon: const Icon(Icons.print),
-                          label: const Text('Print Test Receipt'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.all(16),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // Device List
-              Expanded(
-                child: _isScanning
-                    ? const Center(child: CircularProgressIndicator())
-                    : _devices.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No paired bluetooth devices found.\nPlease pair your printer first.',
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _devices.length,
-                        itemBuilder: (context, index) {
-                          final device = _devices[index];
-                          final isCurrentDevice =
-                              PrinterHelper.connectedPrinterName == device.name;
-
-                          return ListTile(
-                            leading: Icon(
-                              Icons.print,
-                              color: isCurrentDevice ? Colors.green : null,
-                            ),
-                            title: Text(
-                              device.name,
-                              style: TextStyle(
-                                fontWeight: isCurrentDevice
-                                    ? FontWeight.bold
-                                    : null,
-                                color: isCurrentDevice ? Colors.green : null,
+                    child: AppCard(
+                      color: _isConnected ? surfaces.successTint : null,
+                      borderColor: _isConnected ? Colors.transparent : null,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                _isConnected
+                                    ? Icons.bluetooth_connected_rounded
+                                    : Icons.bluetooth_disabled_rounded,
+                                size: 20,
+                                color: _isConnected
+                                    ? surfaces.onSuccessTint
+                                    : surfaces.textMuted,
                               ),
-                            ),
-                            isThreeLine: true,
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  device.macAdress,
-                                  style: TextStyle(
-                                    color: isCurrentDevice
-                                        ? Colors.green[600]
+                              const SizedBox(width: Dimens.dp12),
+                              Expanded(
+                                child: Text(
+                                  _isConnected
+                                      ? PrinterHelper.connectedPrinterName ??
+                                            'Printer terhubung'
+                                      : 'Belum ada printer terhubung',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: _isConnected
+                                        ? surfaces.onSuccessTint
                                         : null,
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                SegmentedButton<bool>(
-                                  showSelectedIcon: false,
-                                  style: const ButtonStyle(
-                                    visualDensity: VisualDensity.compact,
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              if (_isConnected)
+                                TextButton(
+                                  onPressed: _disconnectPrinter,
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppTokens.danger,
                                   ),
-                                  segments: const [
-                                    ButtonSegment(
-                                      value: false,
-                                      label: Text('58mm'),
+                                  child: const Text('Putuskan'),
+                                ),
+                            ],
+                          ),
+                          if (_isConnected) ...[
+                            const SizedBox(height: Dimens.dp12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: _printTest,
+                                icon: const Icon(
+                                  Icons.print_outlined,
+                                  size: 20,
+                                ),
+                                label: const Text('Cetak Struk Uji'),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  Expanded(
+                    child: _isScanning
+                        ? const Center(child: CircularProgressIndicator())
+                        : _devices.isEmpty
+                        ? EmptyState(
+                            icon: Icons.bluetooth_searching_rounded,
+                            title: 'Tidak ada printer',
+                            message:
+                                'Pasangkan printer lewat pengaturan Bluetooth '
+                                'perangkat terlebih dahulu, lalu muat ulang.',
+                            actionLabel: 'Muat Ulang',
+                            onAction: _loadPairedDevices,
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(
+                              Dimens.dp20,
+                              0,
+                              Dimens.dp20,
+                              Dimens.dp20,
+                            ),
+                            itemCount: _devices.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: Dimens.dp12),
+                            itemBuilder: (context, index) {
+                              final device = _devices[index];
+                              final isCurrentDevice =
+                                  PrinterHelper.connectedPrinterName ==
+                                  device.name;
+
+                              return AppCard(
+                                onTap: isCurrentDevice
+                                    ? null
+                                    : () => _connectToPrinter(device),
+                                borderColor: isCurrentDevice
+                                    ? AppTokens.success
+                                    : null,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.print_outlined,
+                                          size: 20,
+                                          color: isCurrentDevice
+                                              ? AppTokens.success
+                                              : surfaces.textSecondary,
+                                        ),
+                                        const SizedBox(width: Dimens.dp12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                device.name,
+                                                style: theme
+                                                    .textTheme
+                                                    .titleMedium,
+                                              ),
+                                              Text(
+                                                device.macAdress,
+                                                style:
+                                                    theme.textTheme.bodySmall,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (isCurrentDevice)
+                                          const Icon(
+                                            Icons.check_circle,
+                                            size: 20,
+                                            color: AppTokens.success,
+                                          ),
+                                      ],
                                     ),
-                                    ButtonSegment(
-                                      value: true,
-                                      label: Text('80mm'),
+                                    const SizedBox(height: Dimens.dp12),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          'Ukuran kertas',
+                                          style: theme.textTheme.bodyMedium,
+                                        ),
+                                        const Spacer(),
+                                        SegmentedButton<bool>(
+                                          showSelectedIcon: false,
+                                          style: const ButtonStyle(
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            tapTargetSize:
+                                                MaterialTapTargetSize
+                                                    .shrinkWrap,
+                                          ),
+                                          segments: const [
+                                            ButtonSegment(
+                                              value: false,
+                                              label: Text('58mm'),
+                                            ),
+                                            ButtonSegment(
+                                              value: true,
+                                              label: Text('80mm'),
+                                            ),
+                                          ],
+                                          selected: {
+                                            _paperMm80[device.macAdress] ??
+                                                false,
+                                          },
+                                          onSelectionChanged: (selection) =>
+                                              _setPaperSize(
+                                                device.macAdress,
+                                                selection.first,
+                                              ),
+                                        ),
+                                      ],
                                     ),
                                   ],
-                                  selected: {
-                                    _paperMm80[device.macAdress] ?? false,
-                                  },
-                                  onSelectionChanged: (selection) =>
-                                      _setPaperSize(
-                                        device.macAdress,
-                                        selection.first,
-                                      ),
                                 ),
-                              ],
-                            ),
-                            trailing: isCurrentDevice
-                                ? const Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                  )
-                                : null,
-                            onTap: isCurrentDevice
-                                ? null
-                                : () => _connectToPrinter(device),
-                          );
-                        },
-                      ),
-              ),
-            ],
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
