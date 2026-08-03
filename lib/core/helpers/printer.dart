@@ -1,3 +1,4 @@
+import 'package:luminara_photobooth/core/preferences/printer_preferences.dart';
 import 'package:luminara_photobooth/model/log.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart' as esc;
@@ -22,7 +23,27 @@ class PrinterHelper {
   /// Connect to printer using MAC address
 
   static Future<bool> connect(String macAddress) async {
-    return await PrintBluetoothThermal.connect(macPrinterAddress: macAddress);
+    final connected = await PrintBluetoothThermal.connect(
+      macPrinterAddress: macAddress,
+    );
+
+    if (connected) {
+      await PrinterPreferences.setLastMac(macAddress);
+    }
+
+    return connected;
+  }
+
+  /// Ukuran kertas printer yang sedang dipakai (per MAC address).
+
+  static Future<esc.PaperSize> _paperSize() async {
+    final mac = await PrinterPreferences.getLastMac();
+
+    if (mac == null) return esc.PaperSize.mm58;
+
+    return await PrinterPreferences.isPaperMm80(mac)
+        ? esc.PaperSize.mm80
+        : esc.PaperSize.mm58;
   }
 
   /// Disconnect from printer
@@ -98,7 +119,7 @@ class PrinterHelper {
     try {
       final profile = await esc.CapabilityProfile.load();
 
-      final generator = esc.Generator(esc.PaperSize.mm58, profile);
+      final generator = esc.Generator(await _paperSize(), profile);
 
       List<int> bytes = [];
 

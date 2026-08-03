@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/helpers/printer.dart';
 import 'package:luminara_photobooth/core/helpers/snackbar_helper.dart';
+import 'package:luminara_photobooth/core/preferences/printer_preferences.dart';
 import 'package:luminara_photobooth/model/log.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 
@@ -15,6 +16,7 @@ class PrinterPage extends StatefulWidget {
 
 class _PrinterPageState extends State<PrinterPage> {
   List<BluetoothInfo> _devices = [];
+  final Map<String, bool> _paperMm80 = {};
   bool _isScanning = false;
   bool _isConnected = false;
 
@@ -34,7 +36,20 @@ class _PrinterPageState extends State<PrinterPage> {
     setState(() => _isScanning = true);
     try {
       final devices = await PrinterHelper.getPairedDevices();
-      setState(() => _devices = devices);
+
+      final paperSizes = <String, bool>{};
+      for (final device in devices) {
+        paperSizes[device.macAdress] = await PrinterPreferences.isPaperMm80(
+          device.macAdress,
+        );
+      }
+
+      setState(() {
+        _devices = devices;
+        _paperMm80
+          ..clear()
+          ..addAll(paperSizes);
+      });
     } catch (e) {
       if (mounted) {
         Log.insertLog('Error loading paired devices: $e', isError: true);
@@ -94,6 +109,11 @@ class _PrinterPageState extends State<PrinterPage> {
       Log.insertLog('Disconnect error: $e', isError: true);
       SnackBarHelper.showError(context, 'Disconnect error: $e');
     }
+  }
+
+  Future<void> _setPaperSize(String macAddress, bool isMm80) async {
+    await PrinterPreferences.setPaperMm80(macAddress, isMm80);
+    setState(() => _paperMm80[macAddress] = isMm80);
   }
 
   Future<void> _printTest() async {
@@ -313,13 +333,46 @@ class _PrinterPageState extends State<PrinterPage> {
                                 color: isCurrentDevice ? Colors.green : null,
                               ),
                             ),
-                            subtitle: Text(
-                              device.macAdress,
-                              style: TextStyle(
-                                color: isCurrentDevice
-                                    ? Colors.green[600]
-                                    : null,
-                              ),
+                            isThreeLine: true,
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  device.macAdress,
+                                  style: TextStyle(
+                                    color: isCurrentDevice
+                                        ? Colors.green[600]
+                                        : null,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SegmentedButton<bool>(
+                                  showSelectedIcon: false,
+                                  style: const ButtonStyle(
+                                    visualDensity: VisualDensity.compact,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  segments: const [
+                                    ButtonSegment(
+                                      value: false,
+                                      label: Text('58mm'),
+                                    ),
+                                    ButtonSegment(
+                                      value: true,
+                                      label: Text('80mm'),
+                                    ),
+                                  ],
+                                  selected: {
+                                    _paperMm80[device.macAdress] ?? false,
+                                  },
+                                  onSelectionChanged: (selection) =>
+                                      _setPaperSize(
+                                        device.macAdress,
+                                        selection.first,
+                                      ),
+                                ),
+                              ],
                             ),
                             trailing: isCurrentDevice
                                 ? const Icon(
