@@ -93,12 +93,24 @@ class _ProductPageState extends State<ProductPage> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('Paket Photobooth')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddProductDialog,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Tambah Paket'),
-        shape: const StadiumBorder(),
+      appBar: AppBar(
+        title: const Text('Paket Photobooth'),
+        actions: [
+          // Bukan FAB: slot FAB layar ini sudah dipakai tombol Kasir milik
+          // MainPage, keduanya akan bertumpuk di pojok kanan bawah.
+          Padding(
+            padding: const EdgeInsets.only(right: Dimens.dp16),
+            child: TextButton.icon(
+              onPressed: _showAddProductDialog,
+              icon: const Icon(Icons.add_rounded, size: 20),
+              label: const Text('Tambah'),
+              style: TextButton.styleFrom(
+                backgroundColor: context.surfaces.brandTint,
+                padding: const EdgeInsets.symmetric(horizontal: Dimens.dp16),
+              ),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -143,7 +155,7 @@ class _ProductPageState extends State<ProductPage> {
                                 Dimens.dp20,
                                 0,
                                 Dimens.dp20,
-                                96, // ruang untuk FAB extended
+                                Dimens.dp20,
                               ),
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -168,7 +180,7 @@ class _ProductPageState extends State<ProductPage> {
                                 Dimens.dp20,
                                 0,
                                 Dimens.dp20,
-                                96,
+                                Dimens.dp20,
                               ),
                               itemBuilder: (context, index) {
                                 final product = filteredProducts[index];

@@ -154,11 +154,11 @@ class FloatingNavBar extends StatelessWidget {
     return inset + Dimens.dp4;
   }
 
-  /// Tinggi pil item aktif. Radius bar = padding + setengah tinggi pil,
-  /// jadi sudut pil dan sudut bar benar-benar sejajar (§4 DESIGN.md).
+  /// Tinggi pil item. Radius bar = padding + setengah tinggi pil, jadi sudut
+  /// pil dan sudut bar benar-benar sejajar (§4 DESIGN.md).
   static const double _pillHeight = 44;
-  static const double _barPadding = Dimens.dp8;
-  static double get _barRadius => _barPadding + _pillHeight / 2; // 30
+  static const double _barPadding = 6;
+  static double get _barRadius => _barPadding + _pillHeight / 2; // 28
 
   @override
   Widget build(BuildContext context) {
@@ -176,7 +176,7 @@ class FloatingNavBar extends StatelessWidget {
           boxShadow: surfaces.cardShadow,
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             for (var i = 0; i < entries.length; i++)
               _NavPill(
@@ -192,8 +192,9 @@ class FloatingNavBar extends StatelessWidget {
   }
 }
 
-/// Item nav. Aktif = pil dengan label DI SAMPING ikon (bukan di bawahnya),
-/// non-aktif = ikon saja.
+/// Item nav. Semua item punya latar pil supaya hitbox-nya kelihatan;
+/// yang aktif memakai tint brand + label di samping ikon, yang tidak aktif
+/// memakai tint netral dan hanya ikon.
 class _NavPill extends StatelessWidget {
   const _NavPill({
     required this.entry,
@@ -223,11 +224,11 @@ class _NavPill extends StatelessWidget {
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           height: height,
-          padding: EdgeInsets.symmetric(horizontal: selected ? 16 : 14),
+          padding: EdgeInsets.symmetric(horizontal: selected ? 14 : 11),
           decoration: BoxDecoration(
-            // Fade lewat alpha warna yang sama. Colors.transparent = hitam
-            // alpha 0, jadi lerp-nya berkedip gelap di tengah animasi.
-            color: surfaces.brandTint.withValues(alpha: selected ? 1 : 0),
+            // Dua warna opaque, bukan fade ke transparan — lerp ke
+            // Colors.transparent (hitam alpha 0) berkedip gelap di tengah.
+            color: selected ? surfaces.brandTint : surfaces.surfaceAlt,
             borderRadius: BorderRadius.circular(height / 2),
           ),
           child: Row(

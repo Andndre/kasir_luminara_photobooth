@@ -26,11 +26,12 @@ void main() {
 
   group('Radius', () {
     test('bar nav konsentris dengan pil di dalamnya', () {
-      // Pil setinggi 44 (radius 22) + padding bar 8 → radius bar 30.
+      // Pil setinggi 44 (radius 22) + padding bar 6 → radius bar 28.
       // Ini SATU-SATUNYA tempat rumus konsentris berlaku: pil benar-benar
       // menempel di sudut dalam bar.
       const pillRadius = 44 / 2;
-      const barPadding = Dimens.dp8;
+      const barPadding = 6.0;
+      // Radius bar dihitung dari pil, bukan diambil dari skala rSm..rXl.
       expect(Dimens.inner(pillRadius + barPadding, barPadding), pillRadius);
     });
 
