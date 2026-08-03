@@ -10,6 +10,9 @@ class PrinterHelper {
 
   static String? connectedPrinterName;
 
+  // ponytail: mayoritas laci pakai pin2; kalau CD 339 tidak bereaksi, ganti ke pin5.
+  static const _drawerPin = esc.PosDrawer.pin2;
+
   /// Get list of paired bluetooth devices
 
   static Future<List<BluetoothInfo>> getPairedDevices() async {
@@ -60,6 +63,7 @@ class PrinterHelper {
       bayarAmount: 100000,
       kembalian: 20000,
       date: DateTime.now(),
+      openDrawer: true, // test print sekalian tes laci kas
     );
   }
 
@@ -87,6 +91,7 @@ class PrinterHelper {
     int? kembalian,
     DateTime? date,
     int? queueNumber,
+    bool openDrawer = false,
     String storeName = 'LUMINARA PHOTOBOOTH',
     String tagline = 'Capture Your Best Moments',
   }) async {
@@ -276,6 +281,8 @@ class PrinterHelper {
         'Instagram: @luminara_photobooth',
         styles: const esc.PosStyles(align: esc.PosAlign.center),
       );
+
+      if (openDrawer) bytes += generator.drawer(pin: _drawerPin);
 
       bytes += generator.cut();
 

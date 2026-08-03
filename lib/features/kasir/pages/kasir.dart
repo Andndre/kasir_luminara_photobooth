@@ -860,6 +860,7 @@ class _KasirState extends State<Kasir> {
         kembalian: kembalian,
         date: transaction.createdAt,
         queueNumber: queueNumber,
+        openDrawer: transaction.paymentMethod.toUpperCase() == 'TUNAI',
       );
 
       if (!mounted) return;
