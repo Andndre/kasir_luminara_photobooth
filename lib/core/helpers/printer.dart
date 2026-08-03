@@ -123,6 +123,10 @@ class PrinterHelper {
 
       List<int> bytes = [];
 
+      // Laci dibuka di awal stream supaya terbuka barengan nota mulai
+      // tercetak, bukan menunggu QR code dan seluruh isi nota selesai.
+      if (openDrawer) bytes += generator.drawer(pin: _drawerPin);
+
       // Header
 
       bytes += generator.text(
@@ -302,8 +306,6 @@ class PrinterHelper {
         'Instagram: @luminara_photobooth',
         styles: const esc.PosStyles(align: esc.PosAlign.center),
       );
-
-      if (openDrawer) bytes += generator.drawer(pin: _drawerPin);
 
       bytes += generator.cut();
 
