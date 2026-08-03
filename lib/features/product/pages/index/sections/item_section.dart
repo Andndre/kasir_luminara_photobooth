@@ -15,29 +15,52 @@ class _ItemSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Dimens.rLg),
-      ),
-      child: ListTile(
-        title: Text(
-          product.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(formatCurrency(product.price)),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blue),
-              onPressed: onEdit,
+    final theme = Theme.of(context);
+    final surfaces = context.surfaces;
+
+    return AppCard(
+      onTap: onEdit,
+      padding: const EdgeInsets.all(Dimens.dp12),
+      child: Row(
+        children: [
+          // Monogram yang sama dengan di layar Kasir — satu paket punya satu
+          // warna di seluruh aplikasi.
+          PackageMonogram(product.name, size: 44),
+          const SizedBox(width: Dimens.dp12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  product.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  formatCurrency(product.price),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
             ),
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: onDelete,
-            ),
-          ],
-        ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 20),
+            color: surfaces.textSecondary,
+            tooltip: 'Ubah',
+            onPressed: onEdit,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline_rounded, size: 20),
+            color: AppTokens.danger,
+            tooltip: 'Hapus',
+            onPressed: onDelete,
+          ),
+        ],
       ),
     );
   }

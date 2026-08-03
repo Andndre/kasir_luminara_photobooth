@@ -56,47 +56,55 @@ class _DialogScannerState extends State<DialogScanner> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surfaces = context.surfaces;
+
     return Dialog(
-      insetPadding: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.all(Dimens.dp16),
+      clipBehavior: Clip.antiAlias,
       child: SizedBox(
-        height: 400,
+        height: 440,
         child: Column(
           children: [
-            // Header
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.fromLTRB(
+                Dimens.dp20,
+                Dimens.dp12,
+                Dimens.dp8,
+                Dimens.dp8,
+              ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Pindai Barcode',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Pindai Barcode', style: theme.textTheme.titleLarge),
+                        Text(
+                          'Dialog tetap terbuka — beberapa produk bisa '
+                          'dipindai berturut-turut.',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
             ),
-            // Status info
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.blue.shade50,
-              child: const Text(
-                'Dialog tetap terbuka, scan beberapa produk sekaligus',
-                style: TextStyle(fontSize: 12, color: Colors.blue),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const Divider(height: 1),
 
             // Area kamera
             Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: Dimens.dp16),
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: surfaces.surfaceAlt,
+                  borderRadius: BorderRadius.circular(Dimens.rMd),
+                ),
                 child: MobileScanner(
                   controller: controller,
                   fit: BoxFit.cover,
@@ -110,27 +118,23 @@ class _DialogScannerState extends State<DialogScanner> {
               ),
             ),
 
-            // Bottom action bar
-            Container(
-              padding: const EdgeInsets.all(16),
+            Padding(
+              padding: const EdgeInsets.all(Dimens.dp16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.check),
-                    label: const Text('Selesai Scan'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => controller?.toggleTorch(),
+                      icon: const Icon(Icons.flashlight_on_outlined, size: 20),
+                      label: const Text('Senter'),
                     ),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      controller?.toggleTorch();
-                    },
-                    icon: const Icon(Icons.flash_on),
-                    label: const Text('Flash'),
+                  const SizedBox(width: Dimens.dp12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Selesai'),
+                    ),
                   ),
                 ],
               ),

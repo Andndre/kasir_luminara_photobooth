@@ -1,9 +1,133 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_bloc.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
 import 'package:intl/intl.dart';
 import 'package:luminara_photobooth/model/log.dart';
+
+/// Kartu antrean. Nomor antrean dibuat besar karena itu yang dicocokkan
+/// petugas dengan tiket di tangan pelanggan, dari jarak berdiri.
+class _QueueCard extends StatelessWidget {
+  const _QueueCard({
+    required this.item,
+    required this.fallbackNumber,
+    required this.onTap,
+  });
+
+  final Map<String, dynamic> item;
+  final int fallbackNumber;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surfaces = context.surfaces;
+    final items = (item['items'] as List?) ?? [];
+
+    String timeStr = '-';
+    try {
+      if (item['created_at'] != null) {
+        timeStr = DateFormat('HH:mm').format(
+          DateTime.parse(item['created_at']),
+        );
+      }
+    } catch (e) {
+      Log.insertLog('Error parsing time: $e', isError: true);
+    }
+
+    return AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(Dimens.dp12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: surfaces.brandTint,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '${item['queue_number'] ?? fallbackNumber}',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: theme.colorScheme.primary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          const SizedBox(width: Dimens.dp12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item['customer_name'] ?? 'Pelanggan',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                    ),
+                    Text(timeStr, style: theme.textTheme.bodySmall),
+                  ],
+                ),
+                const SizedBox(height: Dimens.dp8),
+                if (items.isEmpty)
+                  Text(
+                    item['product_name'] ?? '-',
+                    style: theme.textTheme.bodyMedium,
+                  )
+                else
+                  ...items.map(
+                    (i) => Padding(
+                      padding: const EdgeInsets.only(bottom: Dimens.dp4),
+                      child: Row(
+                        children: [
+                          PackageMonogram('${i['product_name']}', size: 24),
+                          const SizedBox(width: Dimens.dp8),
+                          Expanded(
+                            child: Text(
+                              '${i['product_name']} ×${i['quantity']}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: Dimens.dp4),
+                Row(
+                  children: [
+                    const StatusBadge('PAID'),
+                    const SizedBox(width: Dimens.dp8),
+                    Expanded(
+                      child: Text(
+                        '${item['uuid']}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class LiveQueuePage extends StatelessWidget {
   const LiveQueuePage({super.key});
@@ -12,9 +136,7 @@ class LiveQueuePage extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      showDragHandle: true, // bentuk & radius diambil dari bottomSheetTheme
       builder: (ctx) => _VerifyBottomSheet(
         item: item,
         onVerify: () {
@@ -36,58 +158,33 @@ class LiveQueuePage extends StatelessWidget {
                   current.errorMessage != null),
           listener: (context, state) {
             if (state.verifySuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Berhasil diverifikasi!'),
-                  backgroundColor: Colors.green,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              SnackBarHelper.showSuccess(context, 'Tiket berhasil diverifikasi');
             } else if (state.errorMessage != null &&
                 state.verifyingUuid == null &&
                 state.status == VerifierStatus.connected) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.errorMessage!),
-                  backgroundColor: Colors.red,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              SnackBarHelper.showError(context, state.errorMessage!);
             }
           },
           child: BlocBuilder<VerifierBloc, VerifierState>(
             builder: (context, state) {
               if (state.status == VerifierStatus.disconnected) {
-                return const Center(
-                  child: Text(
-                    'Belum terhubung ke server.\nSilakan ke menu Koneksi.',
-                  ),
+                return const EmptyState(
+                  icon: Icons.cloud_off_rounded,
+                  title: 'Belum terhubung',
+                  message: 'Hubungkan ke server lewat menu Koneksi untuk '
+                      'melihat antrean.',
                 );
               }
 
               if (state.status == VerifierStatus.error && state.queue.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.cloud_off, size: 64, color: Colors.red),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Gagal mengambil data:\n${state.errorMessage}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: () =>
-                              context.read<VerifierBloc>().add(RefreshQueue()),
-                          child: const Text('Coba Lagi'),
-                        ),
-                      ],
-                    ),
-                  ),
+                return EmptyState(
+                  isError: true,
+                  icon: Icons.cloud_off_rounded,
+                  title: 'Gagal mengambil antrean',
+                  message: state.errorMessage,
+                  actionLabel: 'Coba Lagi',
+                  onAction: () =>
+                      context.read<VerifierBloc>().add(RefreshQueue()),
                 );
               }
 
@@ -96,118 +193,22 @@ class LiveQueuePage extends StatelessWidget {
                   context.read<VerifierBloc>().add(RefreshQueue());
                 },
                 child: state.queue.isEmpty
-                    ? const Center(child: Text('Tidak ada antrean saat ini.'))
-                    : ListView.builder(
+                    ? const EmptyState(
+                        icon: Icons.done_all_rounded,
+                        title: 'Antrean kosong',
+                        message: 'Semua tiket sudah dilayani.',
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(Dimens.dp16),
                         itemCount: state.queue.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: Dimens.dp12),
                         itemBuilder: (context, index) {
                           final item = state.queue[index];
-                          final items = (item['items'] as List?) ?? [];
-
-                          String timeStr = '-';
-                          try {
-                            if (item['created_at'] != null) {
-                              timeStr = DateFormat(
-                                'HH:mm',
-                              ).format(DateTime.parse(item['created_at']));
-                            }
-                          } catch (e) {
-                            Log.insertLog(
-                              'Error parsing time: $e',
-                              isError: true,
-                            );
-                          }
-
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: InkWell(
-                              onTap: () => _showVerifyDialog(context, item),
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor:
-                                        Theme.of(context).primaryColor,
-                                    foregroundColor: Colors.white,
-                                    child: Text(
-                                      '#${item['queue_number'] ?? (index + 1)}',
-                                    ),
-                                  ),
-                                  title: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        item['customer_name'] ?? 'Pelanggan',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        timeStr,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  subtitle: Padding(
-                                    padding: const EdgeInsets.only(top: 8.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        if (items.isEmpty)
-                                          Text(item['product_name'] ?? '-')
-                                        else
-                                          ...items.map(
-                                            (i) => Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 2,
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons.check_circle_outline,
-                                                    size: 14,
-                                                    color: Colors.green,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Expanded(
-                                                    child: Text(
-                                                      '${i['product_name']} x${i['quantity']}',
-                                                      style: const TextStyle(
-                                                        fontSize: 13,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'ID: ${item['uuid']}',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontStyle: FontStyle.italic,
-                                            color: Colors.grey.shade500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
+                          return _QueueCard(
+                            item: item,
+                            fallbackNumber: index + 1,
+                            onTap: () => _showVerifyDialog(context, item),
                           );
                         },
                       ),
@@ -242,134 +243,138 @@ class _VerifyBottomSheet extends StatelessWidget {
           Navigator.pop(context);
         }
       },
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
+      child: Builder(
+        builder: (context) {
+          final theme = Theme.of(context);
+          final surfaces = context.surfaces;
+
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Dimens.dp24,
+              0,
+              Dimens.dp24,
+              Dimens.dp24,
             ),
-            Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  child: Text(
-                    '#${item['queue_number'] ?? '-'}',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Konfirmasi Verifikasi',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: surfaces.brandTint,
+                        shape: BoxShape.circle,
                       ),
-                      Text(
-                        item['customer_name'] ?? 'Pelanggan',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      child: Text(
+                        '${item['queue_number'] ?? '-'}',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
-                    ],
+                    ),
+                    const SizedBox(width: Dimens.dp16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const EyebrowText('Konfirmasi Verifikasi'),
+                          const SizedBox(height: Dimens.dp4),
+                          Text(
+                            item['customer_name'] ?? 'Pelanggan',
+                            style: theme.textTheme.titleLarge,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: Dimens.dp24),
+                const EyebrowText('Layanan'),
+                const SizedBox(height: Dimens.dp12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 220),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        if (items.isEmpty)
+                          Text(
+                            item['product_name'] ?? '-',
+                            style: theme.textTheme.bodyLarge,
+                          )
+                        else
+                          ...items.map(
+                            (i) => Padding(
+                              padding: const EdgeInsets.only(
+                                bottom: Dimens.dp8,
+                              ),
+                              child: Row(
+                                children: [
+                                  PackageMonogram(
+                                    '${i['product_name']}',
+                                    size: 32,
+                                  ),
+                                  const SizedBox(width: Dimens.dp12),
+                                  Expanded(
+                                    child: Text(
+                                      '${i['product_name']} ×${i['quantity']}',
+                                      style: theme.textTheme.bodyLarge,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
+                ),
+                const SizedBox(height: Dimens.dp24),
+                BlocBuilder<VerifierBloc, VerifierState>(
+                  builder: (context, state) {
+                    final isVerifying = state.verifyingUuid == item['uuid'];
+
+                    return Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: isVerifying ? null : onVerify,
+                            child: isVerifying
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text('VERIFIKASI SEKARANG'),
+                          ),
+                        ),
+                        const SizedBox(height: Dimens.dp8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            onPressed: isVerifying
+                                ? null
+                                : () => Navigator.pop(context),
+                            child: const Text('Batal'),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
-            const Divider(height: 32),
-            const Text(
-              'Layanan/Produk:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 200),
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    if (items.isEmpty)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.shopping_bag_outlined),
-                        title: Text(item['product_name'] ?? '-'),
-                      )
-                    else
-                      ...items.map(
-                        (i) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                          ),
-                          title: Text('${i['product_name']} x${i['quantity']}'),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            BlocBuilder<VerifierBloc, VerifierState>(
-              builder: (context, state) {
-                final isVerifying = state.verifyingUuid == item['uuid'];
-
-                return Column(
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: isVerifying ? null : onVerify,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: isVerifying
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'VERIFIKASI SEKARANG',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: TextButton(
-                        onPressed:
-                            isVerifying ? null : () => Navigator.pop(context),
-                        child: const Text('Batal'),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
