@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:luminara_photobooth/core/preferences/tokens.dart';
 
+/// DEPRECATED. Warna baru ada di [AppTokens] + [AppSurfaces] (lihat DESIGN.md).
+/// Kelas ini dipertahankan supaya layar yang belum dimigrasi tetap jalan;
+/// hapus referensinya sambil merombak tiap layar.
 class AppColors {
   AppColors._(); // Private Constructor
 
-  static const primary = Color(0xff3059E8);
+  /// Alias ke brand baru — semua pemakai lama ikut berganti warna otomatis.
+  static const primary = AppTokens.brand600;
 
   static const yellow = MaterialColor(0xffFFD101, {
     200: Color(0xffFFDF4C),

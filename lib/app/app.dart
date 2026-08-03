@@ -34,8 +34,8 @@ class MyApp extends StatelessWidget {
               title: 'Luminara Photobooth',
               debugShowCheckedModeBanner: false,
               scrollBehavior: AppScrollBehavior(),
-              theme: LightTheme(AppColors.primary).theme,
-              darkTheme: DarkTheme(AppColors.primary).theme,
+              theme: buildAppTheme(Brightness.light),
+              darkTheme: buildAppTheme(Brightness.dark),
               themeMode: appState.themeMode,
               onGenerateRoute: routes,
               // STABLE TREE: Blocs are now preserved above.

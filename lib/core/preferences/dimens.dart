@@ -61,6 +61,28 @@ class Dimens {
   static const dp42 = 42.0;
   static const dp50 = 50.0;
 
+  // Radius lama. Dipertahankan supaya layar yang belum dimigrasi tetap jalan;
+  // layar baru pakai rSm..rFull di bawah. Lihat DESIGN.md §4.
   static const double radius = 4.0;
   static const double radiusMedium = 8.0;
+
+  // --- Skala radius ---
+  static const double rXs = 6.0; // badge status
+  static const double rSm = 10.0; // elemen kecil di dalam kartu
+  static const double rMd = 14.0; // input, kartu kecil berdiri sendiri
+  static const double rLg = 18.0; // kartu, dialog
+  static const double rXl = 24.0; // kartu hero
+  static const double rFull = 999.0; // avatar, pil, FAB, SEMUA tombol
+
+  /// Radius elemen dalam supaya sudutnya sejajar dengan sudut wadahnya:
+  /// `luar = dalam + padding`.
+  ///
+  /// HANYA relevan untuk elemen yang benar-benar MENEMPEL di sudut wadah —
+  /// gambar full-bleed, pil di dalam bar nav, sheet di dalam frame. Elemen
+  /// yang mengambang di tengah (badge, avatar, tombol) tidak perlu ikut;
+  /// memaksakannya justru bikin bentuk yang aneh.
+  static double inner(double outer, double padding) {
+    final r = outer - padding;
+    return r < 4 ? 4 : r;
+  }
 }
