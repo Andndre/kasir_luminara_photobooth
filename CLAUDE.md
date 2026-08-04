@@ -29,7 +29,7 @@ Shipped installs hold real data under these exact names. Renaming any of them si
 | Table | Columns |
 |---|---|
 | `products` | `id`, `name`, `price` |
-| `transactions` | `uuid`, `customer_name`, `total_price`, `bayar_amount`, `kembalian`, `payment_method`, `status`, `created_at`, `redeemed_at`, `midtrans_order_id`, `queue_number`, `queue_date` |
+| `transactions` | `uuid`, `customer_name`, `total_price`, `bayar_amount`, `kembalian`, `payment_method`, `status`, `created_at`, `redeemed_at`, `midtrans_order_id`, `queue_number`, `queue_date`, `synced_at` |
 | `transaction_items` | `id`, `transaction_uuid`, `product_name`, `product_price`, `quantity` |
 | `logs` | `id`, `timestamp`, `message`, `is_error` |
 | `daily_queue_counter` | `date`, `last_number` |
@@ -38,7 +38,7 @@ Shipped installs hold real data under these exact names. Renaming any of them si
 
 **Persisted enum strings**: `TUNAI`, `QRIS`, `NON-TUNAI`, `PAID`, `COMPLETED`, `CANCELLED`.
 
-**SharedPreferences keys**: `is_midtrans_enabled`, `verifier_server_ip`, `verifier_server_port`, `theme_mode`, `printer_paper_mm80_<mac>`, `printer_last_mac`, `profile`.
+**SharedPreferences keys**: `is_midtrans_enabled`, `verifier_server_ip`, `verifier_server_port`, `verifier_use_cloud`, `theme_mode`, `printer_paper_mm80_<mac>`, `printer_last_mac`, `profile`, `auth_token`, `auth_email`, `auth_last_verified`, `sync_redemption_cursor`.
 
 **Backup file JSON keys**: `version`, `tables`, and the five table names nested under `tables`. Customers have backup files on disk in this format.
 
@@ -111,6 +111,35 @@ Singleton using `alfred`. Main isolate on desktop, background isolate via `flutt
 - `GET /ws` — WebSocket for `TICKET_REDEEMED` / `REFRESH_QUEUE` broadcasts
 
 Redeeming uses a conditional `UPDATE ... WHERE status = 'PAID'` so two verifiers scanning the same ticket can't both succeed. The outcome is a sealed `RedeemOutcome` (`RedeemedOk` / `TicketNotFound` / `TicketAlreadyUsed`).
+
+### Cloud sync (luminarabali.com)
+
+The Laravel backend holds a copy of every transaction, behind a Sanctum token.
+The rule that keeps the two sides from ever disagreeing:
+
+> **The cashier creates, the server redeems.**
+
+`SyncService.push()` therefore never uploads `status`/`redeemed_at` changes — the
+server ignores those columns on rows it already has — and
+`pullRedemptions()` only ever brings a redemption back down, guarded by
+`status = 'PAID'` so it can't overwrite a `redeemed_at` that was already printed
+on a receipt. Break that split and you get double-redeemed tickets.
+
+- `AuthService` owns the token and the offline grace period (`licenseGrace`,
+  7 days). Only a **401** logs the device out; a 500 or a dead network falls back
+  to the grace window. Locking the till because venue Wi-Fi died is worse than
+  the piracy it would prevent.
+- `SyncService.push()` is **awaited at checkout, before printing** — a customer
+  walks to the booth in seconds and a ticket the server has never seen cannot be
+  scanned there. Failure warns, it does not cancel the sale.
+- The verifier speaks the same JSON to either endpoint; `VerifierService`
+  swaps a `_prefix` (`''` on LAN, `/pos` on cloud) and replaces the WebSocket
+  with a polling stream that emits the same `REFRESH_QUEUE` message. That is why
+  `VerifierBloc` needs no branch.
+- `/api/pos/restore` answers in the **backup file format**, so device migration
+  reuses `BackupService.applyBackupJson` instead of a second restore path.
+- The LAN server mirrors its redemptions up via `CloudApi.reportRedeemed` so the
+  two paths can coexist during the transition.
 
 ### Logging
 
