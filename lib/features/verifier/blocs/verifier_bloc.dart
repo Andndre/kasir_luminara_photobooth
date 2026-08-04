@@ -4,8 +4,6 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:luminara_photobooth/core/services/auth_service.dart';
 import 'package:luminara_photobooth/core/services/verifier_service.dart';
-import 'package:luminara_photobooth/core/domain/domain.dart';
-import 'package:luminara_photobooth/core/preferences/verifier_preferences.dart';
 
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
 import 'package:luminara_photobooth/core/helpers/app_log.dart';
@@ -18,17 +16,9 @@ abstract class VerifierEvent extends Equatable {
 
 class InitializeVerifier extends VerifierEvent {}
 
-class ConnectToServer extends VerifierEvent {
-  final ServerAddress address;
-  const ConnectToServer(this.address);
-
-  @override
-  List<Object> get props => [address];
-}
-
-/// Pairs through the account on luminarabali.com instead of an IP on the LAN,
-/// so the scanner does not have to share a network with the till.
-class ConnectToCloud extends VerifierEvent {}
+/// Pairs through the account on luminarabali.com. The account is the pairing;
+/// there is no address to type in.
+class ConnectToServer extends VerifierEvent {}
 
 class DisconnectFromServer extends VerifierEvent {}
 
@@ -49,7 +39,6 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
   VerifierBloc() : super(const VerifierState()) {
     on<InitializeVerifier>(_onInitialize);
     on<ConnectToServer>(_onConnect);
-    on<ConnectToCloud>(_onConnectCloud);
     on<DisconnectFromServer>(_onDisconnect);
     on<RefreshQueue>(_onRefreshQueue);
     on<VerifyTransaction>(_onVerifyTransaction);
@@ -59,17 +48,13 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
     InitializeVerifier event,
     Emitter<VerifierState> emit,
   ) async {
-    if (await VerifierPreferences.useCloud()) {
-      add(ConnectToCloud());
-      return;
-    }
-
-    final saved = await VerifierPreferences.getServerAddress();
-    if (saved != null) add(ConnectToServer(saved));
+    // Tidak ada lagi alamat tersimpan yang perlu dibaca: akun yang jadi
+    // pasangannya, jadi begitu sudah masuk, sambungkan saja.
+    if (AuthService().isLoggedIn) add(ConnectToServer());
   }
 
-  Future<void> _onConnectCloud(
-    ConnectToCloud event,
+  Future<void> _onConnect(
+    ConnectToServer event,
     Emitter<VerifierState> emit,
   ) async {
     if (!AuthService().isLoggedIn) {
@@ -83,11 +68,8 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
     }
 
     emit(state.copyWith(status: VerifierStatus.connecting));
-    service.connectCloud();
-    await VerifierPreferences.setUseCloud(true);
+    service.connect();
 
-    // Bentuk pesannya sama dengan WebSocket LAN, jadi penanganannya juga sama —
-    // yang berubah cuma sumbernya: polling, bukan push.
     await _eventSubscription?.cancel();
     _eventSubscription = service.eventStream?.listen((data) {
       final message = jsonDecode(data);
@@ -106,55 +88,12 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
     add(RefreshQueue());
   }
 
-  Future<void> _onConnect(
-    ConnectToServer event,
-    Emitter<VerifierState> emit,
-  ) async {
-    emit(state.copyWith(status: VerifierStatus.connecting));
-    try {
-      service.connect(event.address.host, event.address.port);
-
-      // Save for next time
-      await VerifierPreferences.saveServerAddress(event.address);
-      await VerifierPreferences.setUseCloud(false);
-
-      // Listen for WebSocket events
-      await _eventSubscription?.cancel();
-      _eventSubscription = service.eventStream?.listen((data) {
-        final message = jsonDecode(data);
-        if (message['event'] == 'TICKET_REDEEMED' ||
-            message['event'] == 'REFRESH_QUEUE') {
-          add(RefreshQueue());
-        }
-      });
-
-      emit(
-        state.copyWith(
-          status: VerifierStatus.connected,
-          serverIp: event.address.toString(),
-        ),
-      );
-      add(RefreshQueue());
-    } catch (e) {
-      AppLog.error('Verifier Connect Error: $e');
-      emit(
-        state.copyWith(
-          status: VerifierStatus.error,
-          errorMessage: e.toString(),
-        ),
-      );
-    }
-  }
-
   Future<void> _onDisconnect(
     DisconnectFromServer event,
     Emitter<VerifierState> emit,
   ) async {
     _eventSubscription?.cancel();
     service.disconnect();
-    // Clear saved address so it doesn't auto-connect next time if manually disconnected
-    await VerifierPreferences.clearServerAddress();
-    await VerifierPreferences.setUseCloud(false);
     emit(const VerifierState(status: VerifierStatus.disconnected));
   }
 

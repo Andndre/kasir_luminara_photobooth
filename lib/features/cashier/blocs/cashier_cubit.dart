@@ -4,7 +4,6 @@ import 'package:luminara_photobooth/core/blocs/async_state.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/preferences/settings_preferences.dart';
 import 'package:luminara_photobooth/core/services/auth_service.dart';
-import 'package:luminara_photobooth/core/services/server_service.dart';
 import 'package:luminara_photobooth/core/services/sync_service.dart';
 import 'package:uuid/uuid.dart';
 
@@ -152,14 +151,6 @@ class CashierCubit extends Cubit<CashierState> {
     }
 
     final queueNumber = (saved as Ok<int>).value;
-
-    // Tell connected verifiers a new ticket exists. The sale is already saved,
-    // so a dead socket must not turn a successful checkout into an error.
-    try {
-      ServerService().broadcast('REFRESH_QUEUE');
-    } catch (e) {
-      AppLog.error('Gagal broadcast REFRESH_QUEUE: $e');
-    }
 
     // Ditunggu, bukan dilempar ke latar: pelanggan berjalan dari kasir ke booth
     // dalam hitungan detik, dan tiket yang belum sampai server tidak bisa

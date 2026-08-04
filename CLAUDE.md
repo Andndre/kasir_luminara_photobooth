@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Luminara Photobooth** is a Flutter POS/management system for photobooth businesses. It operates in two roles on a local network — **Server (Cashier)** runs an embedded HTTP/WebSocket server and manages transactions; **Client (Verifier)** connects to the server to scan and redeem tickets. The role is toggled at runtime via `AppMode` without restarting the app.
+**Luminara Photobooth** is a Flutter POS/management system for photobooth businesses. It operates in two roles — **Cashier** records transactions, **Verifier** scans and redeems tickets. Both talk to luminarabali.com over an account; the role is toggled at runtime via `AppMode` without restarting the app.
 
 The app is in production use with real customer data on disk. Read "Never Change These" below before touching anything that persists.
 
@@ -38,11 +38,11 @@ Shipped installs hold real data under these exact names. Renaming any of them si
 
 **Persisted enum strings**: `TUNAI`, `QRIS`, `NON-TUNAI`, `PAID`, `COMPLETED`, `CANCELLED`.
 
-**SharedPreferences keys**: `is_midtrans_enabled`, `verifier_server_ip`, `verifier_server_port`, `verifier_use_cloud`, `theme_mode`, `printer_paper_mm80_<mac>`, `printer_last_mac`, `profile`, `auth_token`, `auth_email`, `auth_last_verified`, `sync_redemption_cursor`.
+**SharedPreferences keys**: `is_midtrans_enabled`, `theme_mode`, `printer_paper_mm80_<mac>`, `printer_last_mac`, `profile`, `auth_token`, `auth_email`, `auth_last_verified`, `sync_redemption_cursor`.
 
 **Backup file JSON keys**: `version`, `tables`, and the five table names nested under `tables`. Customers have backup files on disk in this format.
 
-**HTTP wire format** (`/api/queue`, `/api/verify`): a verifier running an older build may be on the same network. Adding keys is safe; renaming or removing one is not. See `QueueTicket.toJson()`.
+**HTTP wire format** (`/api/pos/queue`, `/api/pos/verify`): a verifier running an older build may still be pointed at the same account. Adding keys is safe; renaming or removing one is not. See `QueueTicket.toJson()` and `PosTransaction::toTicket()` on the Laravel side — the two must stay identical.
 
 Adding a table or column requires bumping `_schemaVersion` in `db.dart` **and** adding an `oldVersion < n` branch in `_onUpgrade`. Editing `_onCreate` alone leaves upgraded installs missing it.
 
@@ -57,7 +57,7 @@ lib/
 │   ├── domain/    Immutable value types. No I/O, no Flutter imports.
 │   ├── data/      db.dart (schema) + repositories/ + Result<T>
 │   ├── blocs/     AsyncState<T>, shared by every feature
-│   ├── services/  server, verifier, midtrans, background
+│   ├── services/  auth, cloud_api, sync, verifier, midtrans
 │   ├── helpers/   AppLog, Currency, PrinterHelper, SnackBarHelper
 │   ├── components/ Shared widgets
 │   └── preferences/ Theme, tokens, SharedPreferences wrappers
@@ -101,16 +101,17 @@ Wrap repository bodies in `runCatching('Pesan untuk user', () async { ... })`.
 
 `PaymentMethod` is deliberately **a class, not an enum**. `transactions.payment_method` already holds free-form Midtrans channel names on shipped devices (`GoPay/GoPay Later`, `Bank Transfer (VA)`). A closed enum maps all of those to its fallback and silently relabels old rows as cash. `PaymentMethod.fromDb` keeps unknown values verbatim. There is a test pinning this — do not "simplify" it into an enum.
 
-### Server (ServerService)
+### Verifier
 
-Singleton using `alfred`. Main isolate on desktop, background isolate via `flutter_background_service` on Android.
+`VerifierService` polls `GET /api/pos/queue` every 5 seconds and redeems through
+`POST /api/pos/verify`. The account pairs the scanner with the till, so it does
+not have to share a network with it.
 
-- `GET /health` — health check
-- `GET /api/queue` — unredeemed tickets, in call order
-- `POST /api/verify` — redeem a ticket by UUID
-- `GET /ws` — WebSocket for `TICKET_REDEEMED` / `REFRESH_QUEUE` broadcasts
-
-Redeeming uses a conditional `UPDATE ... WHERE status = 'PAID'` so two verifiers scanning the same ticket can't both succeed. The outcome is a sealed `RedeemOutcome` (`RedeemedOk` / `TicketNotFound` / `TicketAlreadyUsed`).
+There used to be an embedded `alfred` server on the cashier device, reached over
+the LAN by IP address, with a WebSocket for push. It is gone — along with the
+Windows firewall rule, the Android background isolate, the pairing QR and the
+manual IP entry. Redeeming is now the server's call alone, which is also what
+makes double-redeem impossible without any coordination between devices.
 
 ### Cloud sync (luminarabali.com)
 
@@ -132,14 +133,11 @@ on a receipt. Break that split and you get double-redeemed tickets.
 - `SyncService.push()` is **awaited at checkout, before printing** — a customer
   walks to the booth in seconds and a ticket the server has never seen cannot be
   scanned there. Failure warns, it does not cancel the sale.
-- The verifier speaks the same JSON to either endpoint; `VerifierService`
-  swaps a `_prefix` (`''` on LAN, `/pos` on cloud) and replaces the WebSocket
-  with a polling stream that emits the same `REFRESH_QUEUE` message. That is why
-  `VerifierBloc` needs no branch.
+- The verifier's queue arrives by polling, wrapped in the same
+  `{"event": "REFRESH_QUEUE"}` message the WebSocket used to push, so
+  `VerifierBloc` reads it unchanged.
 - `/api/pos/restore` answers in the **backup file format**, so device migration
   reuses `BackupService.applyBackupJson` instead of a second restore path.
-- The LAN server mirrors its redemptions up via `CloudApi.reportRedeemed` so the
-  two paths can coexist during the transition.
 
 ### Logging
 
@@ -152,15 +150,12 @@ All Rupiah formatting goes through `Currency.format()` (`lib/core/helpers/curren
 ## Key Constraints (Stability Rules)
 
 1. **No nested MaterialApp** — breaks Navigator history and causes `Scaffold.geometryOf` exceptions.
-2. **No FFI in background Isolate on Linux** — `sqflite_common_ffi` in a background Isolate on Linux causes GTK deadlocks. Keep `ServerService` in the main isolate.
-3. **Server binds to `0.0.0.0`**, not `localhost`. Firewall must allow port 3000 (`sudo ufw allow 3000/tcp` on Linux).
-4. **Desktop server startup** — do not auto-start the server in `initState`. Keep the manual "Start Server" button so the GTK window is initialized before opening network ports.
-5. **Theme parity** — `LightTheme` and `DarkTheme` must define identical properties (same `fontFamily`, `fontSize`, borders, hint styles). Missing properties cause `Failed to interpolate TextStyles` crashes on theme switch.
-6. **Scroll behavior** — do not add `PointerDeviceKind.mouse` to `dragDevices` in `AppScrollBehavior`; it intercepts button clicks on desktop.
-7. **NavigationRail layout** — place it directly in a `Row` with `crossAxisAlignment: CrossAxisAlignment.start`. Do not wrap in `SingleChildScrollView + IntrinsicHeight + Expanded` — circular layout dependency.
-8. **Grid layout** — prefer `SliverGridDelegateWithMaxCrossAxisExtent` with a fixed `mainAxisExtent` over `FixedCrossAxisCount + childAspectRatio`, which overflows on wide screens.
-9. **`Transaction` shadows sqflite's** — files needing both import sqflite with `hide Transaction`.
-10. **Never fade to `Colors.transparent`** — that is black at alpha 0, so the animation passes through grey. Fade to the same colour with alpha 0 instead.
+2. **Theme parity** — `LightTheme` and `DarkTheme` must define identical properties (same `fontFamily`, `fontSize`, borders, hint styles). Missing properties cause `Failed to interpolate TextStyles` crashes on theme switch.
+3. **Scroll behavior** — do not add `PointerDeviceKind.mouse` to `dragDevices` in `AppScrollBehavior`; it intercepts button clicks on desktop.
+4. **NavigationRail layout** — place it directly in a `Row` with `crossAxisAlignment: CrossAxisAlignment.start`. Do not wrap in `SingleChildScrollView + IntrinsicHeight + Expanded` — circular layout dependency.
+5. **Grid layout** — prefer `SliverGridDelegateWithMaxCrossAxisExtent` with a fixed `mainAxisExtent` over `FixedCrossAxisCount + childAspectRatio`, which overflows on wide screens.
+6. **`Transaction` shadows sqflite's** — files needing both import sqflite with `hide Transaction`.
+7. **Never fade to `Colors.transparent`** — that is black at alpha 0, so the animation passes through grey. Fade to the same colour with alpha 0 instead.
 
 ## Platform Gotchas
 
@@ -174,9 +169,8 @@ All Rupiah formatting goes through `Currency.format()` (`lib/core/helpers/curren
 Also: Android resolves extension filters through `MimeTypeMap`, which has no `json` entry on many builds — the filter comes back empty and the picker errors or hides the file. Use `FileType.any` on mobile and validate the content instead. See `BackupService`.
 
 **Other platform notes:**
-- **Android**: background isolate for the server. Requests `notification`, `bluetooth`, `location` permissions.
-- **Linux/Windows**: main isolate server, FFI SQLite, `desktop_webview_window` for Midtrans.
-- **Windows**: auto-requests a firewall rule for port 3000 on first launch.
+- **Android**: requests `bluetooth` (printer), `location` (BLE scan) and `camera` permissions.
+- **Linux/Windows**: FFI SQLite, `desktop_webview_window` for Midtrans.
 - Desktop DB lives in the app support dir: `~/.local/share/luminara_photobooth/photobooth.db` (Linux), `%APPDATA%\...\photobooth.db` (Windows).
 
 ## Payment Integration
@@ -193,7 +187,7 @@ Midtrans payment opens a WebView (native dialog on Android, popup window on desk
 
 The database is testable without `path_provider`: set `debugDatabasePath = inMemoryDatabasePath` and call `resetDatabase()` in `setUp`/`tearDown` (see `test/photobooth_test.dart`).
 
-Pure logic should be extracted so it can be tested without pumping a widget — `CashDenominations`, `Cart`, `ServerAddress.tryParse`, `BackupService.buildBackupJson` / `applyBackupJson` all exist as separate units for this reason. When adding non-trivial logic, put it somewhere a test can reach it.
+Pure logic should be extracted so it can be tested without pumping a widget — `CashDenominations`, `Cart`, `BackupService.buildBackupJson` / `applyBackupJson` all exist as separate units for this reason. When adding non-trivial logic, put it somewhere a test can reach it.
 
 Tests that pin behaviour someone might "fix" incorrectly (persisted enum strings, `PaymentMethod` keeping unknown values, backup rejecting corrupt files without deleting data) are load-bearing. Don't delete them to make a change pass.
 

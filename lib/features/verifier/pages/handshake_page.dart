@@ -5,54 +5,14 @@ import 'package:luminara_photobooth/core/services/auth_service.dart';
 import 'package:luminara_photobooth/features/home/blocs/blocs.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_bloc.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
-import 'package:luminara_photobooth/core/preferences/verifier_preferences.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 
-class HandshakePage extends StatefulWidget {
+/// Status sambungan ke antrian.
+///
+/// Dulu halaman ini meminta alamat IP kasir, lengkap dengan pemindai QR
+/// pairing. Sekarang akun yang jadi pasangannya, jadi tidak ada yang perlu
+/// diketik — yang tersisa hanya menyambung dan memutus.
+class HandshakePage extends StatelessWidget {
   const HandshakePage({super.key});
-
-  @override
-  State<HandshakePage> createState() => _HandshakePageState();
-}
-
-class _HandshakePageState extends State<HandshakePage> {
-  final _ipController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSavedAddress();
-  }
-
-  @override
-  void dispose() {
-    // Previously leaked: the controller was never disposed.
-    _ipController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadSavedAddress() async {
-    final saved = await VerifierPreferences.getServerAddress();
-    if (saved != null && mounted) {
-      _ipController.text = saved.host;
-    }
-  }
-
-  /// Connects and jumps to the queue tab. Rejects malformed input instead of
-  /// throwing on `int.parse`, which is what the old code did.
-  void _connect(String input) {
-    final address = ServerAddress.tryParse(input);
-    if (address == null) {
-      SnackBarHelper.showError(
-        context,
-        'Alamat server tidak valid. Contoh: 192.168.1.5 atau 192.168.1.5:3000',
-      );
-      return;
-    }
-
-    context.read<VerifierBloc>().add(ConnectToServer(address));
-    context.read<BottomNavBloc>().add(TapBottomNavEvent(0));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +22,6 @@ class _HandshakePageState extends State<HandshakePage> {
         child: BlocBuilder<VerifierBloc, VerifierState>(
           builder: (context, state) {
             final isConnected = state.status == VerifierStatus.connected;
-
             final surfaces = context.surfaces;
 
             return SingleChildScrollView(
@@ -86,7 +45,7 @@ class _HandshakePageState extends State<HandshakePage> {
                         child: Icon(
                           isConnected
                               ? Icons.cloud_done_rounded
-                              : Icons.link_rounded,
+                              : Icons.cloud_off_rounded,
                           size: 44,
                           color: isConnected
                               ? surfaces.onSuccessTint
@@ -95,9 +54,9 @@ class _HandshakePageState extends State<HandshakePage> {
                       ),
                       const SizedBox(height: Dimens.dp24),
                       if (isConnected)
-                        _buildConnectedInfo(context, state)
+                        _ConnectedInfo(state: state)
                       else
-                        _buildConnectionForm(context, state),
+                        const _ConnectForm(),
                       if (state.errorMessage != null && !isConnected)
                         Padding(
                           padding: const EdgeInsets.only(top: Dimens.dp16),
@@ -126,19 +85,25 @@ class _HandshakePageState extends State<HandshakePage> {
       ),
     );
   }
+}
 
-  Widget _buildConnectedInfo(BuildContext context, VerifierState state) {
+class _ConnectedInfo extends StatelessWidget {
+  const _ConnectedInfo({required this.state});
+
+  final VerifierState state;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Column(
       children: [
-        Text('Terhubung ke Server', style: theme.textTheme.titleLarge),
+        Text('Terhubung', style: theme.textTheme.titleLarge),
         const SizedBox(height: Dimens.dp4),
         Text(
-          '${state.serverIp}',
-          style: theme.textTheme.headlineSmall?.copyWith(
+          AuthService().email ?? 'luminarabali.com',
+          style: theme.textTheme.titleMedium?.copyWith(
             color: theme.colorScheme.primary,
-            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
         const SizedBox(height: Dimens.dp32),
@@ -158,89 +123,24 @@ class _HandshakePageState extends State<HandshakePage> {
     );
   }
 
-  Widget _buildConnectionForm(BuildContext context, VerifierState state) {
-    final theme = Theme.of(context);
-    final surfaces = context.surfaces;
-    final isConnecting = state.status == VerifierStatus.connecting;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const EyebrowText('Alamat Server'),
-        const SizedBox(height: Dimens.dp8),
-        TextField(
-          controller: _ipController,
-          keyboardType: TextInputType.url,
-          decoration: const InputDecoration(hintText: '192.168.1.5'),
-        ),
-        const SizedBox(height: Dimens.dp16),
-        ElevatedButton(
-          onPressed: isConnecting ? null : () => _connect(_ipController.text),
-          child: Text(isConnecting ? 'Menghubungkan...' : 'Hubungkan'),
-        ),
-        const SizedBox(height: Dimens.dp24),
-        Row(
-          children: [
-            Expanded(child: Divider(color: surfaces.border)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Dimens.dp12),
-              child: Text('ATAU', style: theme.textTheme.labelMedium),
-            ),
-            Expanded(child: Divider(color: surfaces.border)),
-          ],
-        ),
-        const SizedBox(height: Dimens.dp24),
-        OutlinedButton.icon(
-          onPressed: _scanPairingQR,
-          icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
-          label: const Text('Scan Pairing QR'),
-        ),
-        const SizedBox(height: Dimens.dp12),
-        OutlinedButton.icon(
-          onPressed: isConnecting ? null : _connectCloud,
-          icon: const Icon(Icons.cloud_outlined, size: 20),
-          label: const Text('Hubungkan lewat akun'),
-        ),
-        const SizedBox(height: Dimens.dp8),
-        Text(
-          'Lewat akun, scanner tidak perlu satu Wi-Fi dengan kasir — tapi '
-          'keduanya wajib punya internet.',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(color: surfaces.textMuted),
-        ),
-      ],
-    );
-  }
-
-  void _connectCloud() {
-    if (!AuthService().isLoggedIn) {
-      SnackBarHelper.showWarning(
-        context,
-        'Masuk ke akun dulu lewat Pengaturan',
-      );
-      return;
-    }
-    context.read<VerifierBloc>().add(ConnectToCloud());
-    context.read<BottomNavBloc>().add(TapBottomNavEvent(0));
-  }
-
   void _confirmDisconnect(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Putuskan Koneksi?'),
         content: const Text(
-          'Anda akan terputus dari server. Verifikasi tiket tidak dapat dilakukan sampai terhubung kembali.',
+          'Antrian berhenti diperbarui dan tiket tidak dapat diverifikasi '
+          'sampai Anda menyambung kembali.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Batal'),
           ),
           TextButton(
             onPressed: () {
               context.read<VerifierBloc>().add(DisconnectFromServer());
-              Navigator.pop(context);
+              Navigator.pop(ctx);
             },
             style: TextButton.styleFrom(foregroundColor: AppTokens.danger),
             child: const Text('Putuskan'),
@@ -249,48 +149,41 @@ class _HandshakePageState extends State<HandshakePage> {
       ),
     );
   }
-
-  Future<void> _scanPairingQR() async {
-    final scanned = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(builder: (_) => const _PairingScannerPage()),
-    );
-
-    if (scanned == null || !mounted) return;
-    _connect(scanned);
-  }
 }
 
-/// Reads a `host` or `host:port` pairing QR and pops it back as a string.
-///
-/// Owns its own "already scanned" guard: the scanner fires repeatedly for the
-/// same code, and the previous version drove that flag through the parent
-/// page's setState while sitting on a pushed route.
-class _PairingScannerPage extends StatefulWidget {
-  const _PairingScannerPage();
-
-  @override
-  State<_PairingScannerPage> createState() => _PairingScannerPageState();
-}
-
-class _PairingScannerPageState extends State<_PairingScannerPage> {
-  bool _handled = false;
+class _ConnectForm extends StatelessWidget {
+  const _ConnectForm();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Scan Pairing QR')),
-      body: MobileScanner(
-        onDetect: (capture) {
-          if (_handled) return;
+    final theme = Theme.of(context);
+    final surfaces = context.surfaces;
+    final isConnecting =
+        context.watch<VerifierBloc>().state.status == VerifierStatus.connecting;
 
-          final value = capture.barcodes.firstOrNull?.rawValue;
-          if (value == null || value.isEmpty) return;
-
-          _handled = true;
-          Navigator.pop(context, value);
-        },
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Antrian diambil dari akun yang sedang masuk, jadi perangkat ini '
+          'tidak perlu satu Wi-Fi dengan kasir — tapi keduanya butuh internet.',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: surfaces.textMuted,
+          ),
+        ),
+        const SizedBox(height: Dimens.dp24),
+        ElevatedButton.icon(
+          onPressed: isConnecting
+              ? null
+              : () {
+                  context.read<VerifierBloc>().add(ConnectToServer());
+                  context.read<BottomNavBloc>().add(TapBottomNavEvent(0));
+                },
+          icon: const Icon(Icons.cloud_sync_outlined, size: 20),
+          label: Text(isConnecting ? 'Menghubungkan...' : 'Hubungkan'),
+        ),
+      ],
     );
   }
 }
