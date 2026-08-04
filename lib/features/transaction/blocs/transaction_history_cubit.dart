@@ -90,7 +90,14 @@ class TransactionHistoryCubit extends Cubit<TransactionHistoryState> {
   final TransactionRepository _repository;
   late final StreamSubscription<String> _serverEvents;
 
+  /// Bumped per load. A filter change or a server event can start a second
+  /// query while the first is still running; without this the slower one wins.
+  var _generation = 0;
+
   Future<void> load() async {
+    if (isClosed) return;
+    final generation = ++_generation;
+
     emit(
       state.copyWith(transactions: AsyncLoading(state.transactions.dataOrNull)),
     );
@@ -100,7 +107,8 @@ class TransactionHistoryCubit extends Cubit<TransactionHistoryState> {
         ? await _repository.all()
         : await _repository.byDateRange(range.start, range.end);
 
-    if (!isClosed) emit(state.copyWith(transactions: result.toAsyncState()));
+    if (isClosed || generation != _generation) return;
+    emit(state.copyWith(transactions: result.toAsyncState()));
   }
 
   Future<void> applyFilter(DateRangeFilter filter) async {

@@ -57,7 +57,8 @@ class _TransactionView extends StatelessWidget {
     if (!context.mounted) return;
 
     result.fold(
-      ok: (path) => SnackBarHelper.showSuccess(context, 'File disimpan di: $path'),
+      ok: (path) =>
+          SnackBarHelper.showSuccess(context, 'File disimpan di: $path'),
       err: (message, _) {
         AppLog.error(message);
         SnackBarHelper.showError(context, message);
@@ -65,7 +66,10 @@ class _TransactionView extends StatelessWidget {
     );
   }
 
-  Future<void> _openDetail(BuildContext context, Transaction transaction) async {
+  Future<void> _openDetail(
+    BuildContext context,
+    Transaction transaction,
+  ) async {
     final cubit = context.read<TransactionHistoryCubit>();
     final action = await TransactionDetailDialog.show(context, transaction);
     if (action != TransactionDetailAction.delete || !context.mounted) return;
@@ -111,7 +115,11 @@ class _TransactionView extends StatelessWidget {
       context: context,
       firstDate: firstDate,
       lastDate: lastDate,
-      initialDateRange: clampRange(cubit.state.filter.range, firstDate, lastDate),
+      initialDateRange: clampRange(
+        cubit.state.filter.range,
+        firstDate,
+        lastDate,
+      ),
       helpText: 'Pilih Rentang Tanggal',
       confirmText: 'Pilih',
       cancelText: 'Batal',
@@ -338,28 +346,37 @@ class _FilterPill extends StatelessWidget {
     final theme = Theme.of(context);
     final surfaces = context.surfaces;
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(
-          horizontal: Dimens.dp16,
-          vertical: Dimens.dp10,
-        ),
-        decoration: BoxDecoration(
-          // JANGAN Colors.transparent: itu HITAM dengan alpha 0, jadi lerp
-          // ivory → transparan melewati hitam semi-transparan dan berkedip
-          // gelap. Fade ke warna yang sama, cuma alpha-nya yang turun.
-          color: theme.colorScheme.surface.withValues(alpha: selected ? 1 : 0),
-          borderRadius: BorderRadius.circular(Dimens.rFull),
-          boxShadow: selected ? surfaces.cardShadow : const [],
-        ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: selected ? theme.colorScheme.primary : surfaces.textSecondary,
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Dimens.rFull),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(
+            horizontal: Dimens.dp16,
+            vertical: Dimens.dp10,
+          ),
+          decoration: BoxDecoration(
+            // JANGAN Colors.transparent: itu HITAM dengan alpha 0, jadi lerp
+            // ivory → transparan melewati hitam semi-transparan dan berkedip
+            // gelap. Fade ke warna yang sama, cuma alpha-nya yang turun.
+            color: theme.colorScheme.surface.withValues(
+              alpha: selected ? 1 : 0,
+            ),
+            borderRadius: BorderRadius.circular(Dimens.rFull),
+            boxShadow: selected ? surfaces.cardShadow : const [],
+          ),
+          child: Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: selected
+                  ? theme.colorScheme.primary
+                  : surfaces.textSecondary,
+            ),
           ),
         ),
       ),

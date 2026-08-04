@@ -33,12 +33,15 @@ class ProductRepository {
           throw ArgumentError('Produk tanpa id tidak bisa diperbarui');
         }
         final db = await getDatabase();
-        await db.update(
+        final updated = await db.update(
           'products',
           product.toMap(),
           where: 'id = ?',
           whereArgs: [id],
         );
+        // Zero rows means the product was deleted elsewhere; reporting success
+        // would leave the edit screen claiming it saved.
+        if (updated == 0) throw StateError('Produk tidak ditemukan');
       });
 
   Future<Result<void>> delete(int id) =>

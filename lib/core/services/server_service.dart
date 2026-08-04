@@ -89,6 +89,9 @@ class ServerService {
             queue.map((t) => QueueTicket.fromTransaction(t).toJson()).toList(),
         err: (message, _) {
           AppLog.error('Error fetching queue: $message');
+          // 500, not an empty 200 — otherwise the verifier renders "antrian
+          // kosong" when the database is actually broken.
+          res.statusCode = 500;
           return const [];
         },
       );

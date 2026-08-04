@@ -85,6 +85,7 @@ class CashierCubit extends Cubit<CashierState> {
   }
 
   Future<void> loadProducts() async {
+    if (isClosed) return;
     emit(state.copyWith(products: AsyncLoading(state.products.dataOrNull)));
     final result = await _products.all();
     if (!isClosed) emit(state.copyWith(products: result.toAsyncState()));
@@ -100,8 +101,7 @@ class CashierCubit extends Cubit<CashierState> {
   void adjustQuantity(Product product, int delta) =>
       emit(state.copyWith(cart: state.cart.adjust(product, delta)));
 
-  void setCustomerName(String name) =>
-      emit(state.copyWith(customerName: name));
+  void setCustomerName(String name) => emit(state.copyWith(customerName: name));
 
   void setPaymentMethod(PaymentMethod method) =>
       emit(state.copyWith(paymentMethod: method));
@@ -144,8 +144,13 @@ class CashierCubit extends Cubit<CashierState> {
 
     final queueNumber = (saved as Ok<int>).value;
 
-    // Tell connected verifiers a new ticket exists.
-    ServerService().broadcast('REFRESH_QUEUE');
+    // Tell connected verifiers a new ticket exists. The sale is already saved,
+    // so a dead socket must not turn a successful checkout into an error.
+    try {
+      ServerService().broadcast('REFRESH_QUEUE');
+    } catch (e) {
+      AppLog.error('Gagal broadcast REFRESH_QUEUE: $e');
+    }
 
     return Ok(
       transaction.copyWith(

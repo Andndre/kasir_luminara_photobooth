@@ -39,7 +39,9 @@ class _CashPaymentDialogState extends State<CashPaymentDialog> {
     super.initState();
     _amountPaid = widget.total;
     _suggestions = CashDenominations.suggest(widget.total);
-    _amountController = TextEditingController(text: '${widget.total}');
+    _amountController = TextEditingController(
+      text: Currency.formatPlain(widget.total),
+    );
   }
 
   @override
@@ -54,7 +56,7 @@ class _CashPaymentDialogState extends State<CashPaymentDialog> {
   void _select(int amount) {
     setState(() {
       _amountPaid = amount;
-      _amountController.text = '$amount';
+      _amountController.text = Currency.formatPlain(amount);
       _amountController.selection = TextSelection.fromPosition(
         TextPosition(offset: _amountController.text.length),
       );
@@ -213,22 +215,32 @@ class _SuggestionChip extends StatelessWidget {
     final theme = Theme.of(context);
     final surfaces = context.surfaces;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(
-          horizontal: Dimens.dp16,
-          vertical: Dimens.dp10,
-        ),
-        decoration: BoxDecoration(
-          color: selected ? theme.colorScheme.primary : surfaces.surfaceAlt,
-          borderRadius: BorderRadius.circular(Dimens.rFull),
-        ),
-        child: Text(
-          Currency.format(amount),
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: selected ? Colors.white : surfaces.textSecondary,
+    // Semantics + InkWell rather than a bare GestureDetector: the quick-entry
+    // chips are now focusable, keyboard-activatable and announced as selected.
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: Currency.format(amount),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Dimens.rFull),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Dimens.dp16,
+            vertical: Dimens.dp10,
+          ),
+          decoration: BoxDecoration(
+            color: selected ? theme.colorScheme.primary : surfaces.surfaceAlt,
+            borderRadius: BorderRadius.circular(Dimens.rFull),
+          ),
+          child: Text(
+            Currency.format(amount),
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: selected
+                  ? theme.colorScheme.onPrimary
+                  : surfaces.textSecondary,
+            ),
           ),
         ),
       ),
