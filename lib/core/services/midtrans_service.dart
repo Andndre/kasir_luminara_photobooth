@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:luminara_photobooth/core/helpers/app_log.dart';
+import 'package:luminara_photobooth/core/services/auth_service.dart';
 
 /// A payment session created on the backend: where to send the customer, and
 /// the id to poll for its outcome.
@@ -49,8 +50,7 @@ class MidtransPaymentStatus {
 }
 
 class MidtransService {
-  // Production URL
-  static const String _baseUrl = 'https://luminarabali.com/api';
+  static const String _baseUrl = cloudBaseUrl;
   static const _timeout = Duration(seconds: 15);
 
   String get baseUrl => _baseUrl;

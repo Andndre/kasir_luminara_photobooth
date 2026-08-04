@@ -8,7 +8,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 /// Current schema version. Bump this *and* add an `oldVersion < n` branch in
 /// [_onUpgrade] — never edit [_onCreate] alone, or upgraded installs will be
 /// missing whatever you added.
-const _schemaVersion = 3;
+const _schemaVersion = 4;
 
 /// FFI must be initialised exactly once per process, before any DB call.
 bool _ffiInitialized = false;
@@ -112,7 +112,8 @@ Future<void> _onCreate(Database db, int version) async {
       redeemed_at TEXT,
       midtrans_order_id TEXT,
       queue_number INTEGER,
-      queue_date TEXT
+      queue_date TEXT,
+      synced_at TEXT
     )
   ''');
 
@@ -149,6 +150,13 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     );
     await db.execute('ALTER TABLE transactions ADD COLUMN queue_date TEXT');
     await db.execute(_createQueueCounterTable);
+  }
+
+  if (oldVersion < 4) {
+    // NULL berarti "belum terkirim ke luminarabali.com". Baris lama sengaja
+    // dibiarkan NULL supaya riwayat yang sudah ada ikut terdorong ke server
+    // saat pertama kali login.
+    await db.execute('ALTER TABLE transactions ADD COLUMN synced_at TEXT');
   }
 }
 
