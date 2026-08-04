@@ -375,9 +375,7 @@ class _FilterPill extends StatelessWidget {
               for (final shadow in surfaces.cardShadow)
                 selected
                     ? shadow
-                    : shadow.copyWith(
-                        color: shadow.color.withValues(alpha: 0),
-                      ),
+                    : shadow.copyWith(color: shadow.color.withValues(alpha: 0)),
             ],
           ),
           child: Text(
