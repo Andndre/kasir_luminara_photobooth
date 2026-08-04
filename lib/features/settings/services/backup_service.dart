@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/data/db.dart';
+import 'package:luminara_photobooth/core/services/cloud_api.dart';
+import 'package:luminara_photobooth/core/services/sync_service.dart';
 
 /// Backup file format version. Bump only for a breaking change to the layout;
 /// the reader below accepts anything with a `tables` map.
@@ -173,4 +175,34 @@ class BackupService {
         AppLog.info('Restore selesai dari $filePath');
         dataRefresh.invalidate();
       });
+
+  /// Pulls this account's data down from luminarabali.com and swaps it in —
+  /// the "ganti perangkat" path.
+  ///
+  /// Reuses [applyBackupJson] rather than parsing a second format: the server's
+  /// `/api/pos/restore` deliberately answers in the backup file layout, so
+  /// there is only ever one restore code path to get wrong.
+  static Future<Result<void>> restoreFromCloud() async {
+    switch (await const CloudApi().restoreJson()) {
+      case Err(:final message, :final error, :final stackTrace):
+        return Err(message, error, stackTrace);
+
+      case Ok(value: final rawJson):
+        return runCatching('Gagal memulihkan dari server', () async {
+          await applyBackupJson(rawJson);
+
+          // Baris ini baru saja datang *dari* server, jadi menandainya belum
+          // tersinkron akan mendorong seluruh riwayat kembali ke sana tanpa
+          // guna. Kursor penukaran ikut direset karena datanya sudah termuat.
+          final db = await getDatabase();
+          await db.update('transactions', {
+            'synced_at': DateTime.now().toIso8601String(),
+          });
+          await SyncService().reset();
+
+          AppLog.info('Restore selesai dari server');
+          dataRefresh.invalidate();
+        });
+    }
+  }
 }

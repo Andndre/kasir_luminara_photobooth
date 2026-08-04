@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/core/services/auth_service.dart';
 import 'package:luminara_photobooth/features/settings/services/backup_service.dart';
 
 class BackupPage extends StatefulWidget {
@@ -64,6 +65,43 @@ class _BackupPageState extends State<BackupPage> {
     );
   }
 
+  /// Jalur "ganti perangkat": tarik data akun ini dari luminarabali.com.
+  Future<void> _restoreFromCloud() async {
+    if (!AuthService().isLoggedIn) {
+      SnackBarHelper.showWarning(context, 'Masuk ke akun dulu');
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ambil Data dari Server?'),
+        content: Text(
+          'Data di perangkat ini akan dihapus dan diganti dengan data akun '
+          '${AuthService().email ?? ''} di luminarabali.com.\n\n'
+          'Transaksi di perangkat ini yang belum sempat terkirim akan hilang.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Ya, Ambil'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    await _run(
+      BackupService.restoreFromCloud,
+      'Data dari server berhasil dimuat.',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -96,8 +134,9 @@ class _BackupPageState extends State<BackupPage> {
                           ),
                           Dimens.dp8.height,
                           RegularText(
-                            'Export semua data ke file JSON.\n'
-                            'Termasuk: produk, transaksi, antrian.',
+                            'Salinan dingin di luar server: satu-satunya yang '
+                            'tersisa kalau akun atau server luminarabali.com '
+                            'ikut hilang.',
                           ),
                           Dimens.dp16.height,
                           ElevatedButton.icon(
@@ -110,6 +149,9 @@ class _BackupPageState extends State<BackupPage> {
                     ),
                   ),
                   Dimens.dp16.height,
+                  // Dulu dua kartu terpisah yang mengulang peringatan yang sama.
+                  // Keduanya melakukan hal identik — mengganti isi perangkat —
+                  // jadi yang membedakan cuma sumbernya.
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(Dimens.dp16),
@@ -120,20 +162,27 @@ class _BackupPageState extends State<BackupPage> {
                             children: [
                               Icon(Icons.restore, color: theme.primaryColor),
                               Dimens.dp12.width,
-                              RegularText.semiBold('Restore Data'),
+                              RegularText.semiBold('Pulihkan Data'),
                             ],
                           ),
                           Dimens.dp8.height,
                           RegularText(
-                            'Import data dari file backup JSON.\n'
-                            'PERINGATAN: Data saat ini akan DIHAPUS!',
+                            'Data di perangkat ini akan diganti. Data di server '
+                            'tidak ikut mundur — transaksi yang lebih baru di '
+                            'sana tetap ada.',
                             style: TextStyle(color: theme.colorScheme.error),
                           ),
                           Dimens.dp16.height,
                           OutlinedButton.icon(
+                            onPressed: _restoreFromCloud,
+                            icon: const Icon(Icons.cloud_sync_outlined),
+                            label: const Text('Dari Server'),
+                          ),
+                          Dimens.dp8.height,
+                          OutlinedButton.icon(
                             onPressed: _restore,
                             icon: const Icon(Icons.upload),
-                            label: const Text('Upload Backup'),
+                            label: const Text('Dari File Backup'),
                           ),
                         ],
                       ),
