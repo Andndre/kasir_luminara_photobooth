@@ -92,16 +92,6 @@ class CloudApi {
     },
   );
 
-  /// Tells the server a ticket was redeemed on the LAN, where it could not see
-  /// it happen.
-  ///
-  /// Best-effort and unauthoritative: the server may answer "sudah dipakai",
-  /// which is the right answer and not an error here. Without this call, a
-  /// ticket redeemed over the LAN stays PAID on the server and could be
-  /// redeemed a second time from a cloud-connected scanner.
-  Future<Result<void>> reportRedeemed(String uuid) =>
-      _send('POST', '/pos/verify', body: {'ticket_code': uuid}, parse: (_) {});
-
   /// The whole account as a backup-format JSON string, ready for
   /// `BackupService.applyBackupJson`.
   Future<Result<String>> restoreJson() =>
