@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/features/settings/settings.dart';
-import 'package:luminara_photobooth/model/log.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:luminara_photobooth/core/preferences/app_state.dart';

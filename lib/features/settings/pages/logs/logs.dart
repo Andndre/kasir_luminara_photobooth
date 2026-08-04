@@ -1,105 +1,98 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:luminara_photobooth/core/blocs/async_state.dart';
 import 'package:luminara_photobooth/core/core.dart';
-import 'package:luminara_photobooth/model/log.dart';
+import 'package:luminara_photobooth/features/settings/blocs/logs/logs_cubit.dart';
 
-class LogsPage extends StatefulWidget {
+class LogsPage extends StatelessWidget {
   const LogsPage({super.key});
 
   @override
-  State<LogsPage> createState() => _LogsPageState();
-}
-
-class _LogsPageState extends State<LogsPage> {
-  List<Log> _logs = [];
-  bool isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLogs();
-  }
-
-  Future<void> _loadLogs() async {
-    setState(() => isLoading = true);
-    try {
-      final logs = await Log.getAllLogs();
-      setState(() {
-        _logs = logs;
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() => isLoading = false);
-      if (mounted) {
-        SnackBarHelper.showError(context, 'Error loading logs: $e');
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 800;
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Logs'),
-        backgroundColor: theme.appBarTheme.backgroundColor,
-        elevation: 0,
-        foregroundColor: theme.appBarTheme.foregroundColor,
-      ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _logs.isEmpty
-                  ? const EmptyState(
-                      icon: Icons.article_outlined,
-                      title: 'Tidak ada log',
-                      message: 'Kejadian dan error aplikasi akan tercatat di sini.',
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _loadLogs,
-                      child: isDesktop
-                          ? GridView.builder(
-                              padding: const EdgeInsets.all(16),
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                    maxCrossAxisExtent: 400,
-                                    crossAxisSpacing: 16,
-                                    mainAxisSpacing: 16,
-                                    mainAxisExtent: 130,
-                                  ),
-                              itemCount: _logs.length,
-                              itemBuilder: (context, index) {
-                                final log = _logs[index];
-                                return _ItemSection(log);
-                              },
-                            )
-                          : ListView.separated(
-                              padding: const EdgeInsets.all(16.0),
-                              itemBuilder: (context, index) {
-                                final log = _logs[index];
-                                return _ItemSection(log);
-                              },
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 12),
-                              itemCount: _logs.length,
-                            ),
-                    ),
-            ),
-          ],
+    return BlocProvider(
+      create: (_) => LogsCubit()..load(),
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: const Text('Logs'),
+          backgroundColor: theme.appBarTheme.backgroundColor,
+          elevation: 0,
+          foregroundColor: theme.appBarTheme.foregroundColor,
+        ),
+        body: SafeArea(
+          child: BlocBuilder<LogsCubit, AsyncState<List<LogEntry>>>(
+            builder: (context, state) => switch (state) {
+              AsyncLoading(previous: null) => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              AsyncFailed(:final message) => EmptyState(
+                isError: true,
+                icon: Icons.article_outlined,
+                title: 'Gagal memuat log',
+                message: message,
+                actionLabel: 'Coba Lagi',
+                onAction: () => context.read<LogsCubit>().load(),
+              ),
+              _ => _LogList(logs: state.dataOrNull ?? const []),
+            },
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _ItemSection(Log log) {
+class _LogList extends StatelessWidget {
+  const _LogList({required this.logs});
+
+  final List<LogEntry> logs;
+
+  @override
+  Widget build(BuildContext context) {
+    if (logs.isEmpty) {
+      return const EmptyState(
+        icon: Icons.article_outlined,
+        title: 'Tidak ada log',
+        message: 'Kejadian dan error aplikasi akan tercatat di sini.',
+      );
+    }
+
+    final isDesktop = MediaQuery.of(context).size.width > 800;
+
+    return RefreshIndicator(
+      onRefresh: () => context.read<LogsCubit>().load(),
+      child: isDesktop
+          ? GridView.builder(
+              padding: const EdgeInsets.all(Dimens.dp16),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 400,
+                crossAxisSpacing: Dimens.dp16,
+                mainAxisSpacing: Dimens.dp16,
+                mainAxisExtent: 130,
+              ),
+              itemCount: logs.length,
+              itemBuilder: (context, index) => _LogCard(logs[index]),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(Dimens.dp16),
+              itemCount: logs.length,
+              separatorBuilder: (_, _) => const SizedBox(height: Dimens.dp12),
+              itemBuilder: (context, index) => _LogCard(logs[index]),
+            ),
+    );
+  }
+}
+
+class _LogCard extends StatelessWidget {
+  const _LogCard(this.log);
+
+  final LogEntry log;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final surfaces = context.surfaces;
 

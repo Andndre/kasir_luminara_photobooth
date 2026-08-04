@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:luminara_photobooth/core/domain/transaction_status.dart';
 import 'package:luminara_photobooth/core/components/surface/surface.dart';
 import 'package:luminara_photobooth/core/preferences/theme/app_theme.dart';
 
@@ -56,18 +57,17 @@ void main() {
       await pumpIn(
         tester,
         brightness,
-        const Wrap(
+        Wrap(
           children: [
-            StatusBadge('PAID'),
-            StatusBadge('COMPLETED'),
-            StatusBadge('CANCELLED'),
-            StatusBadge('ENTAH'), // status tak dikenal jangan bikin crash
+            for (final status in TransactionStatus.values) StatusBadge(status),
+            // Nilai tak dikenal dari DB lama jangan bikin crash — jatuh ke PAID.
+            StatusBadge(TransactionStatus.fromDb('ENTAH')),
           ],
         ),
       );
       expect(tester.takeException(), isNull);
-      expect(find.text('PAID'), findsOneWidget);
-      expect(find.text('ENTAH'), findsOneWidget);
+      expect(find.text('PAID'), findsNWidgets(2));
+      expect(find.text('COMPLETED'), findsOneWidget);
     });
 
     testWidgets('PackageMonogram render di $mode', (tester) async {

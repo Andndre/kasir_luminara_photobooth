@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
-import 'package:luminara_photobooth/core/preferences/app_state.dart';
 import 'package:luminara_photobooth/features/settings/services/backup_service.dart';
 import 'package:luminara_photobooth/features/settings/services/restore_service.dart';
-import 'package:provider/provider.dart';
 
 class BackupPage extends StatefulWidget {
   const BackupPage({super.key});
@@ -61,7 +59,7 @@ class _BackupPageState extends State<BackupPage> {
     final success = await RestoreService.importBackup(
       onSuccess: () {
         // Trigger refresh semua data di memory
-        context.read<AppState>().notifyDataRestored();
+        dataRefresh.invalidate();
       },
     );
 

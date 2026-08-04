@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:luminara_photobooth/core/domain/transaction_status.dart';
 import 'package:luminara_photobooth/core/preferences/dimens.dart';
 import 'package:luminara_photobooth/core/preferences/tokens.dart';
 
@@ -9,17 +10,22 @@ import 'package:luminara_photobooth/core/preferences/tokens.dart';
 class StatusBadge extends StatelessWidget {
   const StatusBadge(this.status, {super.key});
 
-  final String status;
+  final TransactionStatus status;
 
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
 
-    final (Color bg, Color fg) = switch (status.toUpperCase()) {
-      'PAID' => (surfaces.warningTint, surfaces.onWarningTint),
-      'COMPLETED' => (surfaces.successTint, surfaces.onSuccessTint),
-      'CANCELLED' => (surfaces.dangerTint, surfaces.onDangerTint),
-      _ => (surfaces.surfaceAlt, surfaces.textSecondary),
+    final (Color bg, Color fg) = switch (status) {
+      TransactionStatus.paid => (surfaces.warningTint, surfaces.onWarningTint),
+      TransactionStatus.completed => (
+        surfaces.successTint,
+        surfaces.onSuccessTint,
+      ),
+      TransactionStatus.cancelled => (
+        surfaces.dangerTint,
+        surfaces.onDangerTint,
+      ),
     };
 
     return Container(
@@ -29,7 +35,7 @@ class StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(Dimens.rXs),
       ),
       child: Text(
-        status.toUpperCase(),
+        status.dbValue,
         style: Theme.of(
           context,
         ).textTheme.labelSmall?.copyWith(color: fg, letterSpacing: 0.6),

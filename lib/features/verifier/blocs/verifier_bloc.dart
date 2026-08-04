@@ -6,7 +6,7 @@ import 'package:luminara_photobooth/core/services/verifier_service.dart';
 import 'package:luminara_photobooth/core/preferences/verifier_preferences.dart';
 
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
-import 'package:luminara_photobooth/model/log.dart';
+import 'package:luminara_photobooth/core/helpers/app_log.dart';
 
 abstract class VerifierEvent extends Equatable {
   const VerifierEvent();
@@ -82,7 +82,7 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
       );
       add(RefreshQueue());
     } catch (e) {
-      Log.insertLog('Verifier Connect Error: $e', isError: true);
+      AppLog.error('Verifier Connect Error: $e');
       emit(
         state.copyWith(
           status: VerifierStatus.error,
@@ -108,10 +108,16 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
     Emitter<VerifierState> emit,
   ) async {
     try {
-      final queue = await service.getQueue();
-      emit(state.copyWith(queue: queue, status: VerifierStatus.connected));
+      final queue = await service.fetchQueue();
+      emit(
+        state.copyWith(
+          queue: queue,
+          status: VerifierStatus.connected,
+          clearError: true,
+        ),
+      );
     } catch (e) {
-      Log.insertLog('Refresh Queue Error: $e', isError: true);
+      AppLog.error('Refresh Queue Error: $e');
       emit(
         state.copyWith(
           status: VerifierStatus.error,
@@ -129,26 +135,28 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
       state.copyWith(verifyingUuid: event.uuid, verifySuccess: false),
     );
     try {
-      final result = await service.verifyTicket(event.uuid);
-      if (result['valid'] == true) {
-        emit(
-          state.copyWith(
-            verifyingUuid: null,
-            verifySuccess: true,
-          ),
-        );
-        add(RefreshQueue());
-      } else {
-        emit(
-          state.copyWith(
-            verifyingUuid: null,
-            verifySuccess: false,
-            errorMessage: result['message'] ?? 'Verifikasi gagal',
-          ),
-        );
+      switch (await service.verifyTicket(event.uuid)) {
+        case TicketAccepted():
+          emit(
+            state.copyWith(
+              verifyingUuid: null,
+              verifySuccess: true,
+              clearError: true,
+            ),
+          );
+          add(RefreshQueue());
+
+        case TicketRejected(:final message):
+          emit(
+            state.copyWith(
+              verifyingUuid: null,
+              verifySuccess: false,
+              errorMessage: message,
+            ),
+          );
       }
     } catch (e) {
-      Log.insertLog('Verify Transaction Error: $e', isError: true);
+      AppLog.error('Verify Transaction Error: $e');
       emit(
         state.copyWith(
           verifyingUuid: null,

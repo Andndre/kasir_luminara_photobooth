@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_bloc.dart';
-import 'package:luminara_photobooth/model/log.dart';
+import 'package:luminara_photobooth/core/services/verifier_service.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 /// Overlay bidik: area gelap dengan lubang di tengah, sudut siku brand, dan
@@ -198,7 +198,7 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
       }
     } catch (e) {
       if (mounted) {
-        Log.insertLog('Error verifying ticket: $e', isError: true);
+        AppLog.error('Error verifying ticket: $e');
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -208,10 +208,10 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
     }
   }
 
-  void _showResult(Map<String, dynamic> result) {
-    final data = result['data'] ?? {};
-    final items = (data['items'] as List?) ?? [];
-    final isValid = result['valid'] == true;
+  void _showResult(VerifyResult result) {
+    final accepted = result is TicketAccepted ? result : null;
+    final isValid = accepted != null;
+    final items = accepted?.items ?? const <QueueTicketItem>[];
 
     showModalBottomSheet<void>(
       context: context,
@@ -254,16 +254,16 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
                   ),
                   const SizedBox(height: Dimens.dp20),
 
-                  if (isValid) ...[
+                  if (accepted != null) ...[
                     Text(
-                      '${data['customer_name']}',
+                      accepted.customerName,
                       textAlign: TextAlign.center,
                       style: theme.textTheme.titleLarge,
                     ),
                     const SizedBox(height: Dimens.dp16),
                     if (items.isEmpty)
                       Text(
-                        data['product_name'] ?? '-',
+                        accepted.summary,
                         style: theme.textTheme.bodyLarge,
                       )
                     else
@@ -272,11 +272,11 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
                           padding: const EdgeInsets.only(bottom: Dimens.dp8),
                           child: Row(
                             children: [
-                              PackageMonogram('${i['product_name']}', size: 32),
+                              PackageMonogram(i.productName, size: 32),
                               const SizedBox(width: Dimens.dp12),
                               Expanded(
                                 child: Text(
-                                  '${i['product_name']} ×${i['quantity']}',
+                                  '${i.productName} ×${i.quantity}',
                                   style: theme.textTheme.bodyLarge,
                                 ),
                               ),
@@ -285,11 +285,10 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
                         ),
                       ),
                     const SizedBox(height: Dimens.dp16),
-                    const StatusBadge('COMPLETED'),
+                    const StatusBadge(TransactionStatus.completed),
                   ] else
                     Text(
-                      result['message'] ??
-                          'Tiket tidak ditemukan atau sudah dipakai.',
+                      (result as TicketRejected).message,
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyLarge,
                     ),

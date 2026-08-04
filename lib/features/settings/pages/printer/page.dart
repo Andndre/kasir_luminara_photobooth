@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/preferences/printer_preferences.dart';
-import 'package:luminara_photobooth/model/log.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 
 class PrinterPage extends StatefulWidget {
@@ -51,7 +50,7 @@ class _PrinterPageState extends State<PrinterPage> {
       });
     } catch (e) {
       if (mounted) {
-        Log.insertLog('Error loading paired devices: $e', isError: true);
+        AppLog.error('Error loading paired devices: $e');
         SnackBarHelper.showError(context, 'Error loading paired devices: $e');
       }
     } finally {
@@ -83,7 +82,7 @@ class _PrinterPageState extends State<PrinterPage> {
     } catch (e) {
       Navigator.of(context).pop(); // Close loading dialog
       if (mounted) {
-        Log.insertLog('Connection error: $e', isError: true);
+        AppLog.error('Connection error: $e');
         SnackBarHelper.showError(context, 'Connection error: $e');
       }
     }
@@ -105,7 +104,7 @@ class _PrinterPageState extends State<PrinterPage> {
       }
     } catch (e) {
       if (!mounted) return;
-      Log.insertLog('Disconnect error: $e', isError: true);
+      AppLog.error('Disconnect error: $e');
       SnackBarHelper.showError(context, 'Disconnect error: $e');
     }
   }
@@ -140,7 +139,7 @@ class _PrinterPageState extends State<PrinterPage> {
     } catch (e) {
       Navigator.of(context).pop(); // Close loading dialog
       if (mounted) {
-        Log.insertLog('Print error: $e', isError: true);
+        AppLog.error('Print error: $e');
         SnackBarHelper.showError(context, 'Print error: $e');
       }
     }

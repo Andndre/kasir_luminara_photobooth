@@ -4,18 +4,17 @@ import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_bloc.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
 import 'package:intl/intl.dart';
-import 'package:luminara_photobooth/model/log.dart';
 
 /// Kartu antrean. Nomor antrean dibuat besar karena itu yang dicocokkan
 /// petugas dengan tiket di tangan pelanggan, dari jarak berdiri.
 class _QueueCard extends StatelessWidget {
   const _QueueCard({
-    required this.item,
+    required this.ticket,
     required this.fallbackNumber,
     required this.onTap,
   });
 
-  final Map<String, dynamic> item;
+  final QueueTicket ticket;
   final int fallbackNumber;
   final VoidCallback onTap;
 
@@ -23,18 +22,11 @@ class _QueueCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final surfaces = context.surfaces;
-    final items = (item['items'] as List?) ?? [];
-
-    String timeStr = '-';
-    try {
-      if (item['created_at'] != null) {
-        timeStr = DateFormat('HH:mm').format(
-          DateTime.parse(item['created_at']),
-        );
-      }
-    } catch (e) {
-      Log.insertLog('Error parsing time: $e', isError: true);
-    }
+    final items = ticket.items;
+    final createdAt = ticket.createdAt;
+    final timeStr = createdAt == null
+        ? '-'
+        : DateFormat('HH:mm').format(createdAt);
 
     return AppCard(
       onTap: onTap,
@@ -51,7 +43,7 @@ class _QueueCard extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Text(
-              '${item['queue_number'] ?? fallbackNumber}',
+              '${ticket.queueNumber ?? fallbackNumber}',
               style: theme.textTheme.titleLarge?.copyWith(
                 color: theme.colorScheme.primary,
                 fontFeatures: const [FontFeature.tabularFigures()],
@@ -68,7 +60,7 @@ class _QueueCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        item['customer_name'] ?? 'Pelanggan',
+                        ticket.customerName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium,
@@ -80,7 +72,7 @@ class _QueueCard extends StatelessWidget {
                 const SizedBox(height: Dimens.dp8),
                 if (items.isEmpty)
                   Text(
-                    item['product_name'] ?? '-',
+                    ticket.summary,
                     style: theme.textTheme.bodyMedium,
                   )
                 else
@@ -89,11 +81,11 @@ class _QueueCard extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: Dimens.dp4),
                       child: Row(
                         children: [
-                          PackageMonogram('${i['product_name']}', size: 24),
+                          PackageMonogram(i.productName, size: 24),
                           const SizedBox(width: Dimens.dp8),
                           Expanded(
                             child: Text(
-                              '${i['product_name']} ×${i['quantity']}',
+                              '${i.productName} ×${i.quantity}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodyMedium,
@@ -106,11 +98,11 @@ class _QueueCard extends StatelessWidget {
                 const SizedBox(height: Dimens.dp4),
                 Row(
                   children: [
-                    const StatusBadge('PAID'),
+                    const StatusBadge(TransactionStatus.paid),
                     const SizedBox(width: Dimens.dp8),
                     Expanded(
                       child: Text(
-                        '${item['uuid']}',
+                        ticket.uuid,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -132,15 +124,15 @@ class _QueueCard extends StatelessWidget {
 class LiveQueuePage extends StatelessWidget {
   const LiveQueuePage({super.key});
 
-  void _showVerifyDialog(BuildContext context, Map<String, dynamic> item) {
+  void _showVerifyDialog(BuildContext context, QueueTicket ticket) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       showDragHandle: true, // bentuk & radius diambil dari bottomSheetTheme
       builder: (ctx) => _VerifyBottomSheet(
-        item: item,
+        ticket: ticket,
         onVerify: () {
-          context.read<VerifierBloc>().add(VerifyTransaction(item['uuid']));
+          context.read<VerifierBloc>().add(VerifyTransaction(ticket.uuid));
         },
       ),
     );
@@ -204,11 +196,11 @@ class LiveQueuePage extends StatelessWidget {
                         separatorBuilder: (_, _) =>
                             const SizedBox(height: Dimens.dp12),
                         itemBuilder: (context, index) {
-                          final item = state.queue[index];
+                          final ticket = state.queue[index];
                           return _QueueCard(
-                            item: item,
+                            ticket: ticket,
                             fallbackNumber: index + 1,
-                            onTap: () => _showVerifyDialog(context, item),
+                            onTap: () => _showVerifyDialog(context, ticket),
                           );
                         },
                       ),
@@ -222,17 +214,17 @@ class LiveQueuePage extends StatelessWidget {
 }
 
 class _VerifyBottomSheet extends StatelessWidget {
-  final Map<String, dynamic> item;
+  final QueueTicket ticket;
   final VoidCallback onVerify;
 
   const _VerifyBottomSheet({
-    required this.item,
+    required this.ticket,
     required this.onVerify,
   });
 
   @override
   Widget build(BuildContext context) {
-    final items = (item['items'] as List?) ?? [];
+    final items = ticket.items;
 
     return BlocListener<VerifierBloc, VerifierState>(
       listenWhen: (previous, current) =>
@@ -270,7 +262,7 @@ class _VerifyBottomSheet extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Text(
-                        '${item['queue_number'] ?? '-'}',
+                        '${ticket.queueNumber ?? '-'}',
                         style: theme.textTheme.headlineSmall?.copyWith(
                           color: theme.colorScheme.primary,
                           fontFeatures: const [FontFeature.tabularFigures()],
@@ -285,7 +277,7 @@ class _VerifyBottomSheet extends StatelessWidget {
                           const EyebrowText('Konfirmasi Verifikasi'),
                           const SizedBox(height: Dimens.dp4),
                           Text(
-                            item['customer_name'] ?? 'Pelanggan',
+                            ticket.customerName,
                             style: theme.textTheme.titleLarge,
                           ),
                         ],
@@ -303,7 +295,7 @@ class _VerifyBottomSheet extends StatelessWidget {
                       children: [
                         if (items.isEmpty)
                           Text(
-                            item['product_name'] ?? '-',
+                            ticket.summary,
                             style: theme.textTheme.bodyLarge,
                           )
                         else
@@ -314,14 +306,11 @@ class _VerifyBottomSheet extends StatelessWidget {
                               ),
                               child: Row(
                                 children: [
-                                  PackageMonogram(
-                                    '${i['product_name']}',
-                                    size: 32,
-                                  ),
+                                  PackageMonogram(i.productName, size: 32),
                                   const SizedBox(width: Dimens.dp12),
                                   Expanded(
                                     child: Text(
-                                      '${i['product_name']} ×${i['quantity']}',
+                                      '${i.productName} ×${i.quantity}',
                                       style: theme.textTheme.bodyLarge,
                                     ),
                                   ),
@@ -336,7 +325,7 @@ class _VerifyBottomSheet extends StatelessWidget {
                 const SizedBox(height: Dimens.dp24),
                 BlocBuilder<VerifierBloc, VerifierState>(
                   builder: (context, state) {
-                    final isVerifying = state.verifyingUuid == item['uuid'];
+                    final isVerifying = state.verifyingUuid == ticket.uuid;
 
                     return Column(
                       children: [
