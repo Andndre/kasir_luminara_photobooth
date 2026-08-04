@@ -187,7 +187,16 @@ class _CashierViewState extends State<_CashierView> {
         AppLog.error(message);
         SnackBarHelper.showError(context, message);
 
-      case Ok(value: final transaction):
+      case Ok(value: (transaction: final transaction, :final syncWarning)):
+        // Penjualan sudah aman di disk. Kalau belum sampai server, kasir harus
+        // tahu sekarang — tiketnya belum bisa dipindai dari perangkat lain.
+        if (syncWarning != null) {
+          SnackBarHelper.showWarning(
+            context,
+            'Tiket belum terkirim ke server: $syncWarning',
+          );
+        }
+
         // The sale is saved at this point; a failed print must not lose it.
         final printed = await PrinterHelper.printTicket(
           transaction,
