@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/features/auth/auth.dart';
 import 'package:luminara_photobooth/features/home/home.dart';
 import 'package:luminara_photobooth/features/home/pages/pages.dart';
 
@@ -7,6 +8,8 @@ Route<dynamic> routes(settings) {
   switch (settings.name) {
     case MainPage.routeName:
       return MaterialPageRoute(builder: (context) => const MainPage());
+    case LoginPage.routeName:
+      return MaterialPageRoute(builder: (context) => const LoginPage());
     default:
       return MaterialPageRoute(
         builder: (context) {

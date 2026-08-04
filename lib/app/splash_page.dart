@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/core/services/auth_service.dart';
+import 'package:luminara_photobooth/core/services/sync_service.dart';
+import 'package:luminara_photobooth/features/auth/auth.dart';
 import 'package:luminara_photobooth/features/home/home.dart';
 
 class SplashPage extends StatefulWidget {
@@ -19,24 +22,48 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _initializeApp() async {
-    // Simulasi inisialisasi data (jika ada)
-    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) setState(() => _statusText = 'Memeriksa akun...');
 
-    if (mounted) {
-      setState(() {
-        _statusText = 'Siap digunakan!';
-      });
-    }
-
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Menggantikan penundaan 2 detik yang dulu hanya simulasi. Kalau server
+    // tidak terjangkau, checkAccess jatuh ke masa tenggang offline dan tetap
+    // menjawab granted — kasir tidak boleh terkunci gara-gara Wi-Fi venue.
+    final access = await AuthService().checkAccess();
 
     if (!mounted) return;
 
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      MainPage.routeName,
-      (route) => false,
-    );
+    switch (access) {
+      case AccessStatus.granted:
+        setState(() => _statusText = 'Siap digunakan!');
+        SyncService().start();
+        await Future.delayed(const Duration(milliseconds: 400));
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          MainPage.routeName,
+          (route) => false,
+        );
+
+      case AccessStatus.needsLogin:
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          LoginPage.routeName,
+          (route) => false,
+        );
+
+      case AccessStatus.offlineTooLong:
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => LoginPage(
+              notice:
+                  'Aplikasi belum terhubung ke server lebih dari '
+                  '${AuthService.licenseGrace.inDays} hari. Sambungkan internet '
+                  'dan masuk lagi untuk melanjutkan.',
+            ),
+          ),
+          (route) => false,
+        );
+    }
   }
 
   @override
@@ -48,11 +75,9 @@ class _SplashPageState extends State<SplashPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo
-                Image.asset(
-                  MainAssets.logo,
-                  width: MediaQuery.of(context).size.width / 4,
-                ),
+                // Ukuran tetap, bukan pecahan lebar layar: di tablet dan
+                // desktop yang dulu jadi logo raksasa.
+                const AppLogoMark(size: 96),
 
                 Dimens.defaultSize.height,
 

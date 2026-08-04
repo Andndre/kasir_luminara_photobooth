@@ -18,6 +18,7 @@ class RegularTextInput extends StatelessWidget {
     this.onChanged,
     this.suffix,
     this.keyboardType,
+    this.obscureText = false,
   });
 
   final String hintText;
@@ -33,6 +34,7 @@ class RegularTextInput extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final Widget? suffix;
   final TextInputType? keyboardType;
+  final bool obscureText;
 
   @override
   Widget build(BuildContext context) {
@@ -47,11 +49,15 @@ class RegularTextInput extends StatelessWidget {
           controller: controller,
           enabled: enabled,
           inputFormatters: inputFormatters,
-          maxLines: maxLines,
+          // maxLines default di sini null (tumbuh mengikuti isi), dan
+          // TextField melarang itu digabung dengan obscureText. Dipaksa 1
+          // hanya saat disamarkan supaya input lain tidak berubah perilaku.
+          maxLines: obscureText ? 1 : maxLines,
           minLines: minLines,
           maxLength: maxLength,
           onChanged: onChanged,
           keyboardType: keyboardType,
+          obscureText: obscureText,
           decoration: InputDecoration(
             prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
             hintText: hintText,
