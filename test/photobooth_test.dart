@@ -74,7 +74,10 @@ void main() {
 
     test('Channel Midtrans dipetakan ke nilai yang disimpan', () {
       expect(PaymentMethod.fromMidtrans('qris'), PaymentMethod.qris);
-      expect(PaymentMethod.fromMidtrans('bca_va').dbValue, 'Bank Transfer (VA)');
+      expect(
+        PaymentMethod.fromMidtrans('bca_va').dbValue,
+        'Bank Transfer (VA)',
+      );
       expect(PaymentMethod.fromMidtrans('gopay').dbValue, 'GoPay/GoPay Later');
     });
   });
@@ -98,7 +101,9 @@ void main() {
 
     test('Should create and retrieve products', () async {
       expectOk(
-        await products.create(const Product(name: 'Test Package', price: 10000)),
+        await products.create(
+          const Product(name: 'Test Package', price: 10000),
+        ),
       );
 
       final all = expectOk(await products.all());

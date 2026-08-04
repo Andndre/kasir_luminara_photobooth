@@ -30,10 +30,8 @@ class QueueTicket extends Equatable {
     createdAt: transaction.createdAt,
     items: transaction.items
         .map(
-          (i) => QueueTicketItem(
-            productName: i.productName,
-            quantity: i.quantity,
-          ),
+          (i) =>
+              QueueTicketItem(productName: i.productName, quantity: i.quantity),
         )
         .toList(),
   );
@@ -65,7 +63,13 @@ class QueueTicket extends Equatable {
   );
 
   @override
-  List<Object?> get props => [uuid, customerName, queueNumber, createdAt, items];
+  List<Object?> get props => [
+    uuid,
+    customerName,
+    queueNumber,
+    createdAt,
+    items,
+  ];
 }
 
 class QueueTicketItem extends Equatable {

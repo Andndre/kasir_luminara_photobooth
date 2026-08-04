@@ -185,9 +185,7 @@ class ClientHomePage extends StatelessWidget {
       meta: isConnected
           ? 'Siap memverifikasi tiket · ${DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(DateTime.now())}'
           : 'Hubungkan lewat menu Koneksi.',
-      icon: isConnected
-          ? Icons.verified_user_rounded
-          : Icons.gpp_maybe_rounded,
+      icon: isConnected ? Icons.verified_user_rounded : Icons.gpp_maybe_rounded,
       // Terputus bukan kondisi brand — pakai tinta netral, bukan wine.
       gradient: isConnected
           ? null

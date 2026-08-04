@@ -12,10 +12,7 @@ class BackupPage extends StatefulWidget {
 class _BackupPageState extends State<BackupPage> {
   bool _isBusy = false;
 
-  Future<void> _run<T>(
-    Future<Result<T>> Function() action,
-    String done,
-  ) async {
+  Future<void> _run<T>(Future<Result<T>> Function() action, String done) async {
     setState(() => _isBusy = true);
     final result = await action();
     if (!mounted) return;

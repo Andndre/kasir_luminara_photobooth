@@ -46,13 +46,17 @@ void main() {
   tearDown(resetDatabase);
 
   test('Backup lalu restore mengembalikan data yang sama', () async {
-    unwrap(await products.create(const Product(name: 'Paket Uji', price: 12345)));
+    unwrap(
+      await products.create(const Product(name: 'Paket Uji', price: 12345)),
+    );
     unwrap(await transactions.create(sampleTransaction('TIKET-1')));
 
     final backup = await BackupService.buildBackupJson();
 
     // Data berubah setelah backup diambil.
-    unwrap(await products.create(const Product(name: 'Paket Baru', price: 999)));
+    unwrap(
+      await products.create(const Product(name: 'Paket Baru', price: 999)),
+    );
     unwrap(await transactions.create(sampleTransaction('TIKET-2')));
 
     await BackupService.applyBackupJson(backup);
@@ -94,7 +98,9 @@ void main() {
   });
 
   test('File rusak ditolak tanpa menghapus data yang ada', () async {
-    unwrap(await products.create(const Product(name: 'Jangan Hilang', price: 1)));
+    unwrap(
+      await products.create(const Product(name: 'Jangan Hilang', price: 1)),
+    );
     final before = unwrap(await products.all()).length;
 
     for (final bad in [
