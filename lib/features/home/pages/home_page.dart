@@ -135,7 +135,6 @@ class _HomeView extends StatelessWidget {
     );
   }
 
-
   String _greeting() {
     final hour = DateTime.now().hour;
     if (hour >= 18) return 'Selamat Malam';

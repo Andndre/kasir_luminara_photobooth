@@ -71,10 +71,7 @@ class _QueueCard extends StatelessWidget {
                 ),
                 const SizedBox(height: Dimens.dp8),
                 if (items.isEmpty)
-                  Text(
-                    ticket.summary,
-                    style: theme.textTheme.bodyMedium,
-                  )
+                  Text(ticket.summary, style: theme.textTheme.bodyMedium)
                 else
                   ...items.map(
                     (i) => Padding(
@@ -150,7 +147,10 @@ class LiveQueuePage extends StatelessWidget {
                   current.errorMessage != null),
           listener: (context, state) {
             if (state.verifySuccess) {
-              SnackBarHelper.showSuccess(context, 'Tiket berhasil diverifikasi');
+              SnackBarHelper.showSuccess(
+                context,
+                'Tiket berhasil diverifikasi',
+              );
             } else if (state.errorMessage != null &&
                 state.verifyingUuid == null &&
                 state.status == VerifierStatus.connected) {
@@ -163,7 +163,8 @@ class LiveQueuePage extends StatelessWidget {
                 return const EmptyState(
                   icon: Icons.cloud_off_rounded,
                   title: 'Belum terhubung',
-                  message: 'Hubungkan ke server lewat menu Koneksi untuk '
+                  message:
+                      'Hubungkan ke server lewat menu Koneksi untuk '
                       'melihat antrean.',
                 );
               }
@@ -217,10 +218,7 @@ class _VerifyBottomSheet extends StatelessWidget {
   final QueueTicket ticket;
   final VoidCallback onVerify;
 
-  const _VerifyBottomSheet({
-    required this.ticket,
-    required this.onVerify,
-  });
+  const _VerifyBottomSheet({required this.ticket, required this.onVerify});
 
   @override
   Widget build(BuildContext context) {
@@ -294,10 +292,7 @@ class _VerifyBottomSheet extends StatelessWidget {
                     child: Column(
                       children: [
                         if (items.isEmpty)
-                          Text(
-                            ticket.summary,
-                            style: theme.textTheme.bodyLarge,
-                          )
+                          Text(ticket.summary, style: theme.textTheme.bodyLarge)
                         else
                           ...items.map(
                             (i) => Padding(

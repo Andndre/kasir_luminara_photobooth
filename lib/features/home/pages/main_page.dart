@@ -237,7 +237,9 @@ class _NavPill extends StatelessWidget {
               Icon(
                 entry.icon,
                 size: 22,
-                color: selected ? theme.colorScheme.primary : surfaces.textMuted,
+                color: selected
+                    ? theme.colorScheme.primary
+                    : surfaces.textMuted,
               ),
               // Label ikut menyusut jadi 0 saat tidak aktif — tanpa ini,
               // lebar bar melompat waktu pindah tab.
@@ -300,11 +302,14 @@ class _ActionButton extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => isServer ? const CashierPage() : const TicketScannerPage(),
+                builder: (_) =>
+                    isServer ? const CashierPage() : const TicketScannerPage(),
               ),
             ),
             child: Icon(
-              isServer ? Icons.point_of_sale_rounded : Icons.qr_code_scanner_rounded,
+              isServer
+                  ? Icons.point_of_sale_rounded
+                  : Icons.qr_code_scanner_rounded,
               color: Colors.white,
               size: 28,
             ),

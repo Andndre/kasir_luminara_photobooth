@@ -34,7 +34,9 @@ class PrinterState extends Equatable {
     isScanning: isScanning ?? this.isScanning,
     isConnected: isConnected ?? this.isConnected,
     // Passing null clears it, which is what disconnecting wants.
-    connectedName: isConnected == false ? null : connectedName ?? this.connectedName,
+    connectedName: isConnected == false
+        ? null
+        : connectedName ?? this.connectedName,
   );
 
   @override
@@ -125,9 +127,7 @@ class PrinterCubit extends Cubit<PrinterState> {
   Future<void> setPaperSize(String macAddress, bool isMm80) async {
     await PrinterPreferences.setPaperMm80(macAddress, isMm80);
     if (isClosed) return;
-    emit(
-      state.copyWith(paperMm80: {...state.paperMm80, macAddress: isMm80}),
-    );
+    emit(state.copyWith(paperMm80: {...state.paperMm80, macAddress: isMm80}));
   }
 
   Future<String?> printTest() async {

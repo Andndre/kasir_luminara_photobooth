@@ -16,7 +16,9 @@ ThemeData buildAppTheme(Brightness brightness) {
   // cokelat-tinta untuk dark.
   final bgBase = isDark ? const Color(0xFF14100F) : const Color(0xFFF7F3EC);
   final bgSurface = isDark ? const Color(0xFF1E1917) : const Color(0xFFFBF7F1);
-  final textPrimary = isDark ? const Color(0xFFF7F3EC) : const Color(0xFF1A1412);
+  final textPrimary = isDark
+      ? const Color(0xFFF7F3EC)
+      : const Color(0xFF1A1412);
 
   // Brand web memakai Playfair Display (judul) + Instrument Sans (body).
   // Keduanya belum ter-bundle di aplikasi ini; Poppins dipertahankan supaya
@@ -302,10 +304,7 @@ ThemeData buildAppTheme(Brightness brightness) {
       labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => states.contains(WidgetState.selected)
-            ? textTheme.labelSmall?.copyWith(
-                color: primary,
-                letterSpacing: 0.2,
-              )
+            ? textTheme.labelSmall?.copyWith(color: primary, letterSpacing: 0.2)
             : textTheme.labelSmall?.copyWith(color: surfaces.textMuted),
       ),
       iconTheme: WidgetStateProperty.resolveWith(

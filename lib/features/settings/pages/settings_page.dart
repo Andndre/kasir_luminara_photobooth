@@ -169,10 +169,7 @@ class _SettingGroup extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(
-            left: Dimens.dp4,
-            bottom: Dimens.dp8,
-          ),
+          padding: const EdgeInsets.only(left: Dimens.dp4, bottom: Dimens.dp8),
           child: EyebrowText(title),
         ),
         AppCard(

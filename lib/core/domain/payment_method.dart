@@ -54,10 +54,7 @@ class PaymentMethod extends Equatable {
     'bni_va' ||
     'bri_va' ||
     'cimb_va' ||
-    'other_va' => const PaymentMethod._(
-      'Bank Transfer (VA)',
-      'Transfer Bank',
-    ),
+    'other_va' => const PaymentMethod._('Bank Transfer (VA)', 'Transfer Bank'),
     _ => PaymentMethod._('QRIS ($rawType)', 'QRIS'),
   };
 

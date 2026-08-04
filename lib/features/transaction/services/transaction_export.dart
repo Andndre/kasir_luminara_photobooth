@@ -17,59 +17,60 @@ class TransactionExport {
   static final _fileStamp = DateFormat('yyyyMMdd_HHmmss');
 
   /// Returns the path of the saved file.
-  static Future<Result<String>> toExcel(List<Transaction> transactions) =>
-      runCatching('Gagal export data', () async {
-        final excel = Excel.createExcel();
-        final sheet = excel['Laporan'];
+  static Future<Result<String>> toExcel(
+    List<Transaction> transactions,
+  ) => runCatching('Gagal export data', () async {
+    final excel = Excel.createExcel();
+    final sheet = excel['Laporan'];
 
-        sheet.appendRow([
-          TextCellValue('UUID'),
-          TextCellValue('Tanggal'),
-          TextCellValue('Jam'),
-          TextCellValue('Pelanggan'),
-          TextCellValue('Rincian Produk'),
-          TextCellValue('Harga Total'),
-          TextCellValue('Metode'),
-          TextCellValue('Status'),
-          TextCellValue('Waktu Redeem'),
-        ]);
+    sheet.appendRow([
+      TextCellValue('UUID'),
+      TextCellValue('Tanggal'),
+      TextCellValue('Jam'),
+      TextCellValue('Pelanggan'),
+      TextCellValue('Rincian Produk'),
+      TextCellValue('Harga Total'),
+      TextCellValue('Metode'),
+      TextCellValue('Status'),
+      TextCellValue('Waktu Redeem'),
+    ]);
 
-        for (final t in transactions) {
-          sheet.appendRow([
-            TextCellValue(t.uuid),
-            TextCellValue(_date.format(t.createdAt)),
-            TextCellValue(_time.format(t.createdAt)),
-            TextCellValue(t.customerName ?? '-'),
-            TextCellValue(
-              t.items.map((i) => '${i.productName} (x${i.quantity})').join(', '),
-            ),
-            IntCellValue(t.totalPrice),
-            TextCellValue(t.paymentMethod.dbValue),
-            TextCellValue(t.status.dbValue),
-            TextCellValue(
-              t.redeemedAt == null
-                  ? '-'
-                  : '${_date.format(t.redeemedAt!)} ${_time.format(t.redeemedAt!)}',
-            ),
-          ]);
-        }
+    for (final t in transactions) {
+      sheet.appendRow([
+        TextCellValue(t.uuid),
+        TextCellValue(_date.format(t.createdAt)),
+        TextCellValue(_time.format(t.createdAt)),
+        TextCellValue(t.customerName ?? '-'),
+        TextCellValue(
+          t.items.map((i) => '${i.productName} (x${i.quantity})').join(', '),
+        ),
+        IntCellValue(t.totalPrice),
+        TextCellValue(t.paymentMethod.dbValue),
+        TextCellValue(t.status.dbValue),
+        TextCellValue(
+          t.redeemedAt == null
+              ? '-'
+              : '${_date.format(t.redeemedAt!)} ${_time.format(t.redeemedAt!)}',
+        ),
+      ]);
+    }
 
-        final directory = Platform.isAndroid || Platform.isIOS
-            ? await getApplicationDocumentsDirectory()
-            : await getDownloadsDirectory();
+    final directory = Platform.isAndroid || Platform.isIOS
+        ? await getApplicationDocumentsDirectory()
+        : await getDownloadsDirectory();
 
-        if (directory == null) {
-          throw const FileSystemException('Folder unduhan tidak ditemukan');
-        }
+    if (directory == null) {
+      throw const FileSystemException('Folder unduhan tidak ditemukan');
+    }
 
-        final bytes = excel.save();
-        if (bytes == null) {
-          throw const FileSystemException('Excel gagal dibuat');
-        }
+    final bytes = excel.save();
+    if (bytes == null) {
+      throw const FileSystemException('Excel gagal dibuat');
+    }
 
-        final path =
-            '${directory.path}/Laporan_Luminara_${_fileStamp.format(DateTime.now())}.xlsx';
-        await File(path).writeAsBytes(bytes);
-        return path;
-      });
+    final path =
+        '${directory.path}/Laporan_Luminara_${_fileStamp.format(DateTime.now())}.xlsx';
+    await File(path).writeAsBytes(bytes);
+    return path;
+  });
 }

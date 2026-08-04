@@ -27,11 +27,7 @@ void main() {
     final mode = brightness == Brightness.dark ? 'dark' : 'light';
 
     testWidgets('AppCard render di $mode', (tester) async {
-      await pumpIn(
-        tester,
-        brightness,
-        const AppCard(child: Text('isi kartu')),
-      );
+      await pumpIn(tester, brightness, const AppCard(child: Text('isi kartu')));
       expect(tester.takeException(), isNull);
       expect(find.text('isi kartu'), findsOneWidget);
     });

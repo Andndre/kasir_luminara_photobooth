@@ -79,7 +79,10 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
       });
 
       emit(
-        state.copyWith(status: VerifierStatus.connected, serverIp: event.address.toString()),
+        state.copyWith(
+          status: VerifierStatus.connected,
+          serverIp: event.address.toString(),
+        ),
       );
       add(RefreshQueue());
     } catch (e) {
@@ -132,9 +135,7 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
     VerifyTransaction event,
     Emitter<VerifierState> emit,
   ) async {
-    emit(
-      state.copyWith(verifyingUuid: event.uuid, verifySuccess: false),
-    );
+    emit(state.copyWith(verifyingUuid: event.uuid, verifySuccess: false));
     try {
       switch (await service.verifyTicket(event.uuid)) {
         case TicketAccepted():

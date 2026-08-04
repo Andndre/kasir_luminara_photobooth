@@ -240,9 +240,7 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      isValid
-                          ? Icons.check_rounded
-                          : Icons.close_rounded,
+                      isValid ? Icons.check_rounded : Icons.close_rounded,
                       color: fg,
                       size: 42,
                     ),
@@ -262,10 +260,7 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
                     ),
                     const SizedBox(height: Dimens.dp16),
                     if (items.isEmpty)
-                      Text(
-                        accepted.summary,
-                        style: theme.textTheme.bodyLarge,
-                      )
+                      Text(accepted.summary, style: theme.textTheme.bodyLarge)
                     else
                       ...items.map(
                         (i) => Padding(
@@ -300,7 +295,9 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(sheetContext);
-                        setState(() => _isProcessing = false); // Resume scanning
+                        setState(
+                          () => _isProcessing = false,
+                        ); // Resume scanning
 
                         if (isValid) {
                           Navigator.pop(context); // Close scanner on success

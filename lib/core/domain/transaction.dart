@@ -150,8 +150,7 @@ class Transaction extends Equatable {
     queueDate: queueDate ?? this.queueDate,
   );
 
-  int get totalQuantity =>
-      items.fold(0, (sum, item) => sum + item.quantity);
+  int get totalQuantity => items.fold(0, (sum, item) => sum + item.quantity);
 
   @override
   List<Object?> get props => [

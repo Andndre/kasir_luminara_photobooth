@@ -144,7 +144,9 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
   }
 
   if (oldVersion < 3) {
-    await db.execute('ALTER TABLE transactions ADD COLUMN queue_number INTEGER');
+    await db.execute(
+      'ALTER TABLE transactions ADD COLUMN queue_number INTEGER',
+    );
     await db.execute('ALTER TABLE transactions ADD COLUMN queue_date TEXT');
     await db.execute(_createQueueCounterTable);
   }
