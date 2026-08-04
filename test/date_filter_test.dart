@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:luminara_photobooth/features/transaction/pages/index/page.dart';
+import 'package:luminara_photobooth/features/transaction/pages/transaction_page.dart';
 
 /// showDateRangePicker melempar assertion kalau initialDateRange keluar dari
 /// [firstDate, lastDate] — dan di aplikasi ini assertion-nya ketelan try/catch

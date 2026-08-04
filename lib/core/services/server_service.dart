@@ -3,9 +3,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:alfred/alfred.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:luminara_photobooth/core/data/db.dart';
-import 'package:luminara_photobooth/model/log.dart';
+import 'package:luminara_photobooth/core/data/repositories/transaction_repository.dart';
+import 'package:luminara_photobooth/core/data/result.dart';
+import 'package:luminara_photobooth/core/domain/domain.dart';
+import 'package:luminara_photobooth/core/helpers/app_log.dart';
 
 class ServerService {
   static final ServerService _instance = ServerService._internal();
@@ -16,6 +19,8 @@ class ServerService {
 
   static bool _isBackgroundIsolate = false;
   static void setBackgroundMode() => _isBackgroundIsolate = true;
+
+  static const _transactions = TransactionRepository();
 
   Alfred? _alfred;
   HttpServer? _server;
@@ -76,117 +81,61 @@ class ServerService {
     // Health Check
     _alfred!.get('/health', (req, res) => 'OK');
 
-    // API: Get Queue
+    // API: Get Queue — unredeemed tickets in call order.
     _alfred!.get('/api/queue', (req, res) async {
-      try {
-        final db = await getDatabase();
-        final List<Map<String, dynamic>> transactions = await db.query(
-          'transactions',
-          where: 'status = ?',
-          whereArgs: ['PAID'],
-          // NULL queue_number means legacy transaction — sort those by created_at at the end.
-          // New transactions (queue_number IS NOT NULL) come first: by queue_date, then queue_number.
-          orderBy: '''
-            CASE WHEN queue_number IS NULL THEN 1 ELSE 0 END ASC,
-            queue_date ASC,
-            queue_number ASC,
-            created_at ASC
-          ''',
-        );
-
-        List<Map<String, dynamic>> results = [];
-        for (var t in transactions) {
-          final items = await db.query(
-            'transaction_items',
-            where: 'transaction_uuid = ?',
-            whereArgs: [t['uuid']],
-          );
-
-          final Map<String, dynamic> transactionWithItems = Map.from(t);
-          transactionWithItems['items'] = items;
-
-          // Legacy support: for verifier screens that still expect a single product_name
-          if (items.isNotEmpty) {
-            transactionWithItems['product_name'] = items
-                .map((e) => "${e['product_name']} (x${e['quantity']})")
-                .join(", ");
-          } else {
-            transactionWithItems['product_name'] = "-";
-          }
-
-          results.add(transactionWithItems);
-        }
-        return results;
-      } catch (e) {
-        Log.insertLog('Error fetching queue: $e', isError: true);
-        return [];
-      }
+      final result = await _transactions.pendingQueue();
+      return result.fold(
+        ok: (queue) =>
+            queue.map((t) => QueueTicket.fromTransaction(t).toJson()).toList(),
+        err: (message, _) {
+          AppLog.error('Error fetching queue: $message');
+          return const [];
+        },
+      );
     });
 
-    // API: Verify Ticket
+    // API: Verify Ticket — redeems it and tells every client to refresh.
     _alfred!.post('/api/verify', (req, res) async {
-      final body = await req.body as Map<String, dynamic>;
-      final ticketCode = body['ticket_code'];
+      final body = await req.body as Map<String, dynamic>?;
+      final ticketCode = body?['ticket_code'] as String?;
 
-      if (ticketCode == null) {
+      if (ticketCode == null || ticketCode.isEmpty) {
         res.statusCode = 400;
         return {'valid': false, 'message': 'Ticket code is required'};
       }
 
-      final db = await getDatabase();
-      final result = await db.query(
-        'transactions',
-        where: 'uuid = ?',
-        whereArgs: [ticketCode],
-      );
+      switch (await _transactions.redeem(ticketCode)) {
+        case Err(:final message):
+          AppLog.error('Verify failed: $message');
+          res.statusCode = 500;
+          return {'valid': false, 'message': 'Gagal memverifikasi tiket'};
 
-      if (result.isEmpty) {
-        res.statusCode = 404;
-        return {'valid': false, 'message': 'Tiket tidak ditemukan'};
+        case Ok(value: TicketNotFound()):
+          res.statusCode = 404;
+          return {'valid': false, 'message': 'Tiket tidak ditemukan'};
+
+        case Ok(value: TicketAlreadyUsed()):
+          res.statusCode = 400;
+          return {'valid': false, 'message': 'Tiket sudah dipakai'};
+
+        case Ok(value: RedeemedOk(:final transaction)):
+          broadcast('TICKET_REDEEMED');
+          _appEventController.add('REFRESH_TRANSACTIONS');
+
+          final ticket = QueueTicket.fromTransaction(transaction);
+          return {
+            'valid': true,
+            'data': {
+              // `id` rather than `uuid` here — existing verifier builds read
+              // this key, so it stays.
+              'id': ticket.uuid,
+              'customer_name': transaction.customerName,
+              'product_name': ticket.summary,
+              'items': ticket.items.map((i) => i.toJson()).toList(),
+              'status': transaction.status.dbValue,
+            },
+          };
       }
-
-      final transaction = result.first;
-      if (transaction['status'] != 'PAID') {
-        res.statusCode = 400;
-        return {'valid': false, 'message': 'Tiket sudah dipakai'};
-      }
-
-      // Get items for the response
-      final items = await db.query(
-        'transaction_items',
-        where: 'transaction_uuid = ?',
-        whereArgs: [ticketCode],
-      );
-
-      await db.update(
-        'transactions',
-        {
-          'status': 'COMPLETED',
-          'redeemed_at': DateTime.now().toIso8601String(),
-        },
-        where: 'uuid = ?',
-        whereArgs: [ticketCode],
-      );
-
-      broadcast('TICKET_REDEEMED');
-      _appEventController.add('REFRESH_TRANSACTIONS');
-
-      final productName = items.isNotEmpty
-          ? items
-                .map((e) => "${e['product_name']} (x${e['quantity']})")
-                .join(", ")
-          : "-";
-
-      return {
-        'valid': true,
-        'data': {
-          'id': transaction['uuid'],
-          'customer_name': transaction['customer_name'],
-          'product_name': productName,
-          'items': items,
-          'status': 'COMPLETED',
-        },
-      };
     });
 
     // WebSocket
@@ -209,7 +158,7 @@ class ServerService {
     });
 
     _server = await _alfred!.listen(port, '0.0.0.0');
-    print('Server started on 0.0.0.0:$port');
+    debugPrint('Server started on 0.0.0.0:$port');
   }
 
   Future<void> stop() async {
@@ -226,7 +175,7 @@ class ServerService {
     }
     _clients.clear();
     _clientCountController.add(0);
-    print('Server stopped');
+    debugPrint('Server stopped');
   }
 
   void broadcast(String eventName) {

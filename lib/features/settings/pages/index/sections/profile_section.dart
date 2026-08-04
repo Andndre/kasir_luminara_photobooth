@@ -30,7 +30,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
         _packageInfo = info;
       });
     } catch (e) {
-      Log.insertLog('Error getting PackageInfo: $e', isError: true);
+      AppLog.error('Error getting PackageInfo: $e');
       print('Error getting PackageInfo: $e');
     }
   }

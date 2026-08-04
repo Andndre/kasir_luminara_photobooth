@@ -7,7 +7,6 @@ import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/data/db.dart';
 import 'package:luminara_photobooth/app/app.dart';
 import 'package:luminara_photobooth/core/services/background_service.dart';
-import 'package:luminara_photobooth/model/log.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:desktop_webview_window/desktop_webview_window.dart';
@@ -70,7 +69,7 @@ void main(List<String> args) {
       runApp(const MyApp());
     },
     (error, stack) {
-      Log.insertLog('GLOBAL ERROR: $error', isError: true);
+      AppLog.error('GLOBAL ERROR: $error');
       debugPrint('STACKTRACE: $stack');
     },
   );
@@ -136,6 +135,6 @@ Future<void> requestWindowsFirewallAccess(int port) async {
     ], runInShell: true);
     debugPrint("Request Firewall Access dikirim...");
   } catch (e) {
-    Log.insertLog("Gagal meminta akses firewall: $e", isError: true);
+    AppLog.error("Gagal meminta akses firewall: $e");
   }
 }

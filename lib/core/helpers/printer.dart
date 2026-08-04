@@ -1,10 +1,10 @@
 import 'package:luminara_photobooth/core/preferences/printer_preferences.dart';
-import 'package:luminara_photobooth/model/log.dart';
+import 'package:luminara_photobooth/core/helpers/app_log.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart' as esc;
 import 'package:intl/intl.dart';
 
-import 'package:luminara_photobooth/model/transaksi.dart';
+import 'package:luminara_photobooth/core/domain/domain.dart';
 
 class PrinterHelper {
   // Store the name of connected printer
@@ -66,35 +66,31 @@ class PrinterHelper {
 
   /// Print test receipt
 
-  static Future<bool> printTestReceipt() async {
-    return await printPhotoboothTicket(
-      uuid: 'TEST123456',
-      customerName: 'Nama Pelanggan',
-      items: exampleItems
-          .map(
-            (e) => TransaksiItem(
-              productName: e['name'],
-              quantity: e['qty'],
-              productPrice: e['price'],
-            ),
-          )
-          .toList(),
-      totalPrice: 80000,
-      paymentMethod: 'TUNAI',
-      bayarAmount: 100000,
-      kembalian: 20000,
-      date: DateTime.now(),
-      openDrawer: true, // test print sekalian tes laci kas
-    );
-  }
+  static Future<bool> printTestReceipt() => printTicket(
+    _sampleTransaction,
+    openDrawer: true, // test print sekalian tes laci kas
+  );
 
-  /// Struktur item
-
-  static List<Map<String, dynamic>> exampleItems = [
-    {'name': 'Self Photo 15 Menit', 'qty': 1, 'price': 50000},
-
-    {'name': 'Cetak Tambahan', 'qty': 2, 'price': 15000},
-  ];
+  static final _sampleTransaction = Transaction(
+    uuid: 'TEST123456',
+    customerName: 'Nama Pelanggan',
+    items: const [
+      TransactionItem(
+        productName: 'Self Photo 15 Menit',
+        quantity: 1,
+        productPrice: 50000,
+      ),
+      TransactionItem(
+        productName: 'Cetak Tambahan',
+        quantity: 2,
+        productPrice: 15000,
+      ),
+    ],
+    totalPrice: 80000,
+    amountPaid: 100000,
+    changeGiven: 20000,
+    createdAt: DateTime.now(),
+  );
 
   // ======================================================
 
@@ -102,20 +98,23 @@ class PrinterHelper {
 
   // ======================================================
 
-  static Future<bool> printPhotoboothTicket({
-    required String uuid,
-    required String customerName,
-    required List<TransaksiItem> items,
-    required int totalPrice,
-    String paymentMethod = 'TUNAI',
-    int? bayarAmount,
-    int? kembalian,
-    DateTime? date,
-    int? queueNumber,
+  /// Prints the customer's ticket. Takes the whole [transaction] so the receipt
+  /// can never disagree with what was saved — the previous signature took nine
+  /// loose fields that each call site had to keep in sync by hand.
+  static Future<bool> printTicket(
+    Transaction transaction, {
     bool openDrawer = false,
     String storeName = 'LUMINARA PHOTOBOOTH',
     String tagline = 'Capture Your Best Moments',
   }) async {
+    final uuid = transaction.uuid;
+    final customerName = transaction.customerName ?? '-';
+    final items = transaction.items;
+    final totalPrice = transaction.totalPrice;
+    final paymentMethod = transaction.paymentMethod;
+    final queueNumber = transaction.queueNumber;
+    final date = transaction.createdAt;
+
     try {
       final profile = await esc.CapabilityProfile.load();
 
@@ -196,11 +195,11 @@ class PrinterHelper {
       // Details
 
       bytes += generator.text(
-        'Tanggal : ${DateFormat('dd/MM/yyyy HH:mm').format(date ?? DateTime.now())}',
+        'Tanggal : ${DateFormat('dd/MM/yyyy HH:mm').format(date)}',
       );
 
       bytes += generator.text('Nama    : $customerName');
-      bytes += generator.text('Metode  : $paymentMethod');
+      bytes += generator.text('Metode  : ${paymentMethod.dbValue}');
       bytes += generator.hr(ch: "-");
 
       // Items
@@ -250,7 +249,8 @@ class PrinterHelper {
       ]);
 
       // Cash Details (Only for TUNAI)
-      if (paymentMethod.toUpperCase() == 'TUNAI' && bayarAmount != null) {
+      final amountPaid = transaction.amountPaid;
+      if (paymentMethod.isCash && amountPaid != null) {
         bytes += generator.row([
           esc.PosColumn(
             text: 'BAYAR :',
@@ -258,13 +258,14 @@ class PrinterHelper {
             styles: const esc.PosStyles(align: esc.PosAlign.left),
           ),
           esc.PosColumn(
-            text: NumberFormat("#,###").format(bayarAmount),
+            text: NumberFormat("#,###").format(amountPaid),
             width: 6,
             styles: const esc.PosStyles(align: esc.PosAlign.right),
           ),
         ]);
 
-        if (kembalian != null) {
+        final changeGiven = transaction.changeGiven;
+        if (changeGiven != null) {
           bytes += generator.row([
             esc.PosColumn(
               text: 'KEMBALI :',
@@ -272,7 +273,7 @@ class PrinterHelper {
               styles: const esc.PosStyles(align: esc.PosAlign.left),
             ),
             esc.PosColumn(
-              text: NumberFormat("#,###").format(kembalian),
+              text: NumberFormat("#,###").format(changeGiven),
               width: 6,
               styles: const esc.PosStyles(align: esc.PosAlign.right),
             ),
@@ -315,9 +316,7 @@ class PrinterHelper {
 
       return result;
     } catch (e) {
-      print('🎟️ Print ticket error: $e');
-      Log.insertLog('Print ticket error: $e', isError: true);
-
+      AppLog.error('Print ticket error: $e');
       return false;
     }
   }

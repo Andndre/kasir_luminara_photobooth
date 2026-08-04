@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/features/home/home.dart';
-import 'package:luminara_photobooth/features/kasir/pages/kasir.dart';
+import 'package:luminara_photobooth/features/cashier/cashier.dart';
 import 'package:luminara_photobooth/features/product/product.dart';
 import 'package:luminara_photobooth/features/settings/pages/pages.dart';
-import 'package:luminara_photobooth/features/transaction/pages/index/page.dart';
+import 'package:luminara_photobooth/features/transaction/transaction.dart';
 
 import 'package:luminara_photobooth/core/constants/app_mode.dart';
 import 'package:luminara_photobooth/features/verifier/pages/live_queue_page.dart';
@@ -300,7 +300,7 @@ class _ActionButton extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => isServer ? const Kasir() : const TicketScannerPage(),
+                builder: (_) => isServer ? const CashierPage() : const TicketScannerPage(),
               ),
             ),
             child: Icon(

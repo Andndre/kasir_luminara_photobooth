@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
-import 'package:luminara_photobooth/core/data/db.dart';
 import 'package:luminara_photobooth/core/preferences/app_state.dart';
 import 'package:intl/intl.dart';
 import 'package:luminara_photobooth/features/server/components/server_monitor.dart';
@@ -16,12 +15,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late Future<Map<String, dynamic>> _statisticsFuture;
+  static const _statistics = StatisticsRepository();
+  late Future<Result<DashboardStats>> _statisticsFuture;
 
   @override
   void initState() {
     super.initState();
-    _statisticsFuture = getStatistics();
+    _statisticsFuture = _statistics.today();
 
     // Listen untuk refresh setelah restore
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -48,7 +48,7 @@ class _HomePageState extends State<HomePage> {
 
   void _refreshStatistics() {
     setState(() {
-      _statisticsFuture = getStatistics();
+      _statisticsFuture = _statistics.today();
     });
   }
 
@@ -75,14 +75,17 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: SafeArea(
-        child: FutureBuilder<Map<String, dynamic>>(
+        child: FutureBuilder<Result<DashboardStats>>(
           future: _statisticsFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final statistics = snapshot.data ?? {};
+            // A failed read shows zeroes rather than an error screen: the
+            // dashboard is glanceable info, not something to block the app on.
+            final statistics =
+                snapshot.data?.valueOrNull ?? DashboardStats.empty;
 
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -114,11 +117,9 @@ class _HomePageState extends State<HomePage> {
                             // Uang dulu. Status server teknis turun ke bawah.
                             HeroPanel(
                               label: _greeting(),
-                              value: _formatCurrency(
-                                statistics['today_income'] ?? 0,
-                              ),
+                              value: Currency.format(statistics.todayIncome),
                               meta:
-                                  '${statistics['today_transactions'] ?? 0} transaksi · '
+                                  '${statistics.todayTransactions} transaksi · '
                                   '${DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(DateTime.now())}',
                               icon: Icons.storefront_rounded,
                             ),
@@ -131,7 +132,7 @@ class _HomePageState extends State<HomePage> {
                                 Expanded(
                                   child: _StatTile(
                                     label: 'Antrean',
-                                    value: '${statistics['queue_count'] ?? 0}',
+                                    value: '${statistics.queueCount}',
                                     hint: 'menunggu dilayani',
                                   ),
                                 ),
@@ -139,7 +140,7 @@ class _HomePageState extends State<HomePage> {
                                 Expanded(
                                   child: _StatTile(
                                     label: 'Paket',
-                                    value: '${statistics['total_produk'] ?? 0}',
+                                    value: '${statistics.productCount}',
                                     hint: 'tersedia',
                                   ),
                                 ),
@@ -173,14 +174,6 @@ class _HomePageState extends State<HomePage> {
     if (hour >= 15) return 'Selamat Sore';
     if (hour >= 12) return 'Selamat Siang';
     return 'Selamat Pagi';
-  }
-
-  String _formatCurrency(int amount) {
-    return NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: 'Rp ',
-      decimalDigits: 0,
-    ).format(amount);
   }
 }
 
