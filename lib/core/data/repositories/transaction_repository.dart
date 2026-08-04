@@ -171,6 +171,88 @@ class TransactionRepository {
         );
       });
 
+  /// Transactions not yet accepted by luminarabali.com, oldest first.
+  ///
+  /// [limit] matches the server's per-request cap, so a device that has been
+  /// offline for weeks drains its backlog in batches instead of one request
+  /// the server rejects wholesale.
+  Future<Result<List<Transaction>>> unsynced({int limit = 200}) =>
+      runCatching('Gagal memuat data yang belum tersinkron', () async {
+        final db = await getDatabase();
+        final rows = await db.query(
+          'transactions',
+          where: 'synced_at IS NULL',
+          orderBy: 'created_at ASC',
+          limit: limit,
+        );
+        return _hydrate(db, rows);
+      });
+
+  Future<Result<int>> count() => runCatching(
+    'Gagal menghitung transaksi',
+    () async {
+      final db = await getDatabase();
+      final rows = await db.rawQuery('SELECT COUNT(*) AS c FROM transactions');
+      return rows.first['c'] as int? ?? 0;
+    },
+  );
+
+  /// How many rows are still waiting to reach the server. Cheap enough to call
+  /// from a settings screen; [unsynced] would hydrate every item for nothing.
+  Future<Result<int>> unsyncedCount() =>
+      runCatching('Gagal menghitung data yang belum tersinkron', () async {
+        final db = await getDatabase();
+        final rows = await db.rawQuery(
+          'SELECT COUNT(*) AS c FROM transactions WHERE synced_at IS NULL',
+        );
+        return rows.first['c'] as int? ?? 0;
+      });
+
+  Future<Result<void>> markSynced(List<String> uuids, DateTime at) =>
+      runCatching('Gagal menandai data tersinkron', () async {
+        if (uuids.isEmpty) return;
+        final db = await getDatabase();
+        for (var i = 0; i < uuids.length; i += _hydrateChunk) {
+          final chunk = uuids.skip(i).take(_hydrateChunk).toList();
+          await db.update(
+            'transactions',
+            {'synced_at': at.toIso8601String()},
+            where: 'uuid IN (${List.filled(chunk.length, '?').join(',')})',
+            whereArgs: chunk,
+          );
+        }
+      });
+
+  /// Applies redemptions that happened on another device.
+  ///
+  /// Guarded by `status = 'PAID'` for the same reason [redeem] is: if this row
+  /// was already redeemed locally, its `redeemed_at` is the one that was
+  /// printed, and the server's copy must not overwrite it.
+  ///
+  /// Returns how many rows actually changed, so a caller can skip refreshing
+  /// the UI when the poll brought nothing new.
+  Future<Result<int>> applyRedemptions(Map<String, DateTime?> redeemedAt) =>
+      runCatching('Gagal menerapkan status tiket dari server', () async {
+        if (redeemedAt.isEmpty) return 0;
+        final db = await getDatabase();
+        var changed = 0;
+        await db.transaction((txn) async {
+          for (final entry in redeemedAt.entries) {
+            changed += await txn.update(
+              'transactions',
+              {
+                'status': TransactionStatus.completed.dbValue,
+                'redeemed_at': (entry.value ?? DateTime.now())
+                    .toIso8601String(),
+              },
+              where: 'uuid = ? AND status = ?',
+              whereArgs: [entry.key, TransactionStatus.paid.dbValue],
+            );
+          }
+        });
+        return changed;
+      });
+
   Future<Result<Transaction?>> findByUuid(String uuid) =>
       runCatching('Gagal memuat transaksi', () async {
         final db = await getDatabase();

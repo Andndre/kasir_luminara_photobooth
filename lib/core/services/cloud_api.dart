@@ -1,0 +1,148 @@
+import 'dart:async' show TimeoutException;
+import 'dart:convert';
+import 'dart:io' show SocketException;
+
+import 'package:http/http.dart' as http;
+
+import '../data/result.dart';
+import '../domain/domain.dart';
+import 'auth_service.dart';
+
+/// Redemptions pulled from the server, plus the cursor to resume from.
+typedef Redemptions = ({String? cursor, Map<String, DateTime?> redeemedAt});
+
+/// Authenticated calls to `/api/pos/*`.
+///
+/// Pure transport — *when* to call these lives in [SyncService]. Every method
+/// returns a [Result] because all of them run in the background, where a thrown
+/// exception would kill the loop that called it.
+class CloudApi {
+  const CloudApi();
+
+  static const _timeout = Duration(seconds: 20);
+
+  static AuthService get _auth => AuthService();
+
+  /// Uploads transactions (and optionally the product list) to the server.
+  ///
+  /// The server ignores `status` and `redeemed_at` on rows it already has —
+  /// redemption is its call, not ours — so re-sending a row is always safe.
+  Future<Result<void>> push(
+    List<Transaction> transactions, {
+    List<Product> products = const [],
+  }) => _send(
+    'POST',
+    '/pos/sync',
+    body: {
+      'transactions': transactions
+          .map(
+            (t) => {
+              ...t.toMap(),
+              'items': t.items
+                  .map(
+                    (i) => {
+                      'product_name': i.productName,
+                      'product_price': i.productPrice,
+                      'quantity': i.quantity,
+                    },
+                  )
+                  .toList(),
+            },
+          )
+          .toList(),
+      if (products.isNotEmpty)
+        'products': products
+            .where((p) => p.id != null)
+            .map((p) => {'id': p.id, 'name': p.name, 'price': p.price})
+            .toList(),
+    },
+    parse: (_) {},
+  );
+
+  /// How much this account holds on the server. Used right after login to
+  /// decide between pulling, pushing, or asking the user.
+  Future<Result<({int transactions, int products})>> summary() => _send(
+    'GET',
+    '/pos/summary',
+    parse: (body) {
+      final map = body as Map<String, dynamic>;
+      return (
+        transactions: map['transactions'] as int? ?? 0,
+        products: map['products'] as int? ?? 0,
+      );
+    },
+  );
+
+  /// Tickets redeemed since [since]. Pass the previous call's cursor.
+  Future<Result<Redemptions>> redemptions({String? since}) => _send(
+    'GET',
+    '/pos/redemptions${since == null ? '' : '?since=${Uri.encodeQueryComponent(since)}'}',
+    parse: (body) {
+      final map = body as Map<String, dynamic>;
+      final list = (map['redemptions'] as List?) ?? const [];
+      return (
+        cursor: map['cursor'] as String?,
+        redeemedAt: {
+          for (final row in list.whereType<Map>())
+            row['uuid'] as String: DateTime.tryParse(
+              row['redeemed_at'] as String? ?? '',
+            ),
+        },
+      );
+    },
+  );
+
+  /// Tells the server a ticket was redeemed on the LAN, where it could not see
+  /// it happen.
+  ///
+  /// Best-effort and unauthoritative: the server may answer "sudah dipakai",
+  /// which is the right answer and not an error here. Without this call, a
+  /// ticket redeemed over the LAN stays PAID on the server and could be
+  /// redeemed a second time from a cloud-connected scanner.
+  Future<Result<void>> reportRedeemed(String uuid) =>
+      _send('POST', '/pos/verify', body: {'ticket_code': uuid}, parse: (_) {});
+
+  /// The whole account as a backup-format JSON string, ready for
+  /// `BackupService.applyBackupJson`.
+  Future<Result<String>> restoreJson() =>
+      _send('GET', '/pos/restore', parse: jsonEncode);
+
+  Future<Result<T>> _send<T>(
+    String method,
+    String path, {
+    Map<String, Object?>? body,
+    required T Function(Object? body) parse,
+  }) async {
+    final uri = Uri.parse('$cloudBaseUrl$path');
+    try {
+      final response = method == 'GET'
+          ? await http.get(uri, headers: _auth.headers).timeout(_timeout)
+          : await http
+                .post(uri, headers: _auth.headers, body: jsonEncode(body))
+                .timeout(_timeout);
+
+      if (response.statusCode == 401) {
+        return Err(
+          'Sesi berakhir, silakan masuk lagi',
+          'HTTP 401 $path',
+          StackTrace.current,
+        );
+      }
+      if (response.statusCode ~/ 100 != 2) {
+        return Err(
+          'Server menolak permintaan (${response.statusCode})',
+          'HTTP ${response.statusCode} $path: ${response.body}',
+          StackTrace.current,
+        );
+      }
+
+      return Ok(parse(jsonDecode(response.body)));
+    } on SocketException catch (e, s) {
+      return Err('Tidak dapat menghubungi server', e, s);
+    } on TimeoutException catch (e, s) {
+      return Err('Server tidak merespons', e, s);
+    } catch (e, s) {
+      return Err('Respons server tidak dikenali', e, s);
+    }
+  }
+}
