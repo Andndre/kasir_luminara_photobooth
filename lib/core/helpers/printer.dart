@@ -1,5 +1,6 @@
 import 'package:luminara_photobooth/core/preferences/printer_preferences.dart';
 import 'package:luminara_photobooth/core/helpers/app_log.dart';
+import 'package:luminara_photobooth/core/helpers/currency.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart' as esc;
 import 'package:intl/intl.dart';
@@ -54,17 +55,18 @@ class PrinterHelper {
 
   /// Check if printer is connected
 
-  static Future<bool> get isConnected =>
-      PrintBluetoothThermal.connectionStatus;
+  static Future<bool> get isConnected => PrintBluetoothThermal.connectionStatus;
 
   /// Print test receipt
 
   static Future<bool> printTestReceipt() => printTicket(
-    _sampleTransaction,
+    _sampleTransaction(),
     openDrawer: true, // test print sekalian tes laci kas
   );
 
-  static final _sampleTransaction = Transaction(
+  // Dibangun per panggilan: sebagai `static final` tanggalnya beku di test
+  // print pertama, jadi cetakan kedua menunjukkan waktu yang salah.
+  static Transaction _sampleTransaction() => Transaction(
     uuid: 'TEST123456',
     customerName: 'Nama Pelanggan',
     items: const [
@@ -202,7 +204,7 @@ class PrinterHelper {
         bytes += generator.row([
           esc.PosColumn(
             text:
-                '${item.quantity} x ${NumberFormat("#,###").format(item.productPrice)}',
+                '${item.quantity} x ${Currency.formatPlain(item.productPrice)}',
 
             width: 7,
 
@@ -210,9 +212,7 @@ class PrinterHelper {
           ),
 
           esc.PosColumn(
-            text: NumberFormat(
-              "#,###",
-            ).format(item.quantity * item.productPrice),
+            text: Currency.formatPlain(item.quantity * item.productPrice),
 
             width: 5,
 
@@ -233,7 +233,7 @@ class PrinterHelper {
         ),
 
         esc.PosColumn(
-          text: 'Rp ${NumberFormat("#,###").format(totalPrice)}',
+          text: 'Rp ${Currency.formatPlain(totalPrice)}',
 
           width: 6,
 
@@ -251,7 +251,7 @@ class PrinterHelper {
             styles: const esc.PosStyles(align: esc.PosAlign.left),
           ),
           esc.PosColumn(
-            text: NumberFormat("#,###").format(amountPaid),
+            text: Currency.formatPlain(amountPaid),
             width: 6,
             styles: const esc.PosStyles(align: esc.PosAlign.right),
           ),
@@ -266,7 +266,7 @@ class PrinterHelper {
               styles: const esc.PosStyles(align: esc.PosAlign.left),
             ),
             esc.PosColumn(
-              text: NumberFormat("#,###").format(changeGiven),
+              text: Currency.formatPlain(changeGiven),
               width: 6,
               styles: const esc.PosStyles(align: esc.PosAlign.right),
             ),

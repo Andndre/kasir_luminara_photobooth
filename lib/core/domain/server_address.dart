@@ -21,6 +21,10 @@ class ServerAddress extends Equatable {
     if (trimmed.isEmpty) return null;
 
     final parts = trimmed.split(':');
+    // More than one colon is a typo, not an address — silently keeping the
+    // first port hid the mistake.
+    if (parts.length > 2) return null;
+
     final host = parts.first.trim();
     if (host.isEmpty) return null;
 

@@ -127,10 +127,16 @@ class _LogCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: Dimens.dp8),
-          Text(
-            log.message,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: log.isError ? surfaces.onDangerTint : null,
+          // Kartu di grid desktop punya tinggi tetap; pesan panjang harus
+          // dipotong, bukan meluber keluar kartu.
+          Flexible(
+            child: Text(
+              log.message,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: log.isError ? surfaces.onDangerTint : null,
+              ),
             ),
           ),
         ],

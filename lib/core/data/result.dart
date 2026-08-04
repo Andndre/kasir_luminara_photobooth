@@ -1,3 +1,5 @@
+import '../helpers/app_log.dart';
+
 /// Typed success/failure wrapper, so callers must handle the error branch
 /// instead of relying on an untyped `throw` reaching some outer try/catch.
 ///
@@ -52,6 +54,9 @@ final class Err<T> extends Result<T> {
 
 /// Runs [body] and converts any thrown object into an [Err] carrying [context]
 /// as the user-facing message.
+///
+/// The exception text is logged, not shown: it used to be appended to
+/// [context], which put raw SQL and bound values on the customer's screen.
 Future<Result<T>> runCatching<T>(
   String context,
   Future<T> Function() body,
@@ -59,6 +64,7 @@ Future<Result<T>> runCatching<T>(
   try {
     return Ok(await body());
   } catch (error, stackTrace) {
-    return Err('$context: $error', error, stackTrace);
+    AppLog.error('$context: $error\n$stackTrace');
+    return Err(context, error, stackTrace);
   }
 }

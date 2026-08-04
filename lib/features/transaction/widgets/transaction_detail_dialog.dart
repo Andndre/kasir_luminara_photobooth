@@ -50,17 +50,23 @@ class TransactionDetailDialog extends StatelessWidget {
   );
 
   Future<void> _print(BuildContext context) async {
-    final printed = await PrinterHelper.printTicket(transaction);
-    if (!context.mounted) return;
+    // Snackbar milik halaman di belakang, jadi dialog ditutup dulu — kalau
+    // tidak, pesannya muncul di bawah dialog dan tidak terbaca.
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
 
-    if (printed) {
-      SnackBarHelper.showSuccess(context, 'Tiket berhasil dicetak');
-    } else {
-      SnackBarHelper.showError(
-        context,
-        'Gagal mencetak tiket. Pastikan printer terhubung.',
-      );
-    }
+    final printed = await PrinterHelper.printTicket(transaction);
+    navigator.pop();
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          printed
+              ? 'Tiket berhasil dicetak'
+              : 'Gagal mencetak tiket. Pastikan printer terhubung.',
+        ),
+      ),
+    );
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'dart:async' show TimeoutException;
 import 'dart:convert';
 import 'dart:io' show SocketException;
 
@@ -86,6 +87,8 @@ class VerifierService {
           .timeout(_timeout);
     } on SocketException catch (e) {
       throw ServerUnreachable(e.message);
+    } on TimeoutException {
+      throw const ServerUnreachable('Waktu tunggu habis');
     }
 
     // A rejection is a normal outcome and arrives with a 4xx status, so the
@@ -112,6 +115,8 @@ class VerifierService {
       response = await http.get(Uri.parse(url)).timeout(_timeout);
     } on SocketException catch (e) {
       throw ServerUnreachable(e.message);
+    } on TimeoutException {
+      throw const ServerUnreachable('Waktu tunggu habis');
     }
 
     if (response.statusCode != 200) {

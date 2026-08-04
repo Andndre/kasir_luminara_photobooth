@@ -73,15 +73,17 @@ class PaymentPoller {
     var inFlight = false;
 
     _timer = Timer.periodic(interval, (_) async {
+      // Deadline first: checked after `inFlight` it could never fire while a
+      // request was stuck, which is exactly when it matters.
+      if (DateTime.now().difference(startedAt) > deadline) {
+        AppLog.error('Polling pembayaran $orderId melewati batas waktu');
+        finish(const PaymentTimedOut());
+        return;
+      }
+
       if (inFlight) return;
       inFlight = true;
       try {
-        if (DateTime.now().difference(startedAt) > deadline) {
-          AppLog.error('Polling pembayaran $orderId melewati batas waktu');
-          finish(const PaymentTimedOut());
-          return;
-        }
-
         // The webhook can't reach us on a local network, so nudge the backend
         // to re-check before reading the status.
         await _service.syncTransaction(orderId);

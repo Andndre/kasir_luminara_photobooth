@@ -38,7 +38,7 @@ class Cart extends Equatable {
 
   int quantityOf(Product product) => lines
       .where((l) => l.product.id == product.id)
-      .fold(0, (_, l) => l.quantity);
+      .fold(0, (sum, l) => sum + l.quantity);
 
   /// Adds [delta] to [product]'s quantity, dropping the line at zero or below.
   Cart adjust(Product product, int delta) {

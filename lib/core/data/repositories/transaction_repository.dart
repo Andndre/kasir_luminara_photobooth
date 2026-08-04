@@ -1,6 +1,5 @@
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart' hide Transaction;
-import 'package:sqflite/sqflite.dart' as sqflite show ConflictAlgorithm;
 
 import '../../domain/transaction.dart';
 import '../../domain/transaction_status.dart';
@@ -34,6 +33,9 @@ class TransactionRepository {
 
   static final _queueDateFormat = DateFormat('yyyy-MM-dd');
 
+  /// Max UUIDs per `IN (...)` batch in [_hydrate].
+  static const _hydrateChunk = 500;
+
   /// Inserts the header, its items and the day's queue number in one atomic
   /// SQL transaction. Returns the assigned queue number.
   Future<Result<int>> create(Transaction transaction) =>
@@ -51,13 +53,10 @@ class TransactionRepository {
           await txn.insert(
             'transactions',
             row,
-            conflictAlgorithm: sqflite.ConflictAlgorithm.replace,
+            conflictAlgorithm: ConflictAlgorithm.replace,
           );
           for (final item in transaction.items) {
-            await txn.insert(
-              'transaction_items',
-              item.toMap(transaction.uuid),
-            );
+            await txn.insert('transaction_items', item.toMap(transaction.uuid));
           }
         });
         return queueNumber;
@@ -73,10 +72,7 @@ class TransactionRepository {
     );
 
     if (rows.isEmpty) {
-      await db.insert('daily_queue_counter', {
-        'date': today,
-        'last_number': 1,
-      });
+      await db.insert('daily_queue_counter', {'date': today, 'last_number': 1});
       return 1;
     }
 
@@ -131,18 +127,20 @@ class TransactionRepository {
         return _hydrate(db, rows);
       });
 
-  Future<Result<void>> delete(String uuid) =>
-      runCatching('Gagal menghapus transaksi', () async {
-        final db = await getDatabase();
-        await db.transaction((txn) async {
-          await txn.delete(
-            'transaction_items',
-            where: 'transaction_uuid = ?',
-            whereArgs: [uuid],
-          );
-          await txn.delete('transactions', where: 'uuid = ?', whereArgs: [uuid]);
-        });
+  Future<Result<void>> delete(String uuid) => runCatching(
+    'Gagal menghapus transaksi',
+    () async {
+      final db = await getDatabase();
+      await db.transaction((txn) async {
+        await txn.delete(
+          'transaction_items',
+          where: 'transaction_uuid = ?',
+          whereArgs: [uuid],
+        );
+        await txn.delete('transactions', where: 'uuid = ?', whereArgs: [uuid]);
       });
+    },
+  );
 
   /// Marks a ticket redeemed. Guarded by a conditional UPDATE so two verifiers
   /// scanning the same ticket at once can't both succeed.
@@ -199,19 +197,24 @@ class TransactionRepository {
     if (headers.isEmpty) return const [];
 
     final uuids = headers.map((h) => h['uuid'] as String).toList();
-    final placeholders = List.filled(uuids.length, '?').join(',');
-    final itemRows = await db.query(
-      'transaction_items',
-      where: 'transaction_uuid IN ($placeholders)',
-      whereArgs: uuids,
-      orderBy: 'id ASC',
-    );
-
     final itemsByUuid = <String, List<TransactionItem>>{};
-    for (final row in itemRows) {
-      itemsByUuid
-          .putIfAbsent(row['transaction_uuid'] as String, () => [])
-          .add(TransactionItem.fromMap(row));
+
+    // Chunked: SQLite caps bound variables (999 on older builds), so a single
+    // IN clause over the whole history throws once there are enough rows.
+    for (var i = 0; i < uuids.length; i += _hydrateChunk) {
+      final chunk = uuids.skip(i).take(_hydrateChunk).toList();
+      final itemRows = await db.query(
+        'transaction_items',
+        where:
+            'transaction_uuid IN (${List.filled(chunk.length, '?').join(',')})',
+        whereArgs: chunk,
+        orderBy: 'id ASC',
+      );
+      for (final row in itemRows) {
+        itemsByUuid
+            .putIfAbsent(row['transaction_uuid'] as String, () => [])
+            .add(TransactionItem.fromMap(row));
+      }
     }
 
     return headers

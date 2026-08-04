@@ -102,7 +102,8 @@ class PrivacyPolicyPage extends StatelessWidget {
 
               _buildSection(context, '5. Hak Anda', [
                 '• Anda memiliki kontrol penuh atas data Anda.',
-                '• Data dapat dihapus secara permanen melalui pengaturan aplikasi.',
+                '• Transaksi dan paket dapat dihapus satu per satu dari halaman Riwayat dan Produk.',
+                '• Seluruh data hilang permanen saat aplikasi dihapus dari perangkat.',
                 '• Laporan transaksi dapat diekspor ke format Excel (.xlsx) untuk keperluan backup.',
               ]),
 

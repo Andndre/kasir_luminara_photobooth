@@ -36,8 +36,7 @@ enum MidtransStatus {
     _ => unknown,
   };
 
-  bool get isTerminal =>
-      this == paid || this == failed || this == expired;
+  bool get isTerminal => this == paid || this == failed || this == expired;
 }
 
 class MidtransPaymentStatus {
@@ -128,9 +127,16 @@ class MidtransService {
   /// now knows the status it reads may be stale.
   Future<bool> syncTransaction(String orderId) async {
     try {
-      await http
+      final response = await http
           .post(Uri.parse('$baseUrl/transaction/$orderId/sync'))
           .timeout(_timeout);
+
+      if (response.statusCode ~/ 100 != 2) {
+        AppLog.error(
+          'Midtrans Sync gagal untuk $orderId: HTTP ${response.statusCode}',
+        );
+        return false;
+      }
       return true;
     } catch (e) {
       AppLog.error('Midtrans Sync Error for orderId $orderId: $e');

@@ -143,20 +143,24 @@ class _StepButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 36,
-        height: 36,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          // Not Colors.transparent: that is black at alpha 0, which tints the
-          // icon during the fade.
-          color: filled ? color : color.withValues(alpha: 0),
-          shape: BoxShape.circle,
+    // Material + InkWell rather than GestureDetector: focus, keyboard
+    // activation and a ripple come for free, and screen readers get a button.
+    return Material(
+      // Not Colors.transparent: that is black at alpha 0, which tints the
+      // icon during the fade.
+      color: filled ? color : color.withValues(alpha: 0),
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Tooltip(
+          message: filled ? 'Tambah' : 'Kurangi',
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: Icon(icon, size: 18, color: filled ? Colors.white : color),
+          ),
         ),
-        child: Icon(icon, size: 18, color: filled ? Colors.white : color),
       ),
     );
   }

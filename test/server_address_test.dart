@@ -35,6 +35,10 @@ void main() {
       expect(ServerAddress.tryParse('10.0.0.1:-1'), isNull);
     });
 
+    test('Lebih dari satu titik dua ditolak', () {
+      expect(ServerAddress.tryParse('192.168.1.5:3000:9'), isNull);
+    });
+
     test('Input kosong ditolak', () {
       expect(ServerAddress.tryParse(''), isNull);
       expect(ServerAddress.tryParse('   '), isNull);

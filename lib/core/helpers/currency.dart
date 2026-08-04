@@ -16,9 +16,10 @@ class Currency {
   /// e.g. `Rp 50.000`
   static String format(num amount) => _rupiah.format(amount);
 
+  static final NumberFormat _plain = NumberFormat.decimalPattern('id_ID');
+
   /// e.g. `50.000` — for text fields, where the symbol is shown as a prefix.
-  static String formatPlain(num amount) =>
-      NumberFormat.decimalPattern('id_ID').format(amount);
+  static String formatPlain(num amount) => _plain.format(amount);
 
   /// Reads a user-typed amount, ignoring thousands separators, currency symbol
   /// and stray spaces. Returns null when there is no digit at all.

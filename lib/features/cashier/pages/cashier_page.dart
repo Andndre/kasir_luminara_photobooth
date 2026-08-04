@@ -38,10 +38,18 @@ class _CashierViewState extends State<_CashierView> {
   final _poller = PaymentPoller();
   bool _isWebViewOpen = false;
 
+  /// Guards against a second sale being started while one is in flight. The
+  /// desktop payment window is a separate OS window, so the "Bayar" button
+  /// underneath stays clickable.
+  bool _isPaying = false;
+
   @override
   void dispose() {
     // Without this the poll kept running after the screen was gone.
     _poller.cancel();
+    // Same for the desktop payment window: leaving the screen while it is open
+    // otherwise strands it.
+    PaymentWebViewLauncher.close();
     super.dispose();
   }
 
@@ -50,35 +58,41 @@ class _CashierViewState extends State<_CashierView> {
   // -------------------------------------------------------------------------
 
   Future<void> _startPayment() async {
+    if (_isPaying) return;
     final cubit = context.read<CashierCubit>();
     final state = cubit.state;
     if (state.cart.isEmpty) return;
 
-    if (state.paymentMethod.isCash) {
-      final tendered = await CashPaymentDialog.show(
-        context,
-        state.cart.totalPrice,
-      );
-      if (tendered == null || !mounted) return;
+    _isPaying = true;
+    try {
+      if (state.paymentMethod.isCash) {
+        final tendered = await CashPaymentDialog.show(
+          context,
+          state.cart.totalPrice,
+        );
+        if (tendered == null || !mounted) return;
 
-      await _completeSale(
-        amountPaid: tendered.amountPaid,
-        changeGiven: tendered.changeGiven,
-      );
-      return;
+        await _completeSale(
+          amountPaid: tendered.amountPaid,
+          changeGiven: tendered.changeGiven,
+        );
+        return;
+      }
+
+      // Non-cash. With Midtrans off, the money is taken on a separate device
+      // and we just record the sale.
+      if (!state.isMidtransEnabled) {
+        await _completeSale(
+          amountPaid: state.cart.totalPrice,
+          method: PaymentMethod.nonCash,
+        );
+        return;
+      }
+
+      await _payWithMidtrans(state.cart.totalPrice);
+    } finally {
+      _isPaying = false;
     }
-
-    // Non-cash. With Midtrans off, the money is taken on a separate device and
-    // we just record the sale.
-    if (!state.isMidtransEnabled) {
-      await _completeSale(
-        amountPaid: state.cart.totalPrice,
-        method: PaymentMethod.nonCash,
-      );
-      return;
-    }
-
-    await _payWithMidtrans(state.cart.totalPrice);
   }
 
   Future<void> _payWithMidtrans(int amount) async {
@@ -190,6 +204,7 @@ class _CashierViewState extends State<_CashierView> {
 
         HapticFeedback.heavyImpact();
         await TicketDialog.show(context, transaction);
+        if (!mounted) return;
         cubit.reset();
     }
   }
@@ -233,8 +248,7 @@ class _CashierViewState extends State<_CashierView> {
     return BlocBuilder<CashierCubit, CashierState>(
       builder: (context, state) {
         final isLoading =
-            state.products is AsyncLoading &&
-            state.products.dataOrNull == null;
+            state.products is AsyncLoading && state.products.dataOrNull == null;
 
         return Scaffold(
           appBar: AppBar(title: const Text('Transaksi Baru')),
@@ -261,9 +275,7 @@ class _CashierViewState extends State<_CashierView> {
                                       Dimens.dp20,
                                       Dimens.dp20,
                                     ),
-                                    child: CheckoutPanel(
-                                      onPay: _startPayment,
-                                    ),
+                                    child: CheckoutPanel(onPay: _startPayment),
                                   ),
                                 ),
                               ],

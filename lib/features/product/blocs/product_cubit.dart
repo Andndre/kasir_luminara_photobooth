@@ -43,10 +43,10 @@ class ProductCubit extends Cubit<ProductListState> {
   final ProductRepository _repository;
 
   Future<void> load() async {
-    emit(
-      state.copyWith(products: AsyncLoading(state.products.dataOrNull)),
-    );
-    emit(state.copyWith(products: (await _repository.all()).toAsyncState()));
+    if (isClosed) return;
+    emit(state.copyWith(products: AsyncLoading(state.products.dataOrNull)));
+    final result = await _repository.all();
+    if (!isClosed) emit(state.copyWith(products: result.toAsyncState()));
   }
 
   void search(String query) => emit(state.copyWith(query: query));
