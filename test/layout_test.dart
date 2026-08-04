@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luminara_photobooth/core/preferences/dimens.dart';
 import 'package:luminara_photobooth/core/components/surface/status_badge.dart';
-import 'package:luminara_photobooth/features/home/pages/main/main.dart';
+import 'package:luminara_photobooth/features/home/pages/main_page.dart';
 
 void main() {
   group('Jarak bawah bottom nav', () {

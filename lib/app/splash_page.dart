@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/features/home/home.dart';
 
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+class SplashPage extends StatefulWidget {
+  const SplashPage({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashPageState extends State<SplashPage> {
   String _statusText = 'Memuat aplikasi...';
 
   @override

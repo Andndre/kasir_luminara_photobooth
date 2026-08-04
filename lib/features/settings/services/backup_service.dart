@@ -3,58 +3,122 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/data/db.dart';
 
+/// Backup file format version. Bump only for a breaking change to the layout;
+/// the reader below accepts anything with a `tables` map.
+const _backupVersion = '1.0';
+
+/// Tables written to the backup, and the JSON keys they live under.
+///
+/// These strings are the file format — old backup files on customers' disks
+/// use them. Adding a table is safe; renaming one is not.
+const _backedUpTables = [
+  'products',
+  'transactions',
+  'transaction_items',
+  'logs',
+  'daily_queue_counter',
+];
+
+/// Tables cleared and rewritten on restore. `logs` is deliberately excluded:
+/// the diagnostic log of *this* device is more useful than the backup's.
+const _restoredTables = [
+  'products',
+  'transactions',
+  'transaction_items',
+  'daily_queue_counter',
+];
+
+/// The user cancelled the file picker. Not an error, but not a success either.
+class BackupCancelled implements Exception {
+  const BackupCancelled();
+  @override
+  String toString() => 'Dibatalkan';
+}
+
 class BackupService {
-  /// Export semua data ke file JSON
-  /// Return: path file backup, atau null kalau gagal
-  static Future<String?> exportBackup() async {
-    try {
-      final db = await getDatabase();
+  const BackupService._();
 
-      // Ambil semua data dari setiap tabel
-      final products = await db.query('products');
-      final transactions = await db.query('transactions');
-      final transactionItems = await db.query('transaction_items');
-      final logs = await db.query('logs');
-      final dailyQueueCounter = await db.query('daily_queue_counter');
+  /// Writes every table to a JSON file the user picks. Returns its path.
+  static Future<Result<String>> export() =>
+      runCatching('Gagal membuat backup', () async {
+        final db = await getDatabase();
 
-      // Susun jadi JSON object
-      final backupData = {
-        'version': '1.0',
-        'created_at': DateTime.now().toIso8601String(),
-        'tables': {
-          'products': products,
-          'transactions': transactions,
-          'transaction_items': transactionItems,
-          'logs': logs,
-          'daily_queue_counter': dailyQueueCounter,
-        },
-      };
+        final tables = <String, Object?>{};
+        for (final table in _backedUpTables) {
+          tables[table] = await db.query(table);
+        }
 
-      final jsonString = const JsonEncoder.withIndent('  ').convert(backupData);
+        final json = const JsonEncoder.withIndent('  ').convert({
+          'version': _backupVersion,
+          'created_at': DateTime.now().toIso8601String(),
+          'tables': tables,
+        });
 
-      // Simpan ke Downloads folder
-      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final defaultFileName = 'luminara_backup_$timestamp.json';
+        final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+        final path = await FilePicker.platform.saveFile(
+          dialogTitle: 'Simpan Backup',
+          fileName: 'luminara_backup_$timestamp.json',
+          type: FileType.custom,
+          allowedExtensions: const ['json'],
+        );
 
-      final result = await FilePicker.platform.saveFile(
-        dialogTitle: 'Simpan Backup',
-        fileName: defaultFileName,
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-      );
+        if (path == null) throw const BackupCancelled();
 
-      if (result != null) {
-        final file = File(result);
-        await file.writeAsString(jsonString);
-        return result;
-      }
+        await File(path).writeAsString(json);
+        return path;
+      });
 
-      return null;
-    } catch (e) {
-      print('Backup error: $e');
-      return null;
-    }
-  }
+  /// Replaces the current data with a backup file's contents.
+  ///
+  /// The whole restore runs in one SQL transaction: previously it deleted
+  /// everything first and inserted row by row, so a malformed file part-way
+  /// through left the device with no data at all and nothing to roll back to.
+  static Future<Result<void>> import() =>
+      runCatching('Gagal memulihkan backup', () async {
+        final picked = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: const ['json'],
+          allowMultiple: false,
+        );
+
+        final filePath = picked?.files.singleOrNull?.path;
+        if (filePath == null) throw const BackupCancelled();
+
+        final decoded =
+            json.decode(await File(filePath).readAsString())
+                as Map<String, dynamic>;
+
+        final tables = decoded['tables'];
+        if (decoded['version'] == null || tables is! Map) {
+          throw const FormatException('File backup tidak dikenali');
+        }
+
+        // Read and validate every row before touching the database, so a bad
+        // file is rejected while the existing data is still intact.
+        final rows = <String, List<Map<String, Object?>>>{};
+        for (final table in _restoredTables) {
+          rows[table] = ((tables[table] as List?) ?? const [])
+              .map((row) => Map<String, Object?>.from(row as Map))
+              .toList();
+        }
+
+        final db = await getDatabase();
+        await db.transaction((txn) async {
+          // Children first: transaction_items references transactions.
+          for (final table in _restoredTables.reversed) {
+            await txn.delete(table);
+          }
+          for (final table in _restoredTables) {
+            for (final row in rows[table]!) {
+              await txn.insert(table, row);
+            }
+          }
+        });
+
+        AppLog.info('Restore selesai dari $filePath');
+        dataRefresh.invalidate();
+      });
 }

@@ -1,6 +1,5 @@
-export 'splash/pages.dart';
-export 'index/page.dart';
-export 'backup/page.dart';
-export 'logs/logs.dart';
-export 'printer/page.dart';
-export 'privacy_policy/page.dart';
+export 'backup_page.dart';
+export 'logs_page.dart';
+export 'printer_page.dart';
+export 'privacy_policy_page.dart';
+export 'settings_page.dart';

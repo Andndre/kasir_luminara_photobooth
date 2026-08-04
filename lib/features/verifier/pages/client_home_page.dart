@@ -4,7 +4,7 @@ import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/features/home/blocs/blocs.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_bloc.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
-import 'package:luminara_photobooth/features/verifier/pages/scanner_page.dart';
+import 'package:luminara_photobooth/features/verifier/pages/ticket_scanner_page.dart';
 import 'package:intl/intl.dart';
 
 class ClientHomePage extends StatelessWidget {

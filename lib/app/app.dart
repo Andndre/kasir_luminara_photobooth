@@ -4,6 +4,7 @@ import 'package:luminara_photobooth/app/routes.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/constants/app_mode.dart';
 import 'package:luminara_photobooth/features/home/blocs/blocs.dart';
+import 'package:luminara_photobooth/app/splash_page.dart';
 import 'package:luminara_photobooth/features/settings/settings.dart';
 import 'package:luminara_photobooth/features/server/blocs/server_bloc.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_bloc.dart';
@@ -46,7 +47,7 @@ class MyApp extends StatelessWidget {
                 );
               },
               home: appState.hasMode
-                  ? const SplashScreen()
+                  ? const SplashPage()
                   : const ModeSelectionPage(),
             );
           },

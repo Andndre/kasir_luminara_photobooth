@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/features/settings/services/backup_service.dart';
-import 'package:luminara_photobooth/features/settings/services/restore_service.dart';
 
 class BackupPage extends StatefulWidget {
   const BackupPage({super.key});
@@ -11,26 +10,34 @@ class BackupPage extends StatefulWidget {
 }
 
 class _BackupPageState extends State<BackupPage> {
-  bool _isLoading = false;
+  bool _isBusy = false;
 
-  Future<void> _doBackup() async {
-    setState(() => _isLoading = true);
+  Future<void> _run<T>(
+    Future<Result<T>> Function() action,
+    String done,
+  ) async {
+    setState(() => _isBusy = true);
+    final result = await action();
+    if (!mounted) return;
+    setState(() => _isBusy = false);
 
-    final path = await BackupService.exportBackup();
-
-    setState(() => _isLoading = false);
-
-    if (mounted) {
-      if (path != null) {
-        _showSnackBar('Backup berhasil disimpan ke:\n$path', isError: false);
-      } else {
-        _showSnackBar('Backup gagal atau dibatalkan', isError: true);
-      }
+    switch (result) {
+      case Ok():
+        SnackBarHelper.showSuccess(context, done);
+      // Cancelling the file picker is a normal exit, not a failure worth
+      // shouting about.
+      case Err(error: BackupCancelled()):
+        break;
+      case Err(:final message):
+        AppLog.error(message);
+        SnackBarHelper.showError(context, message);
     }
   }
 
-  Future<void> _doRestore() async {
-    // Konfirmasi sebelum restore
+  Future<void> _backup() =>
+      _run(BackupService.export, 'Backup berhasil disimpan');
+
+  Future<void> _restore() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -52,54 +59,31 @@ class _BackupPageState extends State<BackupPage> {
       ),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
-    setState(() => _isLoading = true);
-
-    final success = await RestoreService.importBackup(
-      onSuccess: () {
-        // Trigger refresh semua data di memory
-        dataRefresh.invalidate();
-      },
-    );
-
-    setState(() => _isLoading = false);
-
-    if (mounted) {
-      if (success) {
-        _showSnackBar('Restore berhasil. Data sudah di-refresh.', isError: false);
-      } else {
-        _showSnackBar('Restore gagal. Pastikan file backup valid.', isError: true);
-      }
-    }
-  }
-
-  void _showSnackBar(String message, {required bool isError}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
-      ),
+    await _run(
+      BackupService.import,
+      'Restore berhasil. Data sudah di-refresh.',
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Backup & Restore'),
         backgroundColor: theme.appBarTheme.backgroundColor,
         foregroundColor: theme.appBarTheme.foregroundColor,
       ),
-      body: _isLoading
+      body: _isBusy
           ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(Dimens.dp16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Backup Section
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(Dimens.dp16),
@@ -120,7 +104,7 @@ class _BackupPageState extends State<BackupPage> {
                           ),
                           Dimens.dp16.height,
                           ElevatedButton.icon(
-                            onPressed: _doBackup,
+                            onPressed: _backup,
                             icon: const Icon(Icons.download),
                             label: const Text('Download Backup'),
                           ),
@@ -129,7 +113,6 @@ class _BackupPageState extends State<BackupPage> {
                     ),
                   ),
                   Dimens.dp16.height,
-                  // Restore Section
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(Dimens.dp16),
@@ -151,7 +134,7 @@ class _BackupPageState extends State<BackupPage> {
                           ),
                           Dimens.dp16.height,
                           OutlinedButton.icon(
-                            onPressed: _doRestore,
+                            onPressed: _restore,
                             icon: const Icon(Icons.upload),
                             label: const Text('Upload Backup'),
                           ),
