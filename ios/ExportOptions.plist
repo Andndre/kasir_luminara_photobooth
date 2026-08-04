@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Dipakai `xcodebuild -exportArchive` di CI.
+
+  teamID diisi dari secret IOS_TEAM_ID saat build, jadi berkas ini tidak
+  menyimpan identitas Apple siapa pun dan aman berada di repo publik.
+
+  provisioningProfiles memetakan bundle id ke NAMA profil (bukan berkasnya).
+  Nama itu harus sama persis dengan yang tertulis di Apple Developer portal.
+-->
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store-connect</string>
+
+    <key>teamID</key>
+    <string>$(IOS_TEAM_ID)</string>
+
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>com.andndredev.luminaraphotobooth</key>
+        <string>$(IOS_PROFILE_NAME)</string>
+    </dict>
+
+    <key>signingStyle</key>
+    <string>manual</string>
+
+    <!-- Simbol dikirim supaya crash report di App Store Connect terbaca. -->
+    <key>uploadSymbols</key>
+    <true/>
+
+    <key>destination</key>
+    <string>export</string>
+</dict>
+</plist>

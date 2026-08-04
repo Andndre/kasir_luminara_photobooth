@@ -30,7 +30,12 @@ void main(List<String> args) {
           Permission.bluetooth,
           Permission.bluetoothScan,
           Permission.bluetoothConnect,
-          Permission.location,
+          // Lokasi hanya untuk Android: di sana pemindaian BLE menolak jalan
+          // tanpa izin lokasi. iOS tidak memerlukannya, dan memintanya di sana
+          // justru mematikan aplikasi — Info.plist tidak punya
+          // NSLocationWhenInUseUsageDescription, dan Apple menghentikan proses
+          // yang meminta lokasi tanpa deskripsi itu.
+          if (Platform.isAndroid) Permission.location,
         ].request();
       }
 

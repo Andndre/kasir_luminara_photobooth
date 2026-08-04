@@ -2,6 +2,9 @@ name: Build App (Windows & Android)
 
 on:
   push:
+    branches:
+      - main # Bukti bahwa main selalu bisa dibuild. Langkah Release di bawah
+             # tetap terkunci ke tag, jadi ini hanya menghasilkan artifact.
     tags:
       - "v*" # Trigger saat push tag (contoh: v1.0.0)
   workflow_dispatch: # Trigger manual
@@ -94,3 +97,73 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # JOB 3: iOS
+  #
+  # Dilewati sampai secret IOS_TEAM_ID diisi, supaya repo tidak merah gara-gara
+  # kredensial Apple yang memang belum ada. Daftar secret yang dibutuhkan:
+  #
+  #   IOS_TEAM_ID            10 karakter dari Apple Developer > Membership
+  #   IOS_PROFILE_NAME       nama provisioning profile persis seperti di portal
+  #   IOS_DIST_CERT_P12      sertifikat distribusi .p12, base64
+  #   IOS_DIST_CERT_PASSWORD password saat .p12 diekspor
+  #   IOS_PROVISIONING_PROFILE  .mobileprovision, base64
+  #   APPSTORE_ISSUER_ID     App Store Connect > Integrations > Keys
+  #   APPSTORE_KEY_ID        idem
+  #   APPSTORE_PRIVATE_KEY   isi berkas AuthKey_XXX.p8
+  #
+  # base64 di macOS/Linux: base64 -i sertifikat.p12 | pbcopy
+  build-ios:
+    runs-on: macos-latest
+    if: ${{ vars.IOS_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Import Signing Certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.IOS_DIST_CERT_P12 }}
+          p12-password: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+
+      - name: Install Provisioning Profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 --decode \
+            > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
+
+      # Flutter menandatangani lewat Xcode, jadi archive-nya dipisah dari
+      # `flutter build ipa` supaya ExportOptions.plist bisa diisi dari secret.
+      - name: Build Archive
+        run: |
+          sed -i '' "s/\$(IOS_TEAM_ID)/${{ secrets.IOS_TEAM_ID }}/" ios/ExportOptions.plist
+          sed -i '' "s/\$(IOS_PROFILE_NAME)/${{ secrets.IOS_PROFILE_NAME }}/" ios/ExportOptions.plist
+          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS-IPA
+          path: build/ios/ipa/*.ipa
+
+      - name: Upload to TestFlight
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/private_keys
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY" \
+            > ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_ID.p8
+          xcrun altool --upload-app --type ios \
+            --file "$(ls build/ios/ipa/*.ipa | head -1)" \
+            --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
