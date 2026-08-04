@@ -1,24 +1,30 @@
+import 'package:luminara_photobooth/core/domain/server_address.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Last server the verifier was paired with, so it can reconnect on launch.
 class VerifierPreferences {
+  const VerifierPreferences._();
+
+  // Persisted keys — existing installs hold values under these exact names.
   static const String _keyServerIp = 'verifier_server_ip';
   static const String _keyServerPort = 'verifier_server_port';
 
-  static Future<void> saveServerAddress(String ip, int port) async {
+  static Future<void> saveServerAddress(ServerAddress address) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyServerIp, ip);
-    await prefs.setInt(_keyServerPort, port);
+    await prefs.setString(_keyServerIp, address.host);
+    await prefs.setInt(_keyServerPort, address.port);
   }
 
-  static Future<Map<String, dynamic>?> getServerAddress() async {
+  /// Returns null when nothing has been paired yet.
+  static Future<ServerAddress?> getServerAddress() async {
     final prefs = await SharedPreferences.getInstance();
-    final ip = prefs.getString(_keyServerIp);
-    final port = prefs.getInt(_keyServerPort);
+    final host = prefs.getString(_keyServerIp);
+    if (host == null) return null;
 
-    if (ip != null && port != null) {
-      return {'ip': ip, 'port': port};
-    }
-    return null;
+    return ServerAddress(
+      host,
+      prefs.getInt(_keyServerPort) ?? ServerAddress.defaultPort,
+    );
   }
 
   static Future<void> clearServerAddress() async {

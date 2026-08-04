@@ -6,11 +6,11 @@ import 'package:intl/intl.dart';
 
 import 'package:luminara_photobooth/core/domain/domain.dart';
 
+/// Thin wrapper over the ESC/POS thermal printer.
+///
+/// Stateless on purpose: which printer is connected lives in `PrinterCubit`,
+/// not in a mutable static here where the two could disagree.
 class PrinterHelper {
-  // Store the name of connected printer
-
-  static String? connectedPrinterName;
-
   // ponytail: mayoritas laci pakai pin2; kalau CD 339 tidak bereaksi, ganti ke pin5.
   static const _drawerPin = esc.PosDrawer.pin2;
 
@@ -54,15 +54,8 @@ class PrinterHelper {
 
   /// Check if printer is connected
 
-  static Future<bool> get isConnected async {
-    bool status = await PrintBluetoothThermal.connectionStatus;
-
-    if (!status) {
-      connectedPrinterName = null; // Reset if disconnected
-    }
-
-    return status;
-  }
+  static Future<bool> get isConnected =>
+      PrintBluetoothThermal.connectionStatus;
 
   /// Print test receipt
 
