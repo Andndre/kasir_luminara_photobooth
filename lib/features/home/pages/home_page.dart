@@ -5,7 +5,6 @@ import 'package:luminara_photobooth/core/blocs/async_state.dart';
 import 'package:luminara_photobooth/core/constants/app_mode.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/features/home/blocs/dashboard/dashboard_cubit.dart';
-import 'package:luminara_photobooth/features/server/components/server_monitor.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -114,13 +113,6 @@ class _HomeView extends StatelessWidget {
                                 ),
                               ],
                             ),
-
-                            if (mode == AppMode.server) ...[
-                              const SizedBox(height: Dimens.dp24),
-                              const EyebrowText('Server'),
-                              const SizedBox(height: Dimens.dp12),
-                              const ServerMonitor(),
-                            ],
                           ],
                         ),
                       ),

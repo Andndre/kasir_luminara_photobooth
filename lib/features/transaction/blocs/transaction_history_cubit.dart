@@ -5,7 +5,6 @@ import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:luminara_photobooth/core/blocs/async_state.dart';
 import 'package:luminara_photobooth/core/core.dart';
-import 'package:luminara_photobooth/core/services/server_service.dart';
 
 /// A named period shown as a pill in the filter track. A null [range] means
 /// "everything".
@@ -80,15 +79,13 @@ class TransactionHistoryCubit extends Cubit<TransactionHistoryState> {
     TransactionRepository repository = const TransactionRepository(),
   }) : _repository = repository,
        super(TransactionHistoryState(filter: DateRangeFilter.today)) {
-    // The verifier redeeming a ticket changes a row we may be displaying.
-    _serverEvents = ServerService().appEventStream.listen((event) {
-      if (event == 'REFRESH_TRANSACTIONS') load();
-    });
+    // A ticket redeemed on the verifier changes a row we may be displaying.
+    // That news now arrives through dataRefresh, fired by SyncService when it
+    // pulls a redemption down — there is no local server to push it any more.
     dataRefresh.addListener(load);
   }
 
   final TransactionRepository _repository;
-  late final StreamSubscription<String> _serverEvents;
 
   /// Bumped per load. A filter change or a server event can start a second
   /// query while the first is still running; without this the slower one wins.
@@ -127,7 +124,6 @@ class TransactionHistoryCubit extends Cubit<TransactionHistoryState> {
 
   @override
   Future<void> close() {
-    _serverEvents.cancel();
     dataRefresh.removeListener(load);
     return super.close();
   }

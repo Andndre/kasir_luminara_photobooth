@@ -35,8 +35,8 @@ class ModeSelectionPage extends StatelessWidget {
                   title: 'Kasir',
                   icon: Icons.point_of_sale_rounded,
                   description:
-                      'Menjual paket, mencetak tiket, dan menjalankan '
-                      'server di jaringan lokal.',
+                      'Menjual paket, mencetak tiket, dan menyalin '
+                      'transaksi ke akun Luminara.',
                   onTap: () {
                     context.read<AppState>().setMode(AppMode.server);
                   },
