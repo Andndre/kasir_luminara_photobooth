@@ -133,6 +133,28 @@ jobs:
         if: vars.IOS_ENABLED != 'true'
         run: flutter build ios --release --no-codesign
 
+      # Build tanpa signing berhenti di Runner.app, bukan .ipa. Alat sideload
+      # (Sideloadly/AltStore) meminta .ipa, dan formatnya cuma zip berisi folder
+      # Payload/ — jadi dibungkus di sini, bukan manual di Windows tiap kali.
+      #
+      # IPA ini TIDAK bertanda tangan. Alat sideload yang menandatanganinya
+      # dengan Apple ID gratis, dan hasilnya berlaku 7 hari.
+      - name: Bungkus jadi IPA siap sideload
+        if: vars.IOS_ENABLED != 'true'
+        run: |
+          mkdir -p build/sideload/Payload
+          cp -R build/ios/iphoneos/Runner.app build/sideload/Payload/
+          cd build/sideload
+          zip -qry LuminaraPhotobooth-unsigned.ipa Payload
+          ls -lh LuminaraPhotobooth-unsigned.ipa
+
+      - name: Upload IPA Sideload
+        if: vars.IOS_ENABLED != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS-IPA-unsigned
+          path: build/sideload/LuminaraPhotobooth-unsigned.ipa
+
       - name: Import Signing Certificate
         if: vars.IOS_ENABLED == 'true'
         uses: apple-actions/import-codesign-certs@v3
