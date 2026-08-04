@@ -100,8 +100,11 @@ jobs:
 
   # JOB 3: iOS
   #
-  # Dilewati sampai secret IOS_TEAM_ID diisi, supaya repo tidak merah gara-gara
-  # kredensial Apple yang memang belum ada. Daftar secret yang dibutuhkan:
+  # Tanpa variable IOS_ENABLED, job ini hanya mengompilasi tanpa signing —
+  # gratis, tanpa akun Apple, dan justru itu yang menangkap kerusakan sungguhan:
+  # plugin tanpa dukungan iOS, Podfile gagal resolve, deployment target
+  # ketinggalan. Set IOS_ENABLED=true untuk menghasilkan IPA bertanda tangan;
+  # saat itu secret berikut wajib ada:
   #
   #   IOS_TEAM_ID            10 karakter dari Apple Developer > Membership
   #   IOS_PROFILE_NAME       nama provisioning profile persis seperti di portal
@@ -115,7 +118,6 @@ jobs:
   # base64 di macOS/Linux: base64 -i sertifikat.p12 | pbcopy
   build-ios:
     runs-on: macos-latest
-    if: ${{ vars.IOS_ENABLED == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -127,34 +129,42 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
+      - name: Build iOS (tanpa signing)
+        if: vars.IOS_ENABLED != 'true'
+        run: flutter build ios --release --no-codesign
+
       - name: Import Signing Certificate
+        if: vars.IOS_ENABLED == 'true'
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.IOS_DIST_CERT_P12 }}
           p12-password: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
 
       - name: Install Provisioning Profile
+        if: vars.IOS_ENABLED == 'true'
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 --decode \
             > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
 
-      # Flutter menandatangani lewat Xcode, jadi archive-nya dipisah dari
-      # `flutter build ipa` supaya ExportOptions.plist bisa diisi dari secret.
-      - name: Build Archive
+      # Archive dipisah dari `flutter build ipa` bawaan supaya
+      # ExportOptions.plist bisa diisi dari secret lebih dulu.
+      - name: Build Signed IPA
+        if: vars.IOS_ENABLED == 'true'
         run: |
           sed -i '' "s/\$(IOS_TEAM_ID)/${{ secrets.IOS_TEAM_ID }}/" ios/ExportOptions.plist
           sed -i '' "s/\$(IOS_PROFILE_NAME)/${{ secrets.IOS_PROFILE_NAME }}/" ios/ExportOptions.plist
           flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
 
       - name: Upload IPA Artifact
+        if: vars.IOS_ENABLED == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: iOS-IPA
           path: build/ios/ipa/*.ipa
 
       - name: Upload to TestFlight
-        if: startsWith(github.ref, 'refs/tags/')
+        if: vars.IOS_ENABLED == 'true' && startsWith(github.ref, 'refs/tags/')
         env:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
