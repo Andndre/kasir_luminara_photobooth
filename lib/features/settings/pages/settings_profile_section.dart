@@ -1,4 +1,4 @@
-part of '../page.dart';
+part of 'settings_page.dart';
 
 class _ProfileSection extends StatefulWidget {
   const _ProfileSection();
@@ -31,7 +31,6 @@ class _ProfileSectionState extends State<_ProfileSection> {
       });
     } catch (e) {
       AppLog.error('Error getting PackageInfo: $e');
-      print('Error getting PackageInfo: $e');
     }
   }
 

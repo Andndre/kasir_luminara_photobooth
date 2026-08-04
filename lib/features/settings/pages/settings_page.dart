@@ -8,16 +8,16 @@ import 'package:luminara_photobooth/core/preferences/app_state.dart';
 import 'package:luminara_photobooth/core/preferences/settings_preferences.dart';
 import 'package:provider/provider.dart';
 
-part 'sections/profile_section.dart';
+part 'settings_profile_section.dart';
 
-class SettingPage extends StatefulWidget {
-  const SettingPage({super.key});
+class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
 
   @override
-  State<SettingPage> createState() => _SettingPageState();
+  State<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingPageState extends State<SettingPage> {
+class _SettingsPageState extends State<SettingsPage> {
   // Status Midtrans dipegang oleh _MidtransMenu supaya toggle-nya tidak
   // merebuild seluruh halaman setelan.
 

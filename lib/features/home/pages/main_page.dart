@@ -10,9 +10,9 @@ import 'package:luminara_photobooth/features/transaction/transaction.dart';
 import 'package:luminara_photobooth/core/constants/app_mode.dart';
 import 'package:luminara_photobooth/features/verifier/pages/live_queue_page.dart';
 import 'package:luminara_photobooth/features/verifier/pages/handshake_page.dart';
-import 'package:luminara_photobooth/features/verifier/pages/scanner_page.dart';
+import 'package:luminara_photobooth/features/verifier/pages/ticket_scanner_page.dart';
 
-import 'package:luminara_photobooth/features/verifier/pages/home/page.dart';
+import 'package:luminara_photobooth/features/verifier/pages/client_home_page.dart';
 
 /// Satu entri navigasi. Dipakai bersama oleh NavigationRail (desktop) dan
 /// NavigationBar mengambang (mobile) supaya labelnya tidak pernah beda.
@@ -48,13 +48,13 @@ class MainPage extends StatelessWidget {
             HomePage(),
             TransactionPage(),
             ProductPage(),
-            SettingPage(),
+            SettingsPage(),
           ]
         : const <Widget>[
             ClientHomePage(),
             LiveQueuePage(),
             HandshakePage(),
-            SettingPage(),
+            SettingsPage(),
           ];
 
     final nav = isServer ? _serverNav : _clientNav;
