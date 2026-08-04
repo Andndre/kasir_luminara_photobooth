@@ -16,19 +16,41 @@ class HandshakePage extends StatefulWidget {
 
 class _HandshakePageState extends State<HandshakePage> {
   final _ipController = TextEditingController();
-  bool _isProcessing = false; // Guard flag
 
   @override
   void initState() {
     super.initState();
-    _loadSavedIp();
+    _loadSavedAddress();
   }
 
-  Future<void> _loadSavedIp() async {
+  @override
+  void dispose() {
+    // Previously leaked: the controller was never disposed.
+    _ipController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSavedAddress() async {
     final saved = await VerifierPreferences.getServerAddress();
     if (saved != null && mounted) {
-      _ipController.text = saved['ip'];
+      _ipController.text = saved.host;
     }
+  }
+
+  /// Connects and jumps to the queue tab. Rejects malformed input instead of
+  /// throwing on `int.parse`, which is what the old code did.
+  void _connect(String input) {
+    final address = ServerAddress.tryParse(input);
+    if (address == null) {
+      SnackBarHelper.showError(
+        context,
+        'Alamat server tidak valid. Contoh: 192.168.1.5 atau 192.168.1.5:3000',
+      );
+      return;
+    }
+
+    context.read<VerifierBloc>().add(ConnectToServer(address));
+    context.read<BottomNavBloc>().add(TapBottomNavEvent(0));
   }
 
   @override
@@ -152,18 +174,7 @@ class _HandshakePageState extends State<HandshakePage> {
         ),
         const SizedBox(height: Dimens.dp16),
         ElevatedButton(
-          onPressed: isConnecting
-              ? null
-              : () {
-                  final parts = _ipController.text.split(':');
-                  if (parts.isNotEmpty) {
-                    final ip = parts[0];
-                    final port = parts.length > 1 ? int.parse(parts[1]) : 3000;
-                    context.read<VerifierBloc>().add(ConnectToServer(ip, port));
-                    // Navigate to Live Queue (Index 0)
-                    context.read<BottomNavBloc>().add(TapBottomNavEvent(0));
-                  }
-                },
+          onPressed: isConnecting ? null : () => _connect(_ipController.text),
           child: Text(isConnecting ? 'Menghubungkan...' : 'Hubungkan'),
         ),
         const SizedBox(height: Dimens.dp24),
@@ -213,40 +224,46 @@ class _HandshakePageState extends State<HandshakePage> {
     );
   }
 
-  void _scanPairingQR() {
-    setState(() => _isProcessing = false); // Reset before scan
-
-    Navigator.push(
+  Future<void> _scanPairingQR() async {
+    final scanned = await Navigator.push<String>(
       context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(title: const Text('Scan Pairing QR')),
-          body: MobileScanner(
-            onDetect: (capture) {
-              if (_isProcessing) return; // Ignore multiple calls
+      MaterialPageRoute(builder: (_) => const _PairingScannerPage()),
+    );
 
-              final barcode = capture.barcodes.first;
-              if (barcode.rawValue != null) {
-                final data = barcode.rawValue!;
-                final parts = data.split(':');
-                if (parts.isNotEmpty) {
-                  setState(() => _isProcessing = true);
+    if (scanned == null || !mounted) return;
+    _connect(scanned);
+  }
+}
 
-                  final ip = parts[0];
-                  final port = parts.length > 1 ? int.parse(parts[1]) : 3000;
-                  context.read<VerifierBloc>().add(ConnectToServer(ip, port));
+/// Reads a `host` or `host:port` pairing QR and pops it back as a string.
+///
+/// Owns its own "already scanned" guard: the scanner fires repeatedly for the
+/// same code, and the previous version drove that flag through the parent
+/// page's setState while sitting on a pushed route.
+class _PairingScannerPage extends StatefulWidget {
+  const _PairingScannerPage();
 
-                  if (context.mounted) {
-                    Navigator.pop(context); // Close scanner safely
-                    context.read<BottomNavBloc>().add(
-                      TapBottomNavEvent(0),
-                    ); // Go to Queue
-                  }
-                }
-              }
-            },
-          ),
-        ),
+  @override
+  State<_PairingScannerPage> createState() => _PairingScannerPageState();
+}
+
+class _PairingScannerPageState extends State<_PairingScannerPage> {
+  bool _handled = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Scan Pairing QR')),
+      body: MobileScanner(
+        onDetect: (capture) {
+          if (_handled) return;
+
+          final value = capture.barcodes.firstOrNull?.rawValue;
+          if (value == null || value.isEmpty) return;
+
+          _handled = true;
+          Navigator.pop(context, value);
+        },
       ),
     );
   }

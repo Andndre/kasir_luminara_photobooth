@@ -1,56 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:luminara_photobooth/core/core.dart';
-import 'package:luminara_photobooth/core/preferences/app_state.dart';
-import 'package:intl/intl.dart';
-import 'package:luminara_photobooth/features/server/components/server_monitor.dart';
-import 'package:luminara_photobooth/core/constants/app_mode.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import 'package:luminara_photobooth/core/blocs/async_state.dart';
+import 'package:luminara_photobooth/core/constants/app_mode.dart';
+import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/features/home/blocs/dashboard/dashboard_cubit.dart';
+import 'package:luminara_photobooth/features/server/components/server_monitor.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => DashboardCubit()..load(),
+      child: const _HomeView(),
+    );
+  }
 }
 
-class _HomePageState extends State<HomePage> {
-  static const _statistics = StatisticsRepository();
-  late Future<Result<DashboardStats>> _statisticsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _statisticsFuture = _statistics.today();
-
-    // Listen untuk refresh setelah restore
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final appState = context.read<AppState>();
-      appState.addListener(_onAppStateChanged);
-    });
-  }
-
-  @override
-  void dispose() {
-    // Cleanup listener
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<AppState>().removeListener(_onAppStateChanged);
-      }
-    });
-    super.dispose();
-  }
-
-  void _onAppStateChanged() {
-    // Refresh statistics saat AppState memberi signal
-    _refreshStatistics();
-  }
-
-  void _refreshStatistics() {
-    setState(() {
-      _statisticsFuture = _statistics.today();
-    });
-  }
+class _HomeView extends StatelessWidget {
+  const _HomeView();
 
   @override
   Widget build(BuildContext context) {
@@ -69,23 +39,21 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _refreshStatistics,
+            onPressed: context.read<DashboardCubit>().load,
             tooltip: 'Refresh Data',
           ),
         ],
       ),
       body: SafeArea(
-        child: FutureBuilder<Result<DashboardStats>>(
-          future: _statisticsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+        child: BlocBuilder<DashboardCubit, AsyncState<DashboardStats>>(
+          builder: (context, state) {
+            if (state case AsyncLoading(previous: null)) {
               return const Center(child: CircularProgressIndicator());
             }
 
             // A failed read shows zeroes rather than an error screen: the
             // dashboard is glanceable info, not something to block the app on.
-            final statistics =
-                snapshot.data?.valueOrNull ?? DashboardStats.empty;
+            final statistics = state.dataOrNull ?? DashboardStats.empty;
 
             return LayoutBuilder(
               builder: (context, constraints) {

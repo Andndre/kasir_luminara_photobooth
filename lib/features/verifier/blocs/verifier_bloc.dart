@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:luminara_photobooth/core/services/verifier_service.dart';
+import 'package:luminara_photobooth/core/domain/domain.dart';
 import 'package:luminara_photobooth/core/preferences/verifier_preferences.dart';
 
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
@@ -17,9 +18,11 @@ abstract class VerifierEvent extends Equatable {
 class InitializeVerifier extends VerifierEvent {}
 
 class ConnectToServer extends VerifierEvent {
-  final String ip;
-  final int port;
-  const ConnectToServer(this.ip, this.port);
+  final ServerAddress address;
+  const ConnectToServer(this.address);
+
+  @override
+  List<Object> get props => [address];
 }
 
 class DisconnectFromServer extends VerifierEvent {}
@@ -51,9 +54,7 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
     Emitter<VerifierState> emit,
   ) async {
     final saved = await VerifierPreferences.getServerAddress();
-    if (saved != null) {
-      add(ConnectToServer(saved['ip'], saved['port']));
-    }
+    if (saved != null) add(ConnectToServer(saved));
   }
 
   Future<void> _onConnect(
@@ -62,10 +63,10 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
   ) async {
     emit(state.copyWith(status: VerifierStatus.connecting));
     try {
-      service.connect(event.ip, event.port);
+      service.connect(event.address.host, event.address.port);
 
       // Save for next time
-      await VerifierPreferences.saveServerAddress(event.ip, event.port);
+      await VerifierPreferences.saveServerAddress(event.address);
 
       // Listen for WebSocket events
       await _eventSubscription?.cancel();
@@ -78,7 +79,7 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
       });
 
       emit(
-        state.copyWith(status: VerifierStatus.connected, serverIp: event.ip),
+        state.copyWith(status: VerifierStatus.connected, serverIp: event.address.toString()),
       );
       add(RefreshQueue());
     } catch (e) {
