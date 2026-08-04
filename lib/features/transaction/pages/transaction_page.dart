@@ -368,7 +368,17 @@ class _FilterPill extends StatelessWidget {
               alpha: selected ? 1 : 0,
             ),
             borderRadius: BorderRadius.circular(Dimens.rFull),
-            boxShadow: selected ? surfaces.cardShadow : const [],
+            // Alasan yang sama seperti warna di atas: lerp ke list kosong
+            // memakai BoxShadow default (hitam, blur 0), jadi pil yang baru
+            // dilepas meninggalkan jejak gelap. Turunkan alpha-nya saja.
+            boxShadow: [
+              for (final shadow in surfaces.cardShadow)
+                selected
+                    ? shadow
+                    : shadow.copyWith(
+                        color: shadow.color.withValues(alpha: 0),
+                      ),
+            ],
           ),
           child: Text(
             label,
