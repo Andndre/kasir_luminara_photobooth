@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/core/services/auth_service.dart';
+import 'package:luminara_photobooth/core/services/sync_service.dart';
+import 'package:luminara_photobooth/features/auth/auth.dart';
 import 'package:luminara_photobooth/features/settings/settings.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -20,6 +23,83 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   // Status Midtrans dipegang oleh _MidtransMenu supaya toggle-nya tidak
   // merebuild seluruh halaman setelan.
+
+  int _pending = 0;
+  bool _syncing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshPending();
+  }
+
+  Future<void> _refreshPending() async {
+    if (!AuthService().isLoggedIn) return;
+    final pending = await SyncService().pendingCount();
+    if (mounted) setState(() => _pending = pending);
+  }
+
+  /// Sinkron manual. Ada karena sync latar gagal tanpa suara: satu baris lama
+  /// yang ditolak server dulu membuat seluruh riwayat diam tidak terkirim, dan
+  /// tidak ada satu pun layar yang bisa menunjukkan itu.
+  Future<void> _syncNow() async {
+    setState(() => _syncing = true);
+    final result = await SyncService().push();
+    if (!mounted) return;
+
+    switch (result) {
+      case Ok(:final value):
+        SnackBarHelper.showSuccess(context, '$value transaksi terkirim');
+      case Err(:final message, :final error):
+        AppLog.error('Sinkron manual gagal: $error');
+        SnackBarHelper.showError(context, message);
+    }
+
+    setState(() => _syncing = false);
+    await _refreshPending();
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Keluar dari Akun?'),
+        content: const Text(
+          'Data di perangkat ini tetap utuh, tapi transaksi baru berhenti '
+          'tersalin ke server sampai Anda masuk lagi.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppTokens.danger),
+            child: const Text('Keluar Akun'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    SyncService().stop();
+    await AuthService().logout();
+    // Kursor ikut dibuang: akun berikutnya bisa berbeda, dan penukarannya
+    // semua lebih tua dari kursor milik akun ini.
+    await SyncService().reset();
+
+    if (!mounted) return;
+    // Tanpa akun aplikasi tidak punya tujuan yang jelas — transaksi berhenti
+    // tersalin dan restore tidak bisa dipakai. Jadi langsung ke gerbangnya,
+    // bukan dibiarkan berkeliaran dalam keadaan setengah masuk.
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      LoginPage.routeName,
+      (route) => false,
+    );
+  }
 
   void _showExitDialog(BuildContext context) {
     showDialog(
@@ -73,6 +153,41 @@ class _SettingsPageState extends State<SettingsPage> {
               const _SettingGroup(
                 title: 'Perangkat',
                 children: [_PrinterMenu(), _MidtransMenu()],
+              ),
+              const SizedBox(height: Dimens.dp20),
+
+              _SettingGroup(
+                title: 'Akun',
+                children: [
+                  ItemMenuSetting(
+                    title: AuthService().email ?? 'Belum masuk',
+                    subtitle: AuthService().isLoggedIn
+                        ? 'Ketuk untuk keluar dari akun'
+                        : 'Masuk untuk menyalin data ke server',
+                    icon: Icons.account_circle_outlined,
+                    onTap: () => AuthService().isLoggedIn
+                        ? _confirmLogout()
+                        : Navigator.pushNamed(context, LoginPage.routeName),
+                  ),
+                  if (AuthService().isLoggedIn)
+                    ItemMenuSetting(
+                      title: 'Sinkronkan ke Server',
+                      subtitle: _syncing
+                          ? 'Mengirim...'
+                          : _pending == 0
+                          ? 'Semua transaksi sudah terkirim'
+                          : '$_pending transaksi belum terkirim',
+                      icon: Icons.cloud_upload_outlined,
+                      trailing: _syncing
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : null,
+                      onTap: _syncing ? null : _syncNow,
+                    ),
+                ],
               ),
               const SizedBox(height: Dimens.dp20),
 
