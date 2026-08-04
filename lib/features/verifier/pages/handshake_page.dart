@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/core/services/auth_service.dart';
 import 'package:luminara_photobooth/features/home/blocs/blocs.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_bloc.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
@@ -194,8 +195,33 @@ class _HandshakePageState extends State<HandshakePage> {
           icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
           label: const Text('Scan Pairing QR'),
         ),
+        const SizedBox(height: Dimens.dp12),
+        OutlinedButton.icon(
+          onPressed: isConnecting ? null : _connectCloud,
+          icon: const Icon(Icons.cloud_outlined, size: 20),
+          label: const Text('Hubungkan lewat akun'),
+        ),
+        const SizedBox(height: Dimens.dp8),
+        Text(
+          'Lewat akun, scanner tidak perlu satu Wi-Fi dengan kasir — tapi '
+          'keduanya wajib punya internet.',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall?.copyWith(color: surfaces.textMuted),
+        ),
       ],
     );
+  }
+
+  void _connectCloud() {
+    if (!AuthService().isLoggedIn) {
+      SnackBarHelper.showWarning(
+        context,
+        'Masuk ke akun dulu lewat Pengaturan',
+      );
+      return;
+    }
+    context.read<VerifierBloc>().add(ConnectToCloud());
+    context.read<BottomNavBloc>().add(TapBottomNavEvent(0));
   }
 
   void _confirmDisconnect(BuildContext context) {

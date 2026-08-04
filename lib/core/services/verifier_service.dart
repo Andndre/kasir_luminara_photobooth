@@ -4,6 +4,7 @@ import 'dart:io' show SocketException;
 
 import 'package:http/http.dart' as http;
 import 'package:luminara_photobooth/core/domain/domain.dart';
+import 'package:luminara_photobooth/core/services/auth_service.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// Outcome of `POST /api/verify`, as seen by the verifier client.
@@ -44,17 +45,56 @@ class VerifierService {
   /// gave up — the queue screen would just spin.
   static const _timeout = Duration(seconds: 10);
 
+  /// How often the cloud link asks for a fresh queue. There is no push channel
+  /// over the internet, so this interval *is* the latency a customer sees
+  /// between paying and appearing on the booth's screen.
+  static const cloudPollInterval = Duration(seconds: 5);
+
   String? _baseUrl;
+
+  /// Path prefix in front of `/queue` and `/verify`: empty on the LAN server,
+  /// `/pos` on luminarabali.com. The JSON on both sides is identical, which is
+  /// why nothing below this line needs to know which one it is talking to.
+  String _prefix = '';
+
+  Map<String, String> _headers = const {'Content-Type': 'application/json'};
+
   WebSocketChannel? _channel;
+  Stream<dynamic>? _pollStream;
 
   bool get isConnected => _baseUrl != null;
 
+  /// True when talking to luminarabali.com instead of a cashier on the LAN.
+  bool get isCloud => _prefix.isNotEmpty;
+
   void connect(String ip, int port) {
     _baseUrl = 'http://$ip:$port';
+    _prefix = '';
+    _headers = const {'Content-Type': 'application/json'};
     _channel = WebSocketChannel.connect(Uri.parse('ws://$ip:$port/ws'));
+    _pollStream = null;
   }
 
-  Stream<dynamic>? get eventStream => _channel?.stream;
+  /// Connects to the cashier's data on luminarabali.com, so the scanner does
+  /// not have to share a network with the till.
+  ///
+  /// Requires [AuthService] to be logged in — the account is what pairs the two
+  /// devices, replacing the IP address the operator used to type in.
+  void connectCloud() {
+    _baseUrl = cloudBaseUrl.replaceFirst(RegExp(r'/api$'), '');
+    _prefix = '/pos';
+    _headers = AuthService().headers;
+    _channel = null;
+
+    // Ganti WebSocket dengan polling. Bentuk pesannya sengaja disamakan supaya
+    // VerifierBloc tidak perlu tahu bedanya.
+    _pollStream = Stream.periodic(
+      cloudPollInterval,
+      (_) => jsonEncode({'event': 'REFRESH_QUEUE'}),
+    ).asBroadcastStream();
+  }
+
+  Stream<dynamic>? get eventStream => _channel?.stream ?? _pollStream;
 
   /// Throws [ServerUnreachable] on network failure, so the bloc surfaces a real
   /// error instead of silently rendering an empty queue.
@@ -62,7 +102,7 @@ class VerifierService {
     final baseUrl = _baseUrl;
     if (baseUrl == null) return const [];
 
-    final response = await _get('$baseUrl/api/queue');
+    final response = await _get('$baseUrl/api$_prefix/queue');
     final decoded = jsonDecode(response.body) as List<dynamic>;
     return decoded
         .whereType<Map>()
@@ -80,8 +120,8 @@ class VerifierService {
     try {
       response = await http
           .post(
-            Uri.parse('$baseUrl/api/verify'),
-            headers: {'Content-Type': 'application/json'},
+            Uri.parse('$baseUrl/api$_prefix/verify'),
+            headers: _headers,
             body: jsonEncode({'ticket_code': ticketCode}),
           )
           .timeout(_timeout);
@@ -112,7 +152,9 @@ class VerifierService {
   Future<http.Response> _get(String url) async {
     final http.Response response;
     try {
-      response = await http.get(Uri.parse(url)).timeout(_timeout);
+      response = await http
+          .get(Uri.parse(url), headers: _headers)
+          .timeout(_timeout);
     } on SocketException catch (e) {
       throw ServerUnreachable(e.message);
     } on TimeoutException {
@@ -129,6 +171,8 @@ class VerifierService {
     _channel?.sink.close();
     _baseUrl = null;
     _channel = null;
+    _pollStream = null;
+    _prefix = '';
   }
 }
 

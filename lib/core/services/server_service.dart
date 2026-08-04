@@ -9,6 +9,8 @@ import 'package:luminara_photobooth/core/data/repositories/transaction_repositor
 import 'package:luminara_photobooth/core/data/result.dart';
 import 'package:luminara_photobooth/core/domain/domain.dart';
 import 'package:luminara_photobooth/core/helpers/app_log.dart';
+import 'package:luminara_photobooth/core/services/auth_service.dart';
+import 'package:luminara_photobooth/core/services/cloud_api.dart';
 
 class ServerService {
   static final ServerService _instance = ServerService._internal();
@@ -124,6 +126,7 @@ class ServerService {
         case Ok(value: RedeemedOk(:final transaction)):
           broadcast('TICKET_REDEEMED');
           _appEventController.add('REFRESH_TRANSACTIONS');
+          unawaited(_reportRedeemedToCloud(ticketCode));
 
           final ticket = QueueTicket.fromTransaction(transaction);
           return {
@@ -179,6 +182,25 @@ class ServerService {
     _clients.clear();
     _clientCountController.add(0);
     debugPrint('Server stopped');
+  }
+
+  /// Mirrors a LAN redemption up to luminarabali.com, so the two agree on which
+  /// tickets are spent.
+  ///
+  /// Never awaited by the request handler: the verifier is standing at the
+  /// booth waiting for an answer, and the ticket is already redeemed locally.
+  /// Fires from the background isolate on Android too, hence the explicit
+  /// [AuthService.load] — that isolate has its own singleton with no token yet.
+  static Future<void> _reportRedeemedToCloud(String uuid) async {
+    try {
+      final auth = AuthService();
+      if (!auth.isLoggedIn) await auth.load();
+      if (!auth.isLoggedIn) return;
+
+      await const CloudApi().reportRedeemed(uuid);
+    } catch (e) {
+      AppLog.error('Gagal mengabarkan penukaran ke server: $e');
+    }
   }
 
   void broadcast(String eventName) {
