@@ -114,81 +114,83 @@ class _BackupPageState extends State<BackupPage> {
       ),
       body: _isBusy
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(Dimens.dp16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(Dimens.dp16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.backup, color: theme.primaryColor),
-                              Dimens.dp12.width,
-                              RegularText.semiBold('Backup Data'),
-                            ],
-                          ),
-                          Dimens.dp8.height,
-                          RegularText(
-                            'Salinan dingin di luar server: satu-satunya yang '
-                            'tersisa kalau akun atau server luminarabali.com '
-                            'ikut hilang.',
-                          ),
-                          Dimens.dp16.height,
-                          ElevatedButton.icon(
-                            onPressed: _backup,
-                            icon: const Icon(Icons.download),
-                            label: const Text('Download Backup'),
-                          ),
-                        ],
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(Dimens.dp16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(Dimens.dp16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.backup, color: theme.primaryColor),
+                                Dimens.dp12.width,
+                                RegularText.semiBold('Backup Data'),
+                              ],
+                            ),
+                            Dimens.dp8.height,
+                            RegularText(
+                              'Salinan dingin di luar server: satu-satunya yang '
+                              'tersisa kalau akun atau server luminarabali.com '
+                              'ikut hilang.',
+                            ),
+                            Dimens.dp16.height,
+                            ElevatedButton.icon(
+                              onPressed: _backup,
+                              icon: const Icon(Icons.download),
+                              label: const Text('Download Backup'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  Dimens.dp16.height,
-                  // Dulu dua kartu terpisah yang mengulang peringatan yang sama.
-                  // Keduanya melakukan hal identik — mengganti isi perangkat —
-                  // jadi yang membedakan cuma sumbernya.
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(Dimens.dp16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.restore, color: theme.primaryColor),
-                              Dimens.dp12.width,
-                              RegularText.semiBold('Pulihkan Data'),
-                            ],
-                          ),
-                          Dimens.dp8.height,
-                          RegularText(
-                            'Data di perangkat ini akan diganti. Data di server '
-                            'tidak ikut mundur — transaksi yang lebih baru di '
-                            'sana tetap ada.',
-                            style: TextStyle(color: theme.colorScheme.error),
-                          ),
-                          Dimens.dp16.height,
-                          OutlinedButton.icon(
-                            onPressed: _restoreFromCloud,
-                            icon: const Icon(Icons.cloud_sync_outlined),
-                            label: const Text('Dari Server'),
-                          ),
-                          Dimens.dp8.height,
-                          OutlinedButton.icon(
-                            onPressed: _restore,
-                            icon: const Icon(Icons.upload),
-                            label: const Text('Dari File Backup'),
-                          ),
-                        ],
+                    Dimens.dp16.height,
+                    // Dulu dua kartu terpisah yang mengulang peringatan yang sama.
+                    // Keduanya melakukan hal identik — mengganti isi perangkat —
+                    // jadi yang membedakan cuma sumbernya.
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(Dimens.dp16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.restore, color: theme.primaryColor),
+                                Dimens.dp12.width,
+                                RegularText.semiBold('Pulihkan Data'),
+                              ],
+                            ),
+                            Dimens.dp8.height,
+                            RegularText(
+                              'Data di perangkat ini akan diganti. Data di server '
+                              'tidak ikut mundur — transaksi yang lebih baru di '
+                              'sana tetap ada.',
+                              style: TextStyle(color: theme.colorScheme.error),
+                            ),
+                            Dimens.dp16.height,
+                            OutlinedButton.icon(
+                              onPressed: _restoreFromCloud,
+                              icon: const Icon(Icons.cloud_sync_outlined),
+                              label: const Text('Dari Server'),
+                            ),
+                            Dimens.dp8.height,
+                            OutlinedButton.icon(
+                              onPressed: _restore,
+                              icon: const Icon(Icons.upload),
+                              label: const Text('Dari File Backup'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
     );
