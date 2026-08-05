@@ -33,6 +33,7 @@ Shipped installs hold real data under these exact names. Renaming any of them si
 | `transaction_items` | `id`, `transaction_uuid`, `product_name`, `product_price`, `quantity` |
 | `logs` | `id`, `timestamp`, `message`, `is_error` |
 | `daily_queue_counter` | `date`, `last_number` |
+| `pending_deletes` | `uuid`, `deleted_at` |
 
 `bayar_amount` and `kembalian` are Indonesian; the Dart fields are `amountPaid` and `changeGiven`. That mismatch is deliberate — the column names are frozen, the Dart names are not.
 
@@ -127,6 +128,7 @@ server ignores those columns on rows it already has — and
 `pull()` applies each row it gets back by one of two rules, in
 `TransactionRepository.applyRemote`:
 
+- a row carrying `deleted_at` is a **tombstone** — delete it here too;
 - a row this device has never seen belongs to **another till** — insert it, items
   and all, already marked `synced_at` so `push()` doesn't bounce it straight back;
 - a row it already has is its own, so only the redemption comes down, guarded by
@@ -134,6 +136,25 @@ server ignores those columns on rows it already has — and
   receipt.
 
 Break that split and you get double-redeemed tickets.
+
+### Deletion needs a tombstone on both sides
+
+Deleting is a creation-side act, so the cashier owns it — but a deleted row
+leaves nothing behind to upload, and `pull()` would then re-insert it as a row
+this device has "never seen". Both sides therefore keep a tombstone:
+
+- locally, `pending_deletes` holds the uuid until the server acknowledges it.
+  `applyRemote` skips any uuid still listed there, so a failed push followed by a
+  successful pull can't resurrect the row on the very device that deleted it.
+- on the server, `pos_transactions.deleted_at` is set rather than the row being
+  dropped, so other devices have something to pull. `queue`, `summary`, `verify`
+  and the **full** restore all exclude those rows; only the paged restore carries
+  them, and only there does the response include a `deleted_at` key — the full
+  restore feeds `applyBackupJson`, which inserts column-by-column into a SQLite
+  table that has no such column.
+
+`sync` never clears `deleted_at`, for the same reason it never clears `status`:
+a till that hasn't polled yet will happily re-send a row it still holds.
 
 `pull()` hits `GET /api/pos/restore?limit=&since=` — the same endpoint device
 migration uses, just paged. `?limit` is what turns the whole-account restore into

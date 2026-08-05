@@ -8,7 +8,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 /// Current schema version. Bump this *and* add an `oldVersion < n` branch in
 /// [_onUpgrade] — never edit [_onCreate] alone, or upgraded installs will be
 /// missing whatever you added.
-const _schemaVersion = 4;
+const _schemaVersion = 5;
 
 /// FFI must be initialised exactly once per process, before any DB call.
 bool _ffiInitialized = false;
@@ -130,6 +130,7 @@ Future<void> _onCreate(Database db, int version) async {
 
   await db.execute(_createLogsTable);
   await db.execute(_createQueueCounterTable);
+  await db.execute(_createPendingDeletesTable);
 
   await db.insert('products', {'name': 'Self Photo 15 Menit', 'price': 50000});
   await db.insert('products', {'name': 'Wide Angle Photo', 'price': 75000});
@@ -158,6 +159,10 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     // saat pertama kali login.
     await db.execute('ALTER TABLE transactions ADD COLUMN synced_at TEXT');
   }
+
+  if (oldVersion < 5) {
+    await db.execute(_createPendingDeletesTable);
+  }
 }
 
 // Shared between _onCreate and _onUpgrade so the two can't drift apart.
@@ -174,5 +179,18 @@ const _createQueueCounterTable = '''
   CREATE TABLE IF NOT EXISTS daily_queue_counter (
     date TEXT PRIMARY KEY,
     last_number INTEGER NOT NULL DEFAULT 0
+  )
+''';
+
+/// Nisan penghapusan yang belum sampai server.
+///
+/// Baris yang dihapus di sini tidak meninggalkan jejak apa pun untuk dikirim,
+/// jadi tanpa tabel ini server tidak pernah tahu — dan `pull` justru akan
+/// menyisipkannya kembali, karena bagi perangkat ini baris itu jadi terlihat
+/// "belum pernah dilihat". Dikosongkan begitu server menerimanya.
+const _createPendingDeletesTable = '''
+  CREATE TABLE IF NOT EXISTS pending_deletes (
+    uuid TEXT PRIMARY KEY,
+    deleted_at TEXT NOT NULL
   )
 ''';

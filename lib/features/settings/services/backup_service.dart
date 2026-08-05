@@ -106,6 +106,11 @@ class BackupService {
           await txn.insert(table, row);
         }
       }
+
+      // Nisan yang tertinggal menunjuk ke dunia yang baru saja diganti. Kalau
+      // dibiarkan, sync berikutnya akan menghapus baris di server yang justru
+      // baru saja dipulihkan ke sini.
+      await txn.delete('pending_deletes');
     });
   }
 

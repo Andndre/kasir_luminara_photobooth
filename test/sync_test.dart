@@ -164,6 +164,56 @@ void main() {
     expect(expectOk(await repo.create(sale('c'))), 3);
   });
 
+  test('Menghapus meninggalkan nisan untuk dikirim ke server', () async {
+    expectOk(await repo.create(sale('a')));
+    expectOk(await repo.delete('a'));
+
+    expect(expectOk(await repo.findByUuid('a')), isNull);
+    expect(expectOk(await repo.pendingDeletes()), ['a']);
+
+    // Sesudah server mengakuinya, nisannya tidak perlu dikirim lagi.
+    expectOk(await repo.clearPendingDeletes(['a']));
+    expect(expectOk(await repo.pendingDeletes()), isEmpty);
+  });
+
+  test('Pull tidak menghidupkan lagi baris yang baru saja dihapus', () async {
+    expectOk(await repo.create(sale('a')));
+    expectOk(await repo.delete('a'));
+
+    // Server belum tahu — push gagal, pull berhasil. Barisnya turun sebagai
+    // baris hidup, dan TIDAK boleh muncul lagi di layar kasir yang menghapusnya.
+    expect(expectOk(await repo.applyRemote([remote('a')], const [])), 0);
+    expect(expectOk(await repo.findByUuid('a')), isNull);
+  });
+
+  test('Nisan dari kasir lain menghapus baris di sini juga', () async {
+    expectOk(await repo.create(sale('a')));
+
+    final changed = expectOk(
+      await repo.applyRemote([
+        {...remote('a'), 'deleted_at': '2026-08-04T13:00:00.000'},
+      ], const []),
+    );
+
+    expect(changed, 1);
+    expect(expectOk(await repo.findByUuid('a')), isNull);
+
+    // Menghapus karena diberitahu bukan menghapus sendiri: jangan kirim balik
+    // sebagai penghapusan baru.
+    expect(expectOk(await repo.pendingDeletes()), isEmpty);
+  });
+
+  test('Nisan untuk uuid yang tidak ada diabaikan diam-diam', () async {
+    final changed = expectOk(
+      await repo.applyRemote([
+        {...remote('entah'), 'deleted_at': '2026-08-04T13:00:00.000'},
+      ], const []),
+    );
+
+    expect(changed, 0);
+    expect(expectOk(await repo.findByUuid('entah')), isNull);
+  });
+
   test('Baris yang sama dikirim ulang tidak menggandakan apa pun', () async {
     final page = [remote('b', queueNumber: 2)];
     const items = [

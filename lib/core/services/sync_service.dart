@@ -138,13 +138,21 @@ class SyncService {
           // sampai server di perangkat yang riwayatnya sudah tersinkron semua.
           if (pending.isEmpty && round > 0) return Ok(uploaded);
 
-          // Produk ikut hanya di putaran pertama — daftarnya pendek dan tidak
-          // berubah antar batch.
+          // Produk dan penghapusan ikut hanya di putaran pertama — keduanya
+          // daftar pendek yang tidak berubah antar batch.
           final products = round == 0
               ? (await _products.all()).valueOrNull ?? const <Product>[]
               : const <Product>[];
+          final deleted = round == 0
+              ? (await _transactions.pendingDeletes()).valueOrNull ??
+                    const <String>[]
+              : const <String>[];
 
-          switch (await _api.push(pending, products: products)) {
+          switch (await _api.push(
+            pending,
+            products: products,
+            deleted: deleted,
+          )) {
             case Err(:final message, :final error, :final stackTrace):
               return Err(message, error, stackTrace);
             case Ok():
@@ -159,6 +167,14 @@ class SyncService {
               )) {
                 return Err(message, error, stackTrace);
               }
+
+              // Nisan dibuang hanya setelah server mengakuinya. Kalau urutannya
+              // dibalik, satu kegagalan kirim membuat penghapusan itu hilang
+              // dari catatan dan poll berikutnya menghidupkan barisnya lagi.
+              if (deleted.isNotEmpty) {
+                await _transactions.clearPendingDeletes(deleted);
+              }
+
               uploaded += pending.length;
               if (pending.isEmpty) return Ok(uploaded);
           }
