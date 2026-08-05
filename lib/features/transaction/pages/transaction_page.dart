@@ -43,6 +43,21 @@ class TransactionPage extends StatelessWidget {
   }
 }
 
+/// Riwayat tanpa Scaffold, supaya bisa dipasang sebagai tab. Verifier
+/// memakainya di samping antrean; kasir memakai [TransactionPage] yang
+/// membungkusnya dengan AppBar dan tombol export.
+class TransactionHistoryView extends StatelessWidget {
+  const TransactionHistoryView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => TransactionHistoryCubit()..load(),
+      child: const _HistoryBody(),
+    );
+  }
+}
+
 class _TransactionView extends StatelessWidget {
   const _TransactionView();
 
@@ -65,6 +80,39 @@ class _TransactionView extends StatelessWidget {
       },
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Riwayat Transaksi'),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        elevation: 0,
+        foregroundColor: theme.appBarTheme.foregroundColor,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download),
+            tooltip: 'Export Excel',
+            onPressed: () => _export(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: context.read<TransactionHistoryCubit>().load,
+          ),
+          const SizedBox(width: Dimens.dp8),
+        ],
+      ),
+      body: const SafeArea(child: _HistoryBody()),
+    );
+  }
+}
+
+/// Panel ringkasan + track filter + daftar. Dipakai kasir dan verifier.
+class _HistoryBody extends StatelessWidget {
+  const _HistoryBody();
 
   Future<void> _openDetail(
     BuildContext context,
@@ -147,81 +195,57 @@ class _TransactionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isDesktop = MediaQuery.of(context).size.width > 900;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Riwayat Transaksi'),
-        backgroundColor: theme.appBarTheme.backgroundColor,
-        elevation: 0,
-        foregroundColor: theme.appBarTheme.foregroundColor,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.file_download),
-            tooltip: 'Export Excel',
-            onPressed: () => _export(context),
+    return BlocBuilder<TransactionHistoryCubit, TransactionHistoryState>(
+      builder: (context, state) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Dimens.dp16,
+              Dimens.dp8,
+              Dimens.dp16,
+              Dimens.dp16,
+            ),
+            child: HeroPanel(
+              label: 'Total Pemasukan · ${state.filter.label}',
+              value: Currency.format(state.totalIncome),
+              meta: '${state.items.length} transaksi',
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: context.read<TransactionHistoryCubit>().load,
+          _FilterTrack(
+            selected: state.filter,
+            onSelect: context.read<TransactionHistoryCubit>().applyFilter,
+            onPickRange: () => _pickDateRange(context),
           ),
-          const SizedBox(width: Dimens.dp8),
+          Expanded(
+            child: switch (state.transactions) {
+              AsyncLoading(previous: null) => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              AsyncFailed(:final message) => EmptyState(
+                isError: true,
+                icon: Icons.receipt_long_outlined,
+                title: 'Gagal memuat transaksi',
+                message: message,
+                actionLabel: 'Coba Lagi',
+                onAction: context.read<TransactionHistoryCubit>().load,
+              ),
+              _ when state.items.isEmpty => EmptyState(
+                icon: Icons.receipt_long_outlined,
+                title: 'Belum ada transaksi',
+                message:
+                    'Tidak ada penjualan pada periode ${state.filter.label}.',
+              ),
+              _ => _HistoryList(
+                transactions: state.items,
+                isDesktop: isDesktop,
+                onTap: (t) => _openDetail(context, t),
+              ),
+            },
+          ),
         ],
-      ),
-      body: SafeArea(
-        child: BlocBuilder<TransactionHistoryCubit, TransactionHistoryState>(
-          builder: (context, state) => Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  Dimens.dp16,
-                  Dimens.dp8,
-                  Dimens.dp16,
-                  Dimens.dp16,
-                ),
-                child: HeroPanel(
-                  label: 'Total Pemasukan · ${state.filter.label}',
-                  value: Currency.format(state.totalIncome),
-                  meta: '${state.items.length} transaksi',
-                ),
-              ),
-              _FilterTrack(
-                selected: state.filter,
-                onSelect: context.read<TransactionHistoryCubit>().applyFilter,
-                onPickRange: () => _pickDateRange(context),
-              ),
-              Expanded(
-                child: switch (state.transactions) {
-                  AsyncLoading(previous: null) => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                  AsyncFailed(:final message) => EmptyState(
-                    isError: true,
-                    icon: Icons.receipt_long_outlined,
-                    title: 'Gagal memuat transaksi',
-                    message: message,
-                    actionLabel: 'Coba Lagi',
-                    onAction: context.read<TransactionHistoryCubit>().load,
-                  ),
-                  _ when state.items.isEmpty => EmptyState(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'Belum ada transaksi',
-                    message:
-                        'Tidak ada penjualan pada periode ${state.filter.label}.',
-                  ),
-                  _ => _HistoryList(
-                    transactions: state.items,
-                    isDesktop: isDesktop,
-                    onTap: (t) => _openDetail(context, t),
-                  ),
-                },
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
