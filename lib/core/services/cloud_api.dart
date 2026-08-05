@@ -41,6 +41,7 @@ class CloudApi {
   Future<Result<void>> push(
     List<Transaction> transactions, {
     List<Product> products = const [],
+    List<String> deleted = const [],
   }) => _send(
     'POST',
     '/pos/sync',
@@ -66,6 +67,7 @@ class CloudApi {
             .where((p) => p.id != null)
             .map((p) => {'id': p.id, 'name': p.name, 'price': p.price})
             .toList(),
+      if (deleted.isNotEmpty) 'deleted': deleted,
     },
     parse: (_) {},
   );

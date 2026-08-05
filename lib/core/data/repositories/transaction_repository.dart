@@ -127,6 +127,12 @@ class TransactionRepository {
         return _hydrate(db, rows);
       });
 
+  /// Deletes locally and leaves a tombstone for the server.
+  ///
+  /// Tanpa nisan itu penghapusan tidak punya apa pun untuk dikirim — barisnya
+  /// sudah hilang — jadi server tidak pernah tahu, dan poll berikutnya
+  /// menyisipkannya kembali karena baris itu jadi terlihat "belum pernah
+  /// dilihat" oleh perangkat ini.
   Future<Result<void>> delete(String uuid) => runCatching(
     'Gagal menghapus transaksi',
     () async {
@@ -138,9 +144,40 @@ class TransactionRepository {
           whereArgs: [uuid],
         );
         await txn.delete('transactions', where: 'uuid = ?', whereArgs: [uuid]);
+        await txn.insert('pending_deletes', {
+          'uuid': uuid,
+          'deleted_at': DateTime.now().toIso8601String(),
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       });
     },
   );
+
+  /// Penghapusan yang belum diakui server.
+  Future<Result<List<String>>> pendingDeletes({int limit = 200}) =>
+      runCatching('Gagal memuat penghapusan tertunda', () async {
+        final db = await getDatabase();
+        final rows = await db.query(
+          'pending_deletes',
+          columns: ['uuid'],
+          orderBy: 'deleted_at ASC',
+          limit: limit,
+        );
+        return rows.map((r) => r['uuid'] as String).toList();
+      });
+
+  Future<Result<void>> clearPendingDeletes(List<String> uuids) =>
+      runCatching('Gagal membersihkan penghapusan tertunda', () async {
+        if (uuids.isEmpty) return;
+        final db = await getDatabase();
+        for (var i = 0; i < uuids.length; i += _hydrateChunk) {
+          final chunk = uuids.skip(i).take(_hydrateChunk).toList();
+          await db.delete(
+            'pending_deletes',
+            where: 'uuid IN (${List.filled(chunk.length, '?').join(',')})',
+            whereArgs: chunk,
+          );
+        }
+      });
 
   /// Marks a ticket redeemed. Guarded by a conditional UPDATE so two verifiers
   /// scanning the same ticket at once can't both succeed.
@@ -228,6 +265,8 @@ class TransactionRepository {
   /// Two rules, both falling straight out of "the cashier creates, the server
   /// redeems":
   ///
+  ///   * a row carrying `deleted_at` is a **tombstone** — another till deleted
+  ///     it, so delete it here too and never mind the other two rules;
   ///   * a row we've never seen belongs to **another till** — insert it, items
   ///     and all, already marked synced so [push] doesn't bounce it back;
   ///   * a row we already have is ours, so only the redemption may come down,
@@ -252,6 +291,14 @@ class TransactionRepository {
       if (uuid is String) itemsByUuid.putIfAbsent(uuid, () => []).add(item);
     }
 
+    // Penghapusan yang belum sempat terkirim. Kalau push gagal tapi pull
+    // berhasil, tanpa penjagaan ini baris yang baru saja dihapus kasir akan
+    // muncul lagi di layarnya sendiri.
+    final unsentDeletes = {
+      for (final row in await db.query('pending_deletes', columns: ['uuid']))
+        row['uuid'] as String,
+    };
+
     var changed = 0;
     final touchedDates = <String>{};
 
@@ -259,6 +306,22 @@ class TransactionRepository {
       for (final row in headers) {
         final uuid = row['uuid'];
         if (uuid is! String) continue;
+        if (unsentDeletes.contains(uuid)) continue;
+
+        // Nisan menang atas segalanya: kasir lain sudah menghapusnya.
+        if (row['deleted_at'] != null) {
+          await txn.delete(
+            'transaction_items',
+            where: 'transaction_uuid = ?',
+            whereArgs: [uuid],
+          );
+          changed += await txn.delete(
+            'transactions',
+            where: 'uuid = ?',
+            whereArgs: [uuid],
+          );
+          continue;
+        }
 
         final existing = await txn.query(
           'transactions',
