@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_bloc.dart';
 import 'package:luminara_photobooth/features/verifier/blocs/verifier_state.dart';
+import 'package:luminara_photobooth/features/transaction/pages/transaction_page.dart';
 import 'package:intl/intl.dart';
 
 /// Kartu antrean. Nomor antrean dibuat besar karena itu yang dicocokkan
@@ -118,8 +119,38 @@ class _QueueCard extends StatelessWidget {
   }
 }
 
+/// Antrean dan riwayat berdampingan.
+///
+/// Riwayatnya adalah SQLite perangkat ini, yang kini ikut menerima transaksi
+/// kasir lewat `SyncService.pull` — sebelum itu ada, verifier tidak punya apa
+/// pun untuk ditampilkan di sini selain tiket yang ia pindai sendiri.
 class LiveQueuePage extends StatelessWidget {
   const LiveQueuePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Antrean'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Antrean'),
+              Tab(text: 'Riwayat'),
+            ],
+          ),
+        ),
+        body: const SafeArea(
+          child: TabBarView(children: [_QueueTab(), TransactionHistoryView()]),
+        ),
+      ),
+    );
+  }
+}
+
+class _QueueTab extends StatelessWidget {
+  const _QueueTab();
 
   void _showVerifyDialog(BuildContext context, QueueTicket ticket) {
     showModalBottomSheet(
@@ -137,78 +168,69 @@ class LiveQueuePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Antrean Real-time')),
-      body: SafeArea(
-        child: BlocListener<VerifierBloc, VerifierState>(
-          listenWhen: (previous, current) =>
-              previous.verifySuccess != current.verifySuccess ||
-              (previous.errorMessage != current.errorMessage &&
-                  current.errorMessage != null),
-          listener: (context, state) {
-            if (state.verifySuccess) {
-              SnackBarHelper.showSuccess(
-                context,
-                'Tiket berhasil diverifikasi',
-              );
-            } else if (state.errorMessage != null &&
-                state.verifyingUuid == null &&
-                state.status == VerifierStatus.connected) {
-              SnackBarHelper.showError(context, state.errorMessage!);
-            }
-          },
-          child: BlocBuilder<VerifierBloc, VerifierState>(
-            builder: (context, state) {
-              if (state.status == VerifierStatus.disconnected) {
-                return const EmptyState(
-                  icon: Icons.cloud_off_rounded,
-                  title: 'Belum terhubung',
-                  message:
-                      'Hubungkan ke server lewat menu Koneksi untuk '
-                      'melihat antrean.',
-                );
-              }
+    return BlocListener<VerifierBloc, VerifierState>(
+      listenWhen: (previous, current) =>
+          previous.verifySuccess != current.verifySuccess ||
+          (previous.errorMessage != current.errorMessage &&
+              current.errorMessage != null),
+      listener: (context, state) {
+        if (state.verifySuccess) {
+          SnackBarHelper.showSuccess(context, 'Tiket berhasil diverifikasi');
+        } else if (state.errorMessage != null &&
+            state.verifyingUuid == null &&
+            state.status == VerifierStatus.connected) {
+          SnackBarHelper.showError(context, state.errorMessage!);
+        }
+      },
+      child: BlocBuilder<VerifierBloc, VerifierState>(
+        builder: (context, state) {
+          if (state.status == VerifierStatus.disconnected) {
+            return const EmptyState(
+              icon: Icons.cloud_off_rounded,
+              title: 'Belum terhubung',
+              message:
+                  'Hubungkan ke server lewat menu Koneksi untuk '
+                  'melihat antrean.',
+            );
+          }
 
-              if (state.status == VerifierStatus.error && state.queue.isEmpty) {
-                return EmptyState(
-                  isError: true,
-                  icon: Icons.cloud_off_rounded,
-                  title: 'Gagal mengambil antrean',
-                  message: state.errorMessage,
-                  actionLabel: 'Coba Lagi',
-                  onAction: () =>
-                      context.read<VerifierBloc>().add(RefreshQueue()),
-                );
-              }
+          if (state.status == VerifierStatus.error && state.queue.isEmpty) {
+            return EmptyState(
+              isError: true,
+              icon: Icons.cloud_off_rounded,
+              title: 'Gagal mengambil antrean',
+              message: state.errorMessage,
+              actionLabel: 'Coba Lagi',
+              onAction: () => context.read<VerifierBloc>().add(RefreshQueue()),
+            );
+          }
 
-              return RefreshIndicator(
-                onRefresh: () async {
-                  context.read<VerifierBloc>().add(RefreshQueue());
-                },
-                child: state.queue.isEmpty
-                    ? const EmptyState(
-                        icon: Icons.done_all_rounded,
-                        title: 'Antrean kosong',
-                        message: 'Semua tiket sudah dilayani.',
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(Dimens.dp16),
-                        itemCount: state.queue.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: Dimens.dp12),
-                        itemBuilder: (context, index) {
-                          final ticket = state.queue[index];
-                          return _QueueCard(
-                            ticket: ticket,
-                            fallbackNumber: index + 1,
-                            onTap: () => _showVerifyDialog(context, ticket),
-                          );
-                        },
-                      ),
-              );
+          return RefreshIndicator(
+            onRefresh: () async {
+              context.read<VerifierBloc>().add(RefreshQueue());
             },
-          ),
-        ),
+            child: state.queue.isEmpty
+                ? const EmptyState(
+                    icon: Icons.done_all_rounded,
+                    title: 'Antrean kosong',
+                    message: 'Semua tiket sudah dilayani.',
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(Dimens.dp16),
+                    itemCount: state.queue.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: Dimens.dp12),
+                    itemBuilder: (context, index) {
+                      final ticket = state.queue[index];
+                      return _QueueCard(
+                        ticket: ticket,
+                        fallbackNumber: index + 1,
+                        onTap: () => _showVerifyDialog(context, ticket),
+                      );
+                    },
+                  ),
+          );
+        },
       ),
     );
   }
@@ -239,11 +261,13 @@ class _VerifyBottomSheet extends StatelessWidget {
           final surfaces = context.surfaces;
 
           return Padding(
-            padding: const EdgeInsets.fromLTRB(
+            // Tanpa padding bawah ini tombol VERIFIKASI duduk persis di bawah
+            // bilah navigasi gestur dan tidak bisa ditekan.
+            padding: EdgeInsets.fromLTRB(
               Dimens.dp24,
               0,
               Dimens.dp24,
-              Dimens.dp24,
+              Dimens.dp24 + MediaQuery.paddingOf(context).bottom,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
