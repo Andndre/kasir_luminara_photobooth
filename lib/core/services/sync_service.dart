@@ -26,8 +26,8 @@ enum LoginDataPlan {
 /// Keeps the local SQLite and luminarabali.com in step.
 ///
 /// The split that makes this safe: **the cashier creates, the server redeems.**
-/// [push] therefore only ever uploads, and [pullRedemptions] only ever brings
-/// back a redemption — the two can never disagree about the same field.
+/// [push] therefore never uploads `status`/`redeemed_at`, and [pull] never
+/// overwrites a row this device created — the two can't disagree about a field.
 class SyncService {
   static final SyncService _instance = SyncService._();
   factory SyncService() => _instance;
@@ -37,7 +37,11 @@ class SyncService {
   static const _transactions = TransactionRepository();
   static const _products = ProductRepository();
 
-  static const _keyCursor = 'sync_redemption_cursor';
+  static const _keyCursor = 'sync_pull_cursor';
+
+  /// Kursor versi lama, waktu yang ditarik hanya penukaran. Tidak dipakai lagi,
+  /// tapi tetap dibuang di [reset] supaya tidak tertinggal milik akun lain.
+  static const _keyLegacyCursor = 'sync_redemption_cursor';
 
   /// Matches the server's `max:500` cap with room to spare.
   static const _batchSize = 200;
@@ -75,7 +79,7 @@ class SyncService {
       if (await push() case Err(:final error)) {
         AppLog.error('Sync push gagal: $error');
       }
-      if (await pullRedemptions() case Err(:final error)) {
+      if (await pull() case Err(:final error)) {
         AppLog.error('Sync pull gagal: $error');
       }
     } finally {
@@ -163,24 +167,38 @@ class SyncService {
     return Ok(uploaded);
   }
 
-  /// Brings back tickets redeemed on another device, so this device's history
-  /// and queue stop showing them as unused.
-  Future<Result<int>> pullRedemptions() async {
+  /// Brings down everything this device hasn't seen: tickets another till sold,
+  /// and tickets the verifier redeemed.
+  ///
+  /// Pulling whole rows and not just redemptions is what makes two tills — or a
+  /// till and a verifier — show the same history. Which of the two rules applies
+  /// to each row is [TransactionRepository.applyRemote]'s call, not ours.
+  Future<Result<int>> pull() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final result = await _api.redemptions(since: prefs.getString(_keyCursor));
+    final result = await _api.pull(since: prefs.getString(_keyCursor));
     switch (result) {
       case Err(:final message, :final error, :final stackTrace):
         return Err(message, error, stackTrace);
       case Ok(value: final page):
-        final applied = await _transactions.applyRedemptions(page.redeemedAt);
+        final applied = await _transactions.applyRemote(
+          page.transactions,
+          page.items,
+        );
         if (applied case Err(:final message, :final error, :final stackTrace)) {
           return Err(message, error, stackTrace);
         }
 
+        // Katalog ikut turun supaya kasir kedua tidak perlu mengetik ulang
+        // paketnya. Kegagalannya tidak membatalkan kursor — produk akan ikut
+        // lagi di poll berikutnya, transaksi tidak.
+        if (await _products.upsertAll(page.products) case Err(:final error)) {
+          AppLog.error('Gagal menyalin produk dari server: $error');
+        }
+
         // Kursor disimpan hanya setelah baris benar-benar tertulis. Kalau
-        // urutannya dibalik, satu kegagalan tulis membuat penukaran itu
-        // terlewat selamanya.
+        // urutannya dibalik, satu kegagalan tulis membuat baris itu terlewat
+        // selamanya.
         final cursor = page.cursor;
         if (cursor != null) await prefs.setString(_keyCursor, cursor);
 
@@ -191,10 +209,11 @@ class SyncService {
   }
 
   /// Cursor must be dropped along with the account — the next login may be a
-  /// different one, whose redemptions all predate this cursor.
+  /// different one, whose rows all predate this cursor.
   Future<void> reset() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyCursor);
+    await prefs.remove(_keyLegacyCursor);
     AppLog.info('Sync cursor direset');
   }
 }
