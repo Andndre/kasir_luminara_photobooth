@@ -166,6 +166,7 @@ class FloatingNavBar extends StatelessWidget {
   /// pil dan sudut bar benar-benar sejajar (§4 DESIGN.md).
   static const double _pillHeight = 44;
   static const double _barPadding = 6;
+  static const double _pillGap = 4;
   static double get _barRadius => _barPadding + _pillHeight / 2; // 28
 
   @override
@@ -188,12 +189,15 @@ class FloatingNavBar extends StatelessWidget {
         // setengah kosong; sekarang isinya selalu memenuhi wadahnya.
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // Pil aktif dapat dua bagian, sisanya satu bagian masing-masing.
-            final unit = constraints.maxWidth / (entries.length + 1);
+            // Sela antar-pil disisihkan dulu, baru sisanya dibagi: pil aktif
+            // dapat dua bagian, sisanya satu bagian masing-masing.
+            final gaps = _pillGap * (entries.length - 1);
+            final unit = (constraints.maxWidth - gaps) / (entries.length + 1);
 
             return Row(
               children: [
-                for (var i = 0; i < entries.length; i++)
+                for (var i = 0; i < entries.length; i++) ...[
+                  if (i > 0) const SizedBox(width: _pillGap),
                   _NavPill(
                     entry: entries[i],
                     selected: i == selectedIndex,
@@ -201,6 +205,7 @@ class FloatingNavBar extends StatelessWidget {
                     height: _pillHeight,
                     onTap: () => onSelect(i),
                   ),
+                ],
               ],
             );
           },
