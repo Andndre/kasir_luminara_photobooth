@@ -74,18 +74,35 @@ class TransactionHistoryState extends Equatable {
   List<Object?> get props => [transactions, filter];
 }
 
+/// Dari mana satu halaman riwayat diambil. `null` berarti semua tanggal.
+///
+/// Ada supaya kasir dan verifier bisa memakai layar yang sama persis dengan
+/// sumber yang berbeda: kasir dari SQLite miliknya, verifier dari server.
+/// Sengaja sebuah fungsi dan bukan antarmuka dengan dua implementasi — yang
+/// berbeda cuma satu panggilan, bukan sebuah peran.
+typedef HistoryLoader =
+    Future<Result<List<Transaction>>> Function(DateTimeRange? range);
+
 class TransactionHistoryCubit extends Cubit<TransactionHistoryState> {
-  TransactionHistoryCubit({
-    TransactionRepository repository = const TransactionRepository(),
-  }) : _repository = repository,
-       super(TransactionHistoryState(filter: DateRangeFilter.today)) {
+  TransactionHistoryCubit({HistoryLoader? loader})
+    : _load = loader ?? _fromLocalDatabase,
+      super(TransactionHistoryState(filter: DateRangeFilter.today)) {
     // A ticket redeemed on the verifier changes a row we may be displaying.
     // That news now arrives through dataRefresh, fired by SyncService when it
     // pulls a redemption down — there is no local server to push it any more.
     dataRefresh.addListener(load);
   }
 
-  final TransactionRepository _repository;
+  final HistoryLoader _load;
+
+  static Future<Result<List<Transaction>>> _fromLocalDatabase(
+    DateTimeRange? range,
+  ) {
+    const repository = TransactionRepository();
+    return range == null
+        ? repository.all()
+        : repository.byDateRange(range.start, range.end);
+  }
 
   /// Bumped per load. A filter change or a server event can start a second
   /// query while the first is still running; without this the slower one wins.
@@ -99,10 +116,7 @@ class TransactionHistoryCubit extends Cubit<TransactionHistoryState> {
       state.copyWith(transactions: AsyncLoading(state.transactions.dataOrNull)),
     );
 
-    final range = state.filter.range;
-    final result = range == null
-        ? await _repository.all()
-        : await _repository.byDateRange(range.start, range.end);
+    final result = await _load(state.filter.range);
 
     if (isClosed || generation != _generation) return;
     emit(state.copyWith(transactions: result.toAsyncState()));
@@ -114,8 +128,13 @@ class TransactionHistoryCubit extends Cubit<TransactionHistoryState> {
   }
 
   /// Returns null on success, or a message to show the user.
+  ///
+  /// Selalu ke SQLite lokal, tidak lewat [HistoryLoader]: menghapus adalah
+  /// tindakan sisi pembuat, dan yang membuat cuma kasir. Verifier tidak pernah
+  /// sampai ke sini karena tombolnya memang tidak ditampilkan di sana.
   Future<String?> delete(Transaction transaction) async {
-    if (await _repository.delete(transaction.uuid) case Err(:final message)) {
+    const repository = TransactionRepository();
+    if (await repository.delete(transaction.uuid) case Err(:final message)) {
       return message;
     }
     await load();

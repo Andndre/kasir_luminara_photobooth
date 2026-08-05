@@ -142,7 +142,18 @@ class LiveQueuePage extends StatelessWidget {
           ),
         ),
         body: const SafeArea(
-          child: TabBarView(children: [_QueueTab(), TransactionHistoryView()]),
+          child: TabBarView(
+            children: [
+              _QueueTab(),
+              // Dibaca dari server, bukan dari SQLite perangkat ini: verifier
+              // sudah butuh internet untuk memindai tiket, jadi mereplikasi
+              // database yang harus didamaikan tidak membeli apa pun.
+              TransactionHistoryView(
+                loader: TransactionHistoryView.fromServer,
+                canDelete: false,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -147,10 +147,11 @@ class SyncService {
           if (pending.isEmpty && round > 0) return Ok(uploaded);
 
           // Produk dan penghapusan ikut hanya di putaran pertama — keduanya
-          // daftar pendek yang tidak berubah antar batch.
+          // daftar pendek yang tidak berubah antar batch. null di putaran
+          // berikutnya berarti "jangan sentuh katalog", bukan "katalog kosong".
           final products = round == 0
               ? (await _products.all()).valueOrNull ?? const <Product>[]
-              : const <Product>[];
+              : null;
           final deleted = round == 0
               ? (await _transactions.pendingDeletes()).valueOrNull ??
                     const <String>[]
@@ -195,38 +196,28 @@ class SyncService {
     return Ok(uploaded);
   }
 
-  /// Brings down everything this device hasn't seen: tickets another till sold,
-  /// and tickets the verifier redeemed.
+  /// Brings back tickets the verifier redeemed, so this device's history and
+  /// queue stop showing them as unused.
   ///
-  /// Pulling whole rows and not just redemptions is what makes two tills — or a
-  /// till and a verifier — show the same history. Which of the two rules applies
-  /// to each row is [TransactionRepository.applyRemote]'s call, not ours.
+  /// Hanya penukaran, karena hanya itu yang dimiliki server. Transaksi tidak
+  /// perlu turun: satu-satunya perangkat yang membuatnya sudah memilikinya,
+  /// dan itu dijamin oleh sewa peran kasir.
   Future<Result<int>> pull() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final result = await _api.pull(since: prefs.getString(_keyCursor));
+    final result = await _api.redemptions(since: prefs.getString(_keyCursor));
     switch (result) {
       case Err(:final message, :final error, :final stackTrace):
         return Err(message, error, stackTrace);
       case Ok(value: final page):
-        final applied = await _transactions.applyRemote(
-          page.transactions,
-          page.items,
-        );
+        final applied = await _transactions.applyRedemptions(page.redeemedAt);
         if (applied case Err(:final message, :final error, :final stackTrace)) {
           return Err(message, error, stackTrace);
         }
 
-        // Katalog ikut turun supaya kasir kedua tidak perlu mengetik ulang
-        // paketnya. Kegagalannya tidak membatalkan kursor — produk akan ikut
-        // lagi di poll berikutnya, transaksi tidak.
-        if (await _products.upsertAll(page.products) case Err(:final error)) {
-          AppLog.error('Gagal menyalin produk dari server: $error');
-        }
-
         // Kursor disimpan hanya setelah baris benar-benar tertulis. Kalau
-        // urutannya dibalik, satu kegagalan tulis membuat baris itu terlewat
-        // selamanya.
+        // urutannya dibalik, satu kegagalan tulis membuat penukaran itu
+        // terlewat selamanya.
         final cursor = page.cursor;
         if (cursor != null) await prefs.setString(_keyCursor, cursor);
 
