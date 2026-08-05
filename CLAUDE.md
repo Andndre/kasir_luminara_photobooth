@@ -38,7 +38,9 @@ Shipped installs hold real data under these exact names. Renaming any of them si
 
 **Persisted enum strings**: `TUNAI`, `QRIS`, `NON-TUNAI`, `PAID`, `COMPLETED`, `CANCELLED`.
 
-**SharedPreferences keys**: `is_midtrans_enabled`, `theme_mode`, `printer_paper_mm80_<mac>`, `printer_last_mac`, `profile`, `auth_token`, `auth_email`, `auth_last_verified`, `sync_redemption_cursor`.
+**SharedPreferences keys**: `is_midtrans_enabled`, `theme_mode`, `printer_paper_mm80_<mac>`, `printer_last_mac`, `profile`, `auth_token`, `auth_email`, `auth_last_verified`, `sync_pull_cursor`,
+`sync_redemption_cursor` (unused since the pull widened past redemptions, but
+still cleared on logout so it can't leak into the next account).
 
 **Backup file JSON keys**: `version`, `tables`, and the five table names nested under `tables`. Customers have backup files on disk in this format.
 
@@ -122,9 +124,29 @@ The rule that keeps the two sides from ever disagreeing:
 
 `SyncService.push()` therefore never uploads `status`/`redeemed_at` changes — the
 server ignores those columns on rows it already has — and
-`pullRedemptions()` only ever brings a redemption back down, guarded by
-`status = 'PAID'` so it can't overwrite a `redeemed_at` that was already printed
-on a receipt. Break that split and you get double-redeemed tickets.
+`pull()` applies each row it gets back by one of two rules, in
+`TransactionRepository.applyRemote`:
+
+- a row this device has never seen belongs to **another till** — insert it, items
+  and all, already marked `synced_at` so `push()` doesn't bounce it straight back;
+- a row it already has is its own, so only the redemption comes down, guarded by
+  `status = 'PAID'` so it can't overwrite a `redeemed_at` already printed on a
+  receipt.
+
+Break that split and you get double-redeemed tickets.
+
+`pull()` hits `GET /api/pos/restore?limit=&since=` — the same endpoint device
+migration uses, just paged. `?limit` is what turns the whole-account restore into
+a page, so there is only ever one response shape to keep in step. The cursor is
+`server_updated_at`, which has **one-second resolution**, so the server re-sends
+the boundary row on purpose (`>=`, not `>`) and `applyRemote` is idempotent to
+match. Repeating a row is cheap; dropping one is not.
+
+Queue numbers are still handed out locally, so two tills selling within the same
+poll interval can both issue the same number. `applyRemote` raises
+`daily_queue_counter` to whatever it pulled down, so they converge afterwards —
+that narrows the window, it does not close it. Closing it means the server
+assigns the number, which means checkout stops working offline.
 
 - `AuthService` owns the token and the offline grace period (`licenseGrace`,
   7 days). Only a **401** logs the device out; a 500 or a dead network falls back

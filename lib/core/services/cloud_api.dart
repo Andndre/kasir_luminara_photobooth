@@ -8,8 +8,15 @@ import '../data/result.dart';
 import '../domain/domain.dart';
 import 'auth_service.dart';
 
-/// Redemptions pulled from the server, plus the cursor to resume from.
-typedef Redemptions = ({String? cursor, Map<String, DateTime?> redeemedAt});
+/// One page of the account as the server sent it, plus the cursor to resume
+/// from. Rows stay as raw column maps — they go straight into SQLite, and
+/// hydrating them into domain objects on the way would only be undone again.
+typedef RemotePage = ({
+  String? cursor,
+  List<Map<String, Object?>> transactions,
+  List<Map<String, Object?>> items,
+  List<Product> products,
+});
 
 /// Authenticated calls to `/api/pos/*`.
 ///
@@ -20,6 +27,10 @@ class CloudApi {
   const CloudApi();
 
   static const _timeout = Duration(seconds: 20);
+
+  /// Matches the server's cap. A device catching up on a long history drains it
+  /// a page per tick rather than in one response big enough to time out.
+  static const _pullPage = 500;
 
   static AuthService get _auth => AuthService();
 
@@ -73,21 +84,34 @@ class CloudApi {
     },
   );
 
-  /// Tickets redeemed since [since]. Pass the previous call's cursor.
-  Future<Result<Redemptions>> redemptions({String? since}) => _send(
+  /// Rows changed since [since] — tickets another till sold, and tickets the
+  /// verifier redeemed. Pass the previous call's cursor.
+  ///
+  /// Same endpoint as [restoreJson] on purpose: `?limit` is what turns the
+  /// whole-account restore into a page, so there is only one response shape to
+  /// keep in step with the server.
+  Future<Result<RemotePage>> pull({String? since}) => _send(
     'GET',
-    '/pos/redemptions${since == null ? '' : '?since=${Uri.encodeQueryComponent(since)}'}',
+    '/pos/restore?limit=$_pullPage'
+        '${since == null ? '' : '&since=${Uri.encodeQueryComponent(since)}'}',
     parse: (body) {
       final map = body as Map<String, dynamic>;
-      final list = (map['redemptions'] as List?) ?? const [];
+      final tables =
+          (map['tables'] as Map?)?.cast<String, dynamic>() ?? const {};
+
+      List<Map<String, Object?>> rows(String table) =>
+          ((tables[table] as List?) ?? const [])
+              .whereType<Map>()
+              .map((row) => row.cast<String, Object?>())
+              .toList();
+
       return (
         cursor: map['cursor'] as String?,
-        redeemedAt: {
-          for (final row in list.whereType<Map>())
-            row['uuid'] as String: DateTime.tryParse(
-              row['redeemed_at'] as String? ?? '',
-            ),
-        },
+        transactions: rows('transactions'),
+        items: rows('transaction_items'),
+        products: rows(
+          'products',
+        ).where((p) => p['id'] is int).map(Product.fromMap).toList(),
       );
     },
   );

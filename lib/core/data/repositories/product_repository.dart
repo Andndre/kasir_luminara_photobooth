@@ -44,6 +44,28 @@ class ProductRepository {
         if (updated == 0) throw StateError('Produk tidak ditemukan');
       });
 
+  /// Menyalin katalog dari server. Menimpa per id, tidak menghapus apa pun:
+  /// server tidak pernah menerima penghapusan produk, jadi "tidak ada di sana"
+  /// tidak berarti "sudah dihapus" — dan menebak sebaliknya akan menghapus
+  /// paket yang baru saja dibuat di perangkat ini.
+  ///
+  /// Returns how many rows were written.
+  Future<Result<int>> upsertAll(List<Product> products) =>
+      runCatching('Gagal menyalin produk dari server', () async {
+        if (products.isEmpty) return 0;
+        final db = await getDatabase();
+        await db.transaction((txn) async {
+          for (final product in products) {
+            await txn.insert(
+              'products',
+              product.toMap(),
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
+          }
+        });
+        return products.length;
+      });
+
   Future<Result<void>> delete(int id) =>
       runCatching('Gagal menghapus produk', () async {
         final db = await getDatabase();

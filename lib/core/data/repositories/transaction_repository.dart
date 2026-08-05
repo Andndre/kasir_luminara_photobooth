@@ -223,35 +223,123 @@ class TransactionRepository {
         }
       });
 
-  /// Applies redemptions that happened on another device.
+  /// Applies rows the server sent down, in one SQL transaction.
   ///
-  /// Guarded by `status = 'PAID'` for the same reason [redeem] is: if this row
-  /// was already redeemed locally, its `redeemed_at` is the one that was
-  /// printed, and the server's copy must not overwrite it.
+  /// Two rules, both falling straight out of "the cashier creates, the server
+  /// redeems":
+  ///
+  ///   * a row we've never seen belongs to **another till** — insert it, items
+  ///     and all, already marked synced so [push] doesn't bounce it back;
+  ///   * a row we already have is ours, so only the redemption may come down,
+  ///     and only while we still think it's `PAID` — if it was redeemed here,
+  ///     our `redeemed_at` is the one printed on the receipt.
+  ///
+  /// Idempotent on purpose: the server's cursor has one-second resolution and
+  /// deliberately re-sends the boundary row rather than risk dropping it.
   ///
   /// Returns how many rows actually changed, so a caller can skip refreshing
   /// the UI when the poll brought nothing new.
-  Future<Result<int>> applyRedemptions(Map<String, DateTime?> redeemedAt) =>
-      runCatching('Gagal menerapkan status tiket dari server', () async {
-        if (redeemedAt.isEmpty) return 0;
-        final db = await getDatabase();
-        var changed = 0;
-        await db.transaction((txn) async {
-          for (final entry in redeemedAt.entries) {
-            changed += await txn.update(
-              'transactions',
-              {
-                'status': TransactionStatus.completed.dbValue,
-                'redeemed_at': (entry.value ?? DateTime.now())
-                    .toIso8601String(),
-              },
-              where: 'uuid = ? AND status = ?',
-              whereArgs: [entry.key, TransactionStatus.paid.dbValue],
-            );
+  Future<Result<int>> applyRemote(
+    List<Map<String, Object?>> headers,
+    List<Map<String, Object?>> items,
+  ) => runCatching('Gagal menerapkan data dari server', () async {
+    if (headers.isEmpty) return 0;
+    final db = await getDatabase();
+
+    final itemsByUuid = <String, List<Map<String, Object?>>>{};
+    for (final item in items) {
+      final uuid = item['transaction_uuid'];
+      if (uuid is String) itemsByUuid.putIfAbsent(uuid, () => []).add(item);
+    }
+
+    var changed = 0;
+    final touchedDates = <String>{};
+
+    await db.transaction((txn) async {
+      for (final row in headers) {
+        final uuid = row['uuid'];
+        if (uuid is! String) continue;
+
+        final existing = await txn.query(
+          'transactions',
+          columns: ['uuid'],
+          where: 'uuid = ?',
+          whereArgs: [uuid],
+          limit: 1,
+        );
+
+        if (existing.isEmpty) {
+          // Kolom disebut satu per satu, bukan disebar dari respons: ini batas
+          // kepercayaan. Kunci tak terduga dari server akan menggagalkan
+          // seluruh insert kalau dibiarkan lewat.
+          await txn.insert('transactions', {
+            'uuid': uuid,
+            'customer_name': row['customer_name'],
+            'total_price': row['total_price'] ?? 0,
+            'bayar_amount': row['bayar_amount'],
+            'kembalian': row['kembalian'],
+            'payment_method': row['payment_method'] ?? 'TUNAI',
+            'status': row['status'] ?? TransactionStatus.paid.dbValue,
+            'created_at': row['created_at'],
+            'redeemed_at': row['redeemed_at'],
+            'midtrans_order_id': row['midtrans_order_id'],
+            'queue_number': row['queue_number'],
+            'queue_date': row['queue_date'],
+            'synced_at': DateTime.now().toIso8601String(),
+          });
+
+          for (final item in itemsByUuid[uuid] ?? const []) {
+            await txn.insert('transaction_items', {
+              'transaction_uuid': uuid,
+              'product_name': item['product_name'],
+              'product_price': item['product_price'] ?? 0,
+              'quantity': item['quantity'] ?? 0,
+            });
           }
-        });
-        return changed;
-      });
+
+          final date = row['queue_date'];
+          if (date is String) touchedDates.add(date);
+          changed++;
+          continue;
+        }
+
+        if (row['status'] != TransactionStatus.completed.dbValue) continue;
+
+        changed += await txn.update(
+          'transactions',
+          {
+            'status': TransactionStatus.completed.dbValue,
+            'redeemed_at':
+                row['redeemed_at'] ?? DateTime.now().toIso8601String(),
+          },
+          where: 'uuid = ? AND status = ?',
+          whereArgs: [uuid, TransactionStatus.paid.dbValue],
+        );
+      }
+
+      // Tanpa ini kasir ini akan mengeluarkan nomor antrian yang sudah dipakai
+      // kasir lain hari itu. Bukan pencegahan penuh — dua kasir yang menjual di
+      // detik yang sama masih bisa bentrok sampai poll berikutnya — tapi
+      // sesudahnya nomornya kembali menyusul.
+      for (final date in touchedDates) {
+        final rows = await txn.rawQuery(
+          'SELECT MAX(queue_number) AS n FROM transactions WHERE queue_date = ?',
+          [date],
+        );
+        final highest = rows.first['n'] as int?;
+        if (highest == null) continue;
+
+        await txn.rawInsert(
+          'INSERT INTO daily_queue_counter(date, last_number) VALUES(?, ?) '
+          'ON CONFLICT(date) DO UPDATE SET '
+          'last_number = MAX(last_number, excluded.last_number)',
+          [date, highest],
+        );
+      }
+    });
+
+    return changed;
+  });
 
   Future<Result<Transaction?>> findByUuid(String uuid) =>
       runCatching('Gagal memuat transaksi', () async {
