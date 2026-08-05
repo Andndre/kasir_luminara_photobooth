@@ -39,15 +39,16 @@ class _SplashPageState extends State<SplashPage> {
     switch (access) {
       case AccessStatus.granted:
         setState(() => _statusText = 'Siap digunakan!');
-        // Peran kasir diklaim sebelum sync jalan, supaya detak pertama sudah
-        // punya sewa untuk dilaporkan. Verifier tidak lewat sini sama sekali —
-        // ia tidak pernah membuat apa pun, jadi boleh sebanyak-banyaknya.
+        // Sync hanya di mode kasir. Verifier tidak membuat apa pun, jadi tidak
+        // punya yang perlu didorong, dan tidak menyimpan salinan lokal yang
+        // perlu ditarik — riwayatnya dibaca langsung dari server.
         if (context.read<AppMode>() == AppMode.server) {
+          // Diklaim sebelum sync jalan, supaya detak pertama sudah punya sewa
+          // untuk dilaporkan.
           await CashierLeaseService().claim();
+          if (!mounted) return;
+          SyncService().start();
         }
-        if (!mounted) return;
-
-        SyncService().start();
         // Tidak ditunggu: menyambung Bluetooth bisa memakan beberapa detik, dan
         // aplikasi tidak boleh menahan layar splash karena printer.
         unawaited(PrinterHelper.reconnectLast());

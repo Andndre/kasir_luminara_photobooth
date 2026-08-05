@@ -35,18 +35,28 @@ class _DetailRow extends StatelessWidget {
 enum TransactionDetailAction { delete }
 
 class TransactionDetailDialog extends StatelessWidget {
-  const TransactionDetailDialog({super.key, required this.transaction});
+  const TransactionDetailDialog({
+    super.key,
+    required this.transaction,
+    this.canDelete = true,
+  });
 
   final Transaction transaction;
+
+  /// Verifier membaca saja: menghapus adalah tindakan sisi pembuat, dan yang
+  /// membuat cuma kasir. Tombolnya tidak sekadar gagal di sana — ia tidak ada.
+  final bool canDelete;
 
   static final _dateFormat = DateFormat('dd/MM/yyyy • HH:mm');
 
   static Future<TransactionDetailAction?> show(
     BuildContext context,
-    Transaction transaction,
-  ) => showDialog<TransactionDetailAction>(
+    Transaction transaction, {
+    bool canDelete = true,
+  }) => showDialog<TransactionDetailAction>(
     context: context,
-    builder: (_) => TransactionDetailDialog(transaction: transaction),
+    builder: (_) =>
+        TransactionDetailDialog(transaction: transaction, canDelete: canDelete),
   );
 
   Future<void> _print(BuildContext context) async {
@@ -174,12 +184,13 @@ class TransactionDetailDialog extends StatelessWidget {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () =>
-              Navigator.pop(context, TransactionDetailAction.delete),
-          style: TextButton.styleFrom(foregroundColor: AppTokens.danger),
-          child: const Text('Hapus'),
-        ),
+        if (canDelete)
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(context, TransactionDetailAction.delete),
+            style: TextButton.styleFrom(foregroundColor: AppTokens.danger),
+            child: const Text('Hapus'),
+          ),
         TextButton(
           onPressed: () => _print(context),
           child: const Text('Cetak Tiket'),

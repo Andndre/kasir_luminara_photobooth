@@ -111,6 +111,11 @@ Wrap repository bodies in `runCatching('Pesan untuk user', () async { ... })`.
 `POST /api/pos/verify`. The account pairs the scanner with the till, so it does
 not have to share a network with it.
 
+A verifier is a **pure reader**: it creates nothing, so it takes no cashier
+lease, runs no `SyncService`, and keeps no local replica. Its history tab reads
+`GET /api/pos/history` directly, and the delete button is not rendered there at
+all (`TransactionDetailDialog.canDelete`).
+
 There used to be an embedded `alfred` server on the cashier device, reached over
 the LAN by IP address, with a WebSocket for push. It is gone — along with the
 Windows firewall rule, the Android background isolate, the pairing QR and the
@@ -125,44 +130,60 @@ The rule that keeps the two sides from ever disagreeing:
 > **The cashier creates, the server redeems.**
 
 `SyncService.push()` therefore never uploads `status`/`redeemed_at` changes — the
-server ignores those columns on rows it already has — and
-`pull()` applies each row it gets back by one of two rules, in
-`TransactionRepository.applyRemote`:
+server ignores those columns on rows it already has — and `pull()` brings back
+**only redemptions**, applied by `TransactionRepository.applyRedemptions` and
+guarded by `status = 'PAID'` so it can never overwrite a `redeemed_at` already
+printed on a receipt. Break that split and you get double-redeemed tickets.
 
-- a row carrying `deleted_at` is a **tombstone** — delete it here too;
-- a row this device has never seen belongs to **another till** — insert it, items
-  and all, already marked `synced_at` so `push()` doesn't bounce it straight back;
-- a row it already has is its own, so only the redemption comes down, guarded by
-  `status = 'PAID'` so it can't overwrite a `redeemed_at` already printed on a
-  receipt.
+Transactions themselves never come down. They don't need to: exactly one device
+creates them, and that device already has them. That is what the cashier lease
+buys — see below.
 
-Break that split and you get double-redeemed tickets.
+### Who reads from where
 
-### Deletion needs a tombstone on both sides
+| | Source of truth | Reads from |
+|---|---|---|
+| Cashier | its own SQLite | SQLite; only redemptions come down |
+| Verifier | — (creates nothing) | the server, always |
+
+The verifier keeps **no local replica**. It already needs the internet to scan a
+ticket at all, so replicating a database that would then have to be reconciled
+buys nothing. `TransactionHistoryView` takes a `HistoryLoader`; the cashier
+passes the repository-backed one, the verifier passes `fromServer`
+(`GET /api/pos/history?from=&to=`, upper bound exclusive).
+
+### Deletion
 
 Deleting is a creation-side act, so the cashier owns it — but a deleted row
-leaves nothing behind to upload, and `pull()` would then re-insert it as a row
-this device has "never seen". Both sides therefore keep a tombstone:
+leaves nothing behind to upload. `TransactionRepository.delete` therefore writes
+a tombstone to `pending_deletes`, `push()` sends it, and the tombstone is only
+dropped once the server acknowledges it. Reverse that order and one failed send
+loses the deletion for good.
 
-- locally, `pending_deletes` holds the uuid until the server acknowledges it.
-  `applyRemote` skips any uuid still listed there, so a failed push followed by a
-  successful pull can't resurrect the row on the very device that deleted it.
-- on the server, `pos_transactions.deleted_at` is set rather than the row being
-  dropped, so other devices have something to pull. `queue`, `summary`, `verify`
-  and the **full** restore all exclude those rows; only the paged restore carries
-  them, and only there does the response include a `deleted_at` key — the full
-  restore feeds `applyBackupJson`, which inserts column-by-column into a SQLite
-  table that has no such column.
+On the server `pos_transactions.deleted_at` is set rather than the row dropped —
+an audit trail for money that was taken and then un-taken. `queue`, `summary`,
+`verify`, `history` and the **full** restore all exclude those rows; only the
+paged restore carries them, and only there does the response include a
+`deleted_at` key. The full restore feeds `applyBackupJson`, which inserts
+column-by-column into a SQLite table that has no such column, so one extra key
+there fails the whole device-migration restore.
 
 `sync` never clears `deleted_at`, for the same reason it never clears `status`:
-a till that hasn't polled yet will happily re-send a row it still holds.
+a device that hasn't polled yet will happily re-send a row it still holds.
 
-`pull()` hits `GET /api/pos/restore?limit=&since=` — the same endpoint device
-migration uses, just paged. `?limit` is what turns the whole-account restore into
-a page, so there is only ever one response shape to keep in step. The cursor is
-`server_updated_at`, which has **one-second resolution**, so the server re-sends
-the boundary row on purpose (`>=`, not `>`) and `applyRemote` is idempotent to
-match. Repeating a row is cheap; dropping one is not.
+### Products are replaced wholesale, not merged
+
+The catalogue belongs to the cashier, so the list it sends **is** the truth and
+the server deletes anything missing from it. `push()` sends `products` even when
+empty — `null` means "don't touch the catalogue", `[]` means "the catalogue is
+empty". Without that distinction, deleting the last package never reaches the
+server, and a replacement device restoring from there gets back every package
+ever deleted.
+
+The delete half only runs for a device that **holds the lease**. One that has
+lost it may still push transactions (that is money already taken) but its
+catalogue may be stale, and letting it delete would let one stray device empty
+the account.
 
 ### One cashier at a time
 

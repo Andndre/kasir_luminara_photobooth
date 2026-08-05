@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:luminara_photobooth/core/blocs/async_state.dart';
 import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/core/services/cloud_api.dart';
 import 'package:luminara_photobooth/features/transaction/blocs/transaction_history_cubit.dart';
 import 'package:luminara_photobooth/features/transaction/services/transaction_export.dart';
 import 'package:luminara_photobooth/features/transaction/widgets/transaction_card.dart';
@@ -47,13 +48,38 @@ class TransactionPage extends StatelessWidget {
 /// memakainya di samping antrean; kasir memakai [TransactionPage] yang
 /// membungkusnya dengan AppBar dan tombol export.
 class TransactionHistoryView extends StatelessWidget {
-  const TransactionHistoryView({super.key});
+  const TransactionHistoryView({super.key, this.loader, this.canDelete = true});
+
+  /// Dari mana barisnya diambil. Bawaannya SQLite perangkat ini.
+  final HistoryLoader? loader;
+
+  /// Verifier membaca saja — lihat [TransactionDetailDialog.canDelete].
+  final bool canDelete;
+
+  /// Riwayat yang dibaca langsung dari luminarabali.com.
+  ///
+  /// Batas atas dikirim sebagai hari BERIKUTNYA karena server
+  /// membandingkannya secara eksklusif; menambal "23:59:59" akan memotong
+  /// transaksi yang detiknya berpecahan.
+  static Future<Result<List<Transaction>>> fromServer(DateTimeRange? range) =>
+      const CloudApi().history(
+        from: range == null ? null : _isoDate(range.start),
+        to: range == null
+            ? null
+            : _isoDate(range.end.add(const Duration(days: 1))),
+      );
+
+  static String _isoDate(DateTime value) => DateTime(
+    value.year,
+    value.month,
+    value.day,
+  ).toIso8601String().substring(0, 10);
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => TransactionHistoryCubit()..load(),
-      child: const _HistoryBody(),
+      create: (_) => TransactionHistoryCubit(loader: loader)..load(),
+      child: _HistoryBody(canDelete: canDelete),
     );
   }
 }
@@ -112,14 +138,20 @@ class _TransactionView extends StatelessWidget {
 
 /// Panel ringkasan + track filter + daftar. Dipakai kasir dan verifier.
 class _HistoryBody extends StatelessWidget {
-  const _HistoryBody();
+  const _HistoryBody({this.canDelete = true});
+
+  final bool canDelete;
 
   Future<void> _openDetail(
     BuildContext context,
     Transaction transaction,
   ) async {
     final cubit = context.read<TransactionHistoryCubit>();
-    final action = await TransactionDetailDialog.show(context, transaction);
+    final action = await TransactionDetailDialog.show(
+      context,
+      transaction,
+      canDelete: canDelete,
+    );
     if (action != TransactionDetailAction.delete || !context.mounted) return;
 
     final confirmed = await showDialog<bool>(
