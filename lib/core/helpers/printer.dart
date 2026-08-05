@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:luminara_photobooth/core/preferences/printer_preferences.dart';
 import 'package:luminara_photobooth/core/helpers/app_log.dart';
 import 'package:luminara_photobooth/core/helpers/currency.dart';
@@ -56,6 +58,35 @@ class PrinterHelper {
   /// Check if printer is connected
 
   static Future<bool> get isConnected => PrintBluetoothThermal.connectionStatus;
+
+  /// Whether this platform can talk to the thermal printer at all.
+  ///
+  /// Bluetooth Classic SPP hanya ada di Android dan iOS di paket ini. Di Windows
+  /// dan Linux jawabannya selalu "tidak terhubung", jadi apa pun yang memakai
+  /// [isConnected] sebagai syarat harus melewati platform itu — kalau tidak,
+  /// kasir desktop diblokir oleh printer yang memang tidak pernah ada.
+  static bool get isSupported => Platform.isAndroid || Platform.isIOS;
+
+  /// Reconnects to the last printer used.
+  ///
+  /// Koneksi Bluetooth hidup selama proses, jadi tanpa ini kasir harus mampir
+  /// ke Setelan → Printer setiap kali aplikasi dibuka — dan biasanya baru
+  /// ketahuan saat struk pertama gagal keluar.
+  static Future<bool> reconnectLast() async {
+    if (!isSupported) return false;
+
+    final mac = await PrinterPreferences.getLastMac();
+    if (mac == null) return false;
+
+    try {
+      return await connect(mac);
+    } catch (e) {
+      // Ditelan: ini dipanggil saat splash, dan printer mati bukan alasan
+      // aplikasi gagal terbuka.
+      AppLog.error('Gagal menyambung ulang printer: $e');
+      return false;
+    }
+  }
 
   /// Print test receipt
 

@@ -14,6 +14,9 @@ import 'package:luminara_photobooth/features/cashier/widgets/cash_payment_dialog
 import 'package:luminara_photobooth/features/cashier/widgets/checkout_panel.dart';
 import 'package:luminara_photobooth/features/cashier/widgets/package_card.dart';
 import 'package:luminara_photobooth/features/cashier/widgets/ticket_dialog.dart';
+import 'package:luminara_photobooth/features/settings/pages/printer_page.dart';
+
+enum _PrinterAction { cancel, connect, continueAnyway }
 
 class CashierPage extends StatelessWidget {
   const CashierPage({super.key});
@@ -57,11 +60,77 @@ class _CashierViewState extends State<_CashierView> {
   // Payment flow
   // -------------------------------------------------------------------------
 
+  /// Menahan penjualan kalau printer belum tersambung, dan menawarkan jalan
+  /// keluarnya.
+  ///
+  /// Peringatannya harus datang SEBELUM uang diterima. Sebelum ini kasir baru
+  /// tahu dari pesan "gagal mencetak" — saat transaksi sudah tersimpan dan
+  /// pelanggan sudah berjalan ke booth tanpa tiket di tangan.
+  ///
+  /// Returns true kalau penjualan boleh diteruskan.
+  Future<bool> _ensurePrinter() async {
+    // Desktop tidak punya Bluetooth SPP di paket ini, jadi jawabannya selalu
+    // "tidak terhubung" — memblokir kasir Windows karena itu jelas salah.
+    if (!PrinterHelper.isSupported) return true;
+    if (await PrinterHelper.isConnected) return true;
+    if (!mounted) return false;
+
+    final action = await showDialog<_PrinterAction>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Printer belum terhubung'),
+        content: const Text(
+          'Tiket tidak akan tercetak dan pelanggan tidak punya QR untuk '
+          'dipindai di booth.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, _PrinterAction.cancel),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, _PrinterAction.continueAnyway),
+            child: const Text('Lanjut Tanpa Cetak'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, _PrinterAction.connect),
+            child: const Text('Hubungkan'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted || action == null) return false;
+
+    switch (action) {
+      case _PrinterAction.cancel:
+        return false;
+      case _PrinterAction.continueAnyway:
+        return true;
+      case _PrinterAction.connect:
+        await Navigator.push<void>(
+          context,
+          MaterialPageRoute(builder: (_) => const PrinterPage()),
+        );
+        if (!mounted) return false;
+        // Kembali tanpa printer tersambung berarti tetap batal — meneruskan
+        // diam-diam persis mengulang masalah yang mau diperbaiki di sini.
+        if (await PrinterHelper.isConnected) return true;
+        if (mounted) {
+          SnackBarHelper.showWarning(context, 'Printer masih belum terhubung');
+        }
+        return false;
+    }
+  }
+
   Future<void> _startPayment() async {
     if (_isPaying) return;
     final cubit = context.read<CashierCubit>();
     final state = cubit.state;
     if (state.cart.isEmpty) return;
+
+    if (!await _ensurePrinter()) return;
+    if (!mounted) return;
 
     _isPaying = true;
     try {
@@ -228,11 +297,15 @@ class _CashierViewState extends State<_CashierView> {
       builder: (sheetContext) => BlocProvider.value(
         value: cubit,
         child: Padding(
+          // paddingOf, bukan viewPaddingOf: yang pertama sudah nol saat keyboard
+          // menutupi bilah navigasi, jadi keduanya tidak pernah dijumlah dua kali.
           padding: EdgeInsets.fromLTRB(
             Dimens.dp20,
             0,
             Dimens.dp20,
-            Dimens.dp20 + MediaQuery.viewInsetsOf(sheetContext).bottom,
+            Dimens.dp20 +
+                MediaQuery.viewInsetsOf(sheetContext).bottom +
+                MediaQuery.paddingOf(sheetContext).bottom,
           ),
           child: CheckoutPanel(
             onPay: () {
