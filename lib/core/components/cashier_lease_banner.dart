@@ -1,8 +1,59 @@
 import 'package:flutter/material.dart';
 
 import '../preferences/dimens.dart';
+import '../helpers/snackbar_helper.dart';
 import '../preferences/tokens.dart';
 import '../services/cashier_lease_service.dart';
+
+/// Menawarkan pengambilalihan peran kasir, dan melakukannya kalau disetujui.
+///
+/// Konfirmasinya tegas dengan sengaja: dua perangkat yang sama-sama merasa
+/// berhak jadi kasir adalah persis keadaan yang mau dicegah seluruh rancangan
+/// ini, jadi merebutnya harus jadi tindakan sadar, bukan ketukan tak sengaja.
+///
+/// Returns true kalau perangkat ini akhirnya boleh menjual.
+Future<bool> confirmCashierTakeover(BuildContext context) async {
+  final lease = CashierLeaseService();
+  if (lease.state.canSell) return true;
+
+  final holder = lease.holder;
+  final takeOver = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Ambil alih peran kasir?'),
+      content: Text(
+        holder == null
+            ? 'Perangkat lain sedang jadi kasir. Setelah diambil alih, '
+                  'perangkat itu berhenti bisa menjual.'
+            : 'Peran kasir sedang dipegang ${holder.deviceName}. Setelah '
+                  'diambil alih, perangkat itu berhenti bisa menjual.\n\n'
+                  'Pastikan tidak ada yang sedang melayani pelanggan di sana.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Batal'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          style: TextButton.styleFrom(foregroundColor: AppTokens.danger),
+          child: const Text('Ambil Alih'),
+        ),
+      ],
+    ),
+  );
+
+  if (takeOver != true || !context.mounted) return false;
+
+  await lease.claim(force: true);
+  if (!context.mounted) return false;
+
+  if (!lease.state.canSell) {
+    SnackBarHelper.showError(context, 'Gagal mengambil alih peran kasir');
+    return false;
+  }
+  return true;
+}
 
 /// Bilah tipis yang menyatakan keadaan peran kasir perangkat ini.
 ///
@@ -44,6 +95,23 @@ class CashierLeaseBanner extends StatelessWidget {
                   ),
                 ),
               ),
+              // Jalan keluarnya ada di tempat masalahnya diberitahukan. Tanpa
+              // ini satu-satunya cara mengambil alih adalah pura-pura menjual
+              // sampai layar bayar, yang tidak akan ditemukan siapa pun.
+              if (!lease.state.canSell) ...[
+                const SizedBox(width: Dimens.dp8),
+                TextButton(
+                  onPressed: () => confirmCashierTakeover(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: notice.color,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Dimens.dp12,
+                    ),
+                  ),
+                  child: const Text('Ambil Alih'),
+                ),
+              ],
             ],
           ),
         );

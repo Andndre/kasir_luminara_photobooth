@@ -6,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:luminara_photobooth/core/blocs/async_state.dart';
 import 'package:luminara_photobooth/core/components/payment_webview_launcher.dart';
 import 'package:luminara_photobooth/core/core.dart';
-import 'package:luminara_photobooth/core/services/cashier_lease_service.dart';
 import 'package:luminara_photobooth/core/services/midtrans_service.dart';
 import 'package:luminara_photobooth/features/cashier/blocs/cart.dart';
 import 'package:luminara_photobooth/features/cashier/blocs/cashier_cubit.dart';
@@ -124,60 +123,15 @@ class _CashierViewState extends State<_CashierView> {
     }
   }
 
-  /// Menahan penjualan kalau perangkat ini bukan kasir yang berlaku.
-  ///
-  /// Di sinilah aturan "satu kasir per akun" benar-benar berlaku — sisanya cuma
-  /// pembukuan. Dua perangkat yang sama-sama menjual berarti nomor antrian
-  /// kembar dan setoran yang tidak bisa dicocokkan.
-  Future<bool> _ensureCashierRole() async {
-    final lease = CashierLeaseService();
-    if (lease.state.canSell) return true;
-
-    final holder = lease.holder;
-    final takeOver = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Perangkat ini bukan kasir'),
-        content: Text(
-          holder == null
-              ? 'Peran kasir sudah diambil alih perangkat lain. Transaksi di '
-                    'sini akan membuat nomor antrian kembar.'
-              : 'Peran kasir sedang dipegang ${holder.deviceName}. Transaksi '
-                    'di sini akan membuat nomor antrian kembar.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppTokens.danger),
-            child: const Text('Ambil Alih'),
-          ),
-        ],
-      ),
-    );
-
-    if (takeOver != true || !mounted) return false;
-
-    await lease.claim(force: true);
-    if (!mounted) return false;
-
-    if (!lease.state.canSell) {
-      SnackBarHelper.showError(context, 'Gagal mengambil alih peran kasir');
-      return false;
-    }
-    return true;
-  }
-
   Future<void> _startPayment() async {
     if (_isPaying) return;
     final cubit = context.read<CashierCubit>();
     final state = cubit.state;
     if (state.cart.isEmpty) return;
 
-    if (!await _ensureCashierRole()) return;
+    // Penjaga terakhir. Jalan keluar utamanya ada di CashierLeaseBanner, yang
+    // terlihat tanpa harus membangun keranjang lebih dulu.
+    if (!await confirmCashierTakeover(context)) return;
     if (!mounted) return;
 
     if (!await _ensurePrinter()) return;
