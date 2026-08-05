@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/services/auth_service.dart';
@@ -35,6 +37,9 @@ class _SplashPageState extends State<SplashPage> {
       case AccessStatus.granted:
         setState(() => _statusText = 'Siap digunakan!');
         SyncService().start();
+        // Tidak ditunggu: menyambung Bluetooth bisa memakan beberapa detik, dan
+        // aplikasi tidak boleh menahan layar splash karena printer.
+        unawaited(PrinterHelper.reconnectLast());
         await Future.delayed(const Duration(milliseconds: 400));
         if (!mounted) return;
         Navigator.pushNamedAndRemoveUntil(
