@@ -1,9 +1,15 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:excel/excel.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:luminara_photobooth/core/core.dart';
-import 'package:path_provider/path_provider.dart';
+
+/// Dibatalkan lewat dialog simpan — keluar biasa, bukan kegagalan.
+class ExportCancelled implements Exception {
+  const ExportCancelled();
+}
 
 /// Writes the transaction list to an .xlsx report.
 ///
@@ -55,22 +61,31 @@ class TransactionExport {
       ]);
     }
 
-    final directory = Platform.isAndroid || Platform.isIOS
-        ? await getApplicationDocumentsDirectory()
-        : await getDownloadsDirectory();
-
-    if (directory == null) {
-      throw const FileSystemException('Folder unduhan tidak ditemukan');
-    }
-
-    final bytes = excel.save();
-    if (bytes == null) {
+    final saved = excel.save();
+    if (saved == null) {
       throw const FileSystemException('Excel gagal dibuat');
     }
+    final bytes = Uint8List.fromList(saved);
 
-    final path =
-        '${directory.path}/Laporan_Luminara_${_fileStamp.format(DateTime.now())}.xlsx';
-    await File(path).writeAsBytes(bytes);
+    // Kontrak saveFile berlawanan per platform — lihat BackupService.export:
+    // di mobile `bytes` wajib dan plugin yang menulis, di desktop `bytes`
+    // diabaikan dan kita sendiri yang menulis ke path yang dipilih.
+    final isMobile = Platform.isAndroid || Platform.isIOS;
+
+    final path = await FilePicker.platform.saveFile(
+      dialogTitle: 'Simpan Laporan',
+      fileName: 'Laporan_Luminara_${_fileStamp.format(DateTime.now())}.xlsx',
+      // Android menerjemahkan filter ekstensi lewat MimeTypeMap yang sering
+      // tidak punya entri "xlsx", dan pickernya lalu error. Sama seperti backup.
+      type: isMobile ? FileType.any : FileType.custom,
+      allowedExtensions: isMobile ? null : const ['xlsx'],
+      bytes: isMobile ? bytes : null,
+    );
+
+    if (path == null) throw const ExportCancelled();
+
+    if (!isMobile) await File(path).writeAsBytes(bytes);
+
     return path;
   });
 }

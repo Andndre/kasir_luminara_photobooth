@@ -40,15 +40,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
       padding: const EdgeInsets.all(Dimens.defaultSize),
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(Dimens.dp50),
-            child: Image.asset(
-              'assets/icons/app_icon.png',
-              width: 64,
-              height: 64,
-              fit: BoxFit.cover,
-            ),
-          ),
+          const AppLogoMark(size: 64),
           Dimens.dp16.width,
           Expanded(
             child: Column(

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/preferences/assets.dart';
 
-/// The app icon as a filled circle.
+/// The app icon cropped to a circle.
 ///
-/// `app_icon.png` is a square with an opaque black background, so the circle is
-/// painted in that same black and the logo sits inside with `contain` — cover
-/// would crop the "Luminara Visual" wordmark at the bottom corners.
+/// `app_icon.png` is a square with an opaque black background, so clipping it
+/// to a circle only trims black corners — the "Luminara Visual" wordmark sits
+/// well inside the inscribed circle. Sebelumnya ada padding 12% yang membuat
+/// logonya mengambang kecil di tengah, tidak sama dengan yang di Setelan.
 class AppLogoMark extends StatelessWidget {
   const AppLogoMark({super.key, this.size = 72});
 
@@ -13,16 +14,13 @@ class AppLogoMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(
-        // Sewarna dengan latar asetnya sendiri, jadi tepi lingkarannya menyatu.
-        color: Color(0xFF000000),
-        shape: BoxShape.circle,
+    return ClipOval(
+      child: Image.asset(
+        MainAssets.logo,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
       ),
-      padding: EdgeInsets.all(size * 0.12),
-      child: Image.asset(MainAssets.logo, fit: BoxFit.contain),
     );
   }
 }
