@@ -39,7 +39,8 @@ Shipped installs hold real data under these exact names. Renaming any of them si
 
 **Persisted enum strings**: `TUNAI`, `QRIS`, `NON-TUNAI`, `PAID`, `COMPLETED`, `CANCELLED`.
 
-**SharedPreferences keys**: `is_midtrans_enabled`, `theme_mode`, `printer_paper_mm80_<mac>`, `printer_last_mac`, `profile`, `auth_token`, `auth_email`, `auth_last_verified`, `sync_pull_cursor`,
+**SharedPreferences keys**: `is_midtrans_enabled`, `theme_mode`, `printer_paper_mm80_<mac>`, `printer_last_mac`, `profile`, `auth_token`, `auth_email`, `auth_last_verified`, `device_id`, `device_name`,
+`sync_pull_cursor`,
 `sync_redemption_cursor` (unused since the pull widened past redemptions, but
 still cleared on logout so it can't leak into the next account).
 
@@ -163,11 +164,31 @@ a page, so there is only ever one response shape to keep in step. The cursor is
 the boundary row on purpose (`>=`, not `>`) and `applyRemote` is idempotent to
 match. Repeating a row is cheap; dropping one is not.
 
-Queue numbers are still handed out locally, so two tills selling within the same
-poll interval can both issue the same number. `applyRemote` raises
-`daily_queue_counter` to whatever it pulled down, so they converge afterwards —
-that narrows the window, it does not close it. Closing it means the server
-assigns the number, which means checkout stops working offline.
+### One cashier at a time
+
+Queue numbers are handed out locally, so nothing stops two tills from issuing the
+same one — except there only ever being one till. That is enforced by a **lease**
+(`pos_cashier_leases`, one row per account), and it is what lets the rest of this
+design have no conflicts to resolve: no merge, no duelling queue numbers, no
+deletion with an opponent. Verifiers never take a lease; they create nothing, so
+there can be any number of them.
+
+`CashierLeaseService` is the state machine. Only `active` and `activeOffline`
+answer `canSell`. The heartbeat rides on `POST /pos/sync`, which already runs
+every 15s — there is no second timer, and `sync` still **accepts** rows from a
+device that has lost the lease, because those rows are money that was already
+taken.
+
+The part that cannot be fixed, only made visible: a device that loses internet
+keeps selling, and after the 90s TTL another device may claim the role. So the
+lease prevents a careless second cashier (spare phone left on in a drawer), not a
+partitioned one. `CashierLeaseBanner` exists so `activeOffline` never looks like
+`active`.
+
+Claiming returns the day's highest queue number and
+`TransactionRepository.raiseQueueCounter` applies it *before* the state goes
+active, so a replacement device can't reprint a number already in a customer's
+hand.
 
 - `AuthService` owns the token and the offline grace period (`licenseGrace`,
   7 days). Only a **401** logs the device out; a 500 or a dead network falls back

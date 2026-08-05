@@ -225,6 +225,23 @@ class TransactionRepository {
         return _hydrate(db, rows);
       });
 
+  /// Raises the day's counter so the next sale can't reuse a number.
+  ///
+  /// Dipanggil saat perangkat ini mengambil peran kasir: perangkat sebelumnya
+  /// mungkin sudah mencetak nomor yang lebih tinggi, dan tiket itu ada di
+  /// tangan pelanggan. Tidak pernah menurunkan — hanya menaikkan.
+  Future<Result<void>> raiseQueueCounter(String date, int lastNumber) =>
+      runCatching('Gagal menyelaraskan nomor antrian', () async {
+        if (lastNumber <= 0) return;
+        final db = await getDatabase();
+        await db.rawInsert(
+          'INSERT INTO daily_queue_counter(date, last_number) VALUES(?, ?) '
+          'ON CONFLICT(date) DO UPDATE SET '
+          'last_number = MAX(last_number, excluded.last_number)',
+          [date, lastNumber],
+        );
+      });
+
   Future<Result<int>> count() => runCatching(
     'Gagal menghitung transaksi',
     () async {

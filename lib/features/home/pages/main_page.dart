@@ -99,11 +99,19 @@ class MainPage extends StatelessWidget {
                     ],
                   ),
                 Expanded(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1200),
-                      child: pages[safeIndex],
-                    ),
+                  child: Column(
+                    children: [
+                      // Hanya mode kasir: verifier tidak memegang sewa apa pun.
+                      if (isServer) const CashierLeaseBanner(),
+                      Expanded(
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1200),
+                            child: pages[safeIndex],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

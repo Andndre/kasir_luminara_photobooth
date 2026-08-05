@@ -9,7 +9,9 @@ import '../data/result.dart';
 import '../domain/product.dart';
 import '../helpers/app_log.dart';
 import 'auth_service.dart';
+import 'cashier_lease_service.dart';
 import 'cloud_api.dart';
+import 'device_identity.dart';
 
 /// What the app should do with the data straight after logging in.
 enum LoginDataPlan {
@@ -76,8 +78,14 @@ class SyncService {
       // Dicatat, bukan ditelan. Sebelumnya hasil kedua panggilan ini dibuang,
       // jadi satu baris lama yang ditolak server bikin seluruh riwayat diam
       // saja tidak terkirim tanpa jejak apa pun.
-      if (await push() case Err(:final error)) {
-        AppLog.error('Sync push gagal: $error');
+      switch (await push()) {
+        case Err(:final error):
+          AppLog.error('Sync push gagal: $error');
+          // Tidak terjangkau, bukan kehilangan sewa. Perbedaannya penting:
+          // yang satu tetap boleh menjual, yang lain tidak.
+          CashierLeaseService().onUnreachable();
+        case Ok():
+          break;
       }
       if (await pull() case Err(:final error)) {
         AppLog.error('Sync pull gagal: $error');
@@ -152,10 +160,14 @@ class SyncService {
             pending,
             products: products,
             deleted: deleted,
+            // Detak sewa menumpang di sini. Hanya di putaran pertama, supaya
+            // satu batch besar tidak terhitung sebagai beberapa detak.
+            deviceId: round == 0 ? await DeviceIdentity.id() : null,
           )) {
             case Err(:final message, :final error, :final stackTrace):
               return Err(message, error, stackTrace);
-            case Ok():
+            case Ok(value: final leaseAnswer):
+              if (round == 0) CashierLeaseService().onHeartbeat(leaseAnswer);
               final marked = await _transactions.markSynced(
                 pending.map((t) => t.uuid).toList(),
                 DateTime.now(),
