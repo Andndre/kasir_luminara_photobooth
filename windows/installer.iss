@@ -7,6 +7,7 @@
 #define MyAppPublisher "Andndre"
 #define MyAppURL "https://github.com/Andndre/kasir_luminara_photobooth"
 #define MyAppExeName "luminara_photobooth.exe"
+#define MyOutputName "LuminaraPhotobooth_Setup"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
@@ -24,7 +25,7 @@ DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
 OutputDir=..\build\windows\x64\runner\Release
-OutputBaseFilename=LuminaraPhotobooth_Setup
+OutputBaseFilename={#MyOutputName}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -37,7 +38,11 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "..\build\windows\x64\runner\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Excludes wajib: OutputDir menunjuk ke folder yang sama dengan yang disapu glob
+; ini, jadi tanpa pengecualian Inno mencoba mengemas Setup.exe hasil compile
+; sebelumnya ke dalam dirinya sendiri dan gagal dengan "file is being used by
+; another process". Di CI tidak pernah kelihatan karena foldernya selalu bersih.
+Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Excludes: "{#MyOutputName}.exe"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
