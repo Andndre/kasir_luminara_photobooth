@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:luminara_photobooth/core/constants/app_mode.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/services/auth_service.dart';
+import 'package:luminara_photobooth/core/services/cashier_lease_service.dart';
 import 'package:luminara_photobooth/core/services/sync_service.dart';
+import 'package:provider/provider.dart';
 import 'package:luminara_photobooth/features/auth/auth.dart';
 import 'package:luminara_photobooth/features/home/home.dart';
 
@@ -36,6 +39,14 @@ class _SplashPageState extends State<SplashPage> {
     switch (access) {
       case AccessStatus.granted:
         setState(() => _statusText = 'Siap digunakan!');
+        // Peran kasir diklaim sebelum sync jalan, supaya detak pertama sudah
+        // punya sewa untuk dilaporkan. Verifier tidak lewat sini sama sekali —
+        // ia tidak pernah membuat apa pun, jadi boleh sebanyak-banyaknya.
+        if (context.read<AppMode>() == AppMode.server) {
+          await CashierLeaseService().claim();
+        }
+        if (!mounted) return;
+
         SyncService().start();
         // Tidak ditunggu: menyambung Bluetooth bisa memakan beberapa detik, dan
         // aplikasi tidak boleh menahan layar splash karena printer.

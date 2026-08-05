@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../data/result.dart';
 import '../domain/domain.dart';
 import 'auth_service.dart';
+import 'cashier_lease_service.dart';
 
 /// One page of the account as the server sent it, plus the cursor to resume
 /// from. Rows stay as raw column maps — they go straight into SQLite, and
@@ -38,14 +39,18 @@ class CloudApi {
   ///
   /// The server ignores `status` and `redeemed_at` on rows it already has —
   /// redemption is its call, not ours — so re-sending a row is always safe.
-  Future<Result<void>> push(
+  /// Returns the server's verdict on our cashier lease, or null when we didn't
+  /// ask (verifier mode, or a server too old to answer).
+  Future<Result<String?>> push(
     List<Transaction> transactions, {
     List<Product> products = const [],
     List<String> deleted = const [],
+    String? deviceId,
   }) => _send(
     'POST',
     '/pos/sync',
     body: {
+      if (deviceId != null) 'device_id': deviceId,
       'transactions': transactions
           .map(
             (t) => {
@@ -69,7 +74,7 @@ class CloudApi {
             .toList(),
       if (deleted.isNotEmpty) 'deleted': deleted,
     },
-    parse: (_) {},
+    parse: (body) => (body as Map<String, dynamic>)['cashier_lease'] as String?,
   );
 
   /// How much this account holds on the server. Used right after login to
@@ -123,11 +128,58 @@ class CloudApi {
   Future<Result<String>> restoreJson() =>
       _send('GET', '/pos/restore', parse: jsonEncode);
 
+  /// Claims the cashier role for this account.
+  ///
+  /// A 409 comes back as [LeaseHeldByOther] rather than a generic failure: the
+  /// caller must tell "another device is the cashier" apart from "we couldn't
+  /// ask", and merging the two would make a dropped connection look like a
+  /// takeover.
+  Future<Result<({({String date, int lastNumber}) queue})>> claimCashier({
+    required String deviceId,
+    required String deviceName,
+    required String queueDate,
+    bool force = false,
+  }) => _send(
+    'POST',
+    '/pos/cashier/claim',
+    body: {
+      'device_id': deviceId,
+      'device_name': deviceName,
+      'queue_date': queueDate,
+      if (force) 'force': true,
+    },
+    onConflict: (body) {
+      final holder = (body['holder'] as Map?)?.cast<String, dynamic>() ?? {};
+      return LeaseHeldByOther((
+        deviceName: holder['device_name'] as String? ?? 'perangkat lain',
+        heartbeatAt: DateTime.tryParse(holder['heartbeat_at'] as String? ?? ''),
+      ));
+    },
+    parse: (body) {
+      final map = body as Map<String, dynamic>;
+      final queue = (map['queue'] as Map?)?.cast<String, dynamic>() ?? const {};
+      return (
+        queue: (
+          date: queue['date'] as String? ?? '',
+          lastNumber: queue['last_number'] as int? ?? 0,
+        ),
+      );
+    },
+  );
+
+  Future<Result<void>> releaseCashier({required String deviceId}) => _send(
+    'POST',
+    '/pos/cashier/release',
+    body: {'device_id': deviceId},
+    parse: (_) {},
+  );
+
   Future<Result<T>> _send<T>(
     String method,
     String path, {
     Map<String, Object?>? body,
     required T Function(Object? body) parse,
+    Object Function(Map<String, dynamic> body)? onConflict,
   }) async {
     final uri = Uri.parse('$cloudBaseUrl$path');
     try {
@@ -144,6 +196,16 @@ class CloudApi {
           StackTrace.current,
         );
       }
+      // 409 bukan kegagalan, melainkan jawaban: sesuatu yang lain memegangnya.
+      // Pemanggil yang menyediakan [onConflict] mau membedakannya.
+      if (response.statusCode == 409 && onConflict != null) {
+        return Err(
+          'Sedang dipakai perangkat lain',
+          onConflict(jsonDecode(response.body) as Map<String, dynamic>),
+          StackTrace.current,
+        );
+      }
+
       if (response.statusCode ~/ 100 != 2) {
         return Err(
           'Server menolak permintaan (${response.statusCode})',

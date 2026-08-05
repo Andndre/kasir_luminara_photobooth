@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/services/auth_service.dart';
+import 'package:luminara_photobooth/core/services/cashier_lease_service.dart';
 import 'package:luminara_photobooth/core/services/sync_service.dart';
 import 'package:luminara_photobooth/features/auth/auth.dart';
 import 'package:luminara_photobooth/features/settings/settings.dart';
@@ -85,6 +86,9 @@ class _SettingsPageState extends State<SettingsPage> {
     if (confirmed != true) return;
 
     SyncService().stop();
+    // Dilepas sebelum token dibuang — sesudahnya permintaannya pasti 401 dan
+    // sewa itu menggantung sampai basi, mengunci perangkat lain 90 detik.
+    await CashierLeaseService().release();
     await AuthService().logout();
     // Kursor ikut dibuang: akun berikutnya bisa berbeda, dan penukarannya
     // semua lebih tua dari kursor milik akun ini.
