@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:luminara_photobooth/core/preferences/assets.dart';
 
-/// The app icon cropped to a circle.
+/// The app icon as a filled circle.
 ///
-/// `app_icon.png` is a square with an opaque black background, so clipping it
-/// to a circle only trims black corners — the "Luminara Visual" wordmark sits
-/// well inside the inscribed circle. Sebelumnya ada padding 12% yang membuat
-/// logonya mengambang kecil di tengah, tidak sama dengan yang di Setelan.
+/// `app_icon.png` adalah persegi hitam pekat. Versi lama memberinya padding
+/// 12% lalu menggambarnya di atas lingkaran hitam TANPA klip: sisi persegi
+/// jadi 0,76 × diameter, sedangkan diagonalnya 1,08 × diameter — jadi keempat
+/// sudutnya menyembul keluar lingkaran sebagai tonjolan kecil.
+///
+/// ClipOval-lah yang menentukan bentuknya sekarang. Padding tetap ada supaya
+/// wordmark "Luminara Visual" tidak terpotong di tepi bawah; sudut persegi
+/// yang tercukur hitam di atas hitam, jadi tak terlihat.
 class AppLogoMark extends StatelessWidget {
   const AppLogoMark({super.key, this.size = 72});
 
@@ -15,11 +19,13 @@ class AppLogoMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipOval(
-      child: Image.asset(
-        MainAssets.logo,
+      child: Container(
         width: size,
         height: size,
-        fit: BoxFit.cover,
+        // Sewarna dengan latar asetnya sendiri, jadi tepi lingkarannya menyatu.
+        color: const Color(0xFF000000),
+        padding: EdgeInsets.all(size * 0.12),
+        child: Image.asset(MainAssets.logo, fit: BoxFit.contain),
       ),
     );
   }
