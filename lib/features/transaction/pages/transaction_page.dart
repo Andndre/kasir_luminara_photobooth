@@ -97,14 +97,16 @@ class _TransactionView extends StatelessWidget {
     final result = await TransactionExport.toExcel(transactions);
     if (!context.mounted) return;
 
-    result.fold(
-      ok: (path) =>
-          SnackBarHelper.showSuccess(context, 'File disimpan di: $path'),
-      err: (message, _) {
+    switch (result) {
+      case Ok(:final value):
+        SnackBarHelper.showSuccess(context, 'File disimpan di: $value');
+      // Menutup dialog simpan adalah keluar biasa, bukan kegagalan.
+      case Err(error: ExportCancelled()):
+        break;
+      case Err(:final message):
         AppLog.error(message);
         SnackBarHelper.showError(context, message);
-      },
-    );
+    }
   }
 
   @override

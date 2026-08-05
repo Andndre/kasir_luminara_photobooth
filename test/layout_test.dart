@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luminara_photobooth/core/preferences/dimens.dart';
+import 'package:luminara_photobooth/core/preferences/theme/app_theme.dart';
 import 'package:luminara_photobooth/core/components/surface/status_badge.dart';
 import 'package:luminara_photobooth/features/home/pages/main_page.dart';
 
@@ -21,6 +22,58 @@ void main() {
     test('tombol navigasi 3-tombol → bar tetap di ATAS tombol', () {
       // Kalau <= inset, bar tertimpa tombol sistem.
       expect(FloatingNavBar.bottomGapFor(48), greaterThan(48));
+    });
+  });
+
+  group('Bottom nav memenuhi wadahnya', () {
+    const nav = <NavEntry>[
+      (icon: Icons.home, label: 'Beranda'),
+      (icon: Icons.receipt, label: 'Transaksi'),
+      (icon: Icons.inventory, label: 'Produk'),
+      (icon: Icons.settings, label: 'Setelan'),
+    ];
+
+    Future<void> pumpAt(WidgetTester tester, double width) async {
+      tester.view.physicalSize = Size(width, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          // Tema aplikasi, bukan default: FloatingNavBar membaca AppSurfaces.
+          theme: buildAppTheme(Brightness.light),
+          home: Scaffold(
+            bottomNavigationBar: FloatingNavBar(
+              entries: nav,
+              selectedIndex: 1, // "Transaksi" — label terpanjang
+              onSelect: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('pil terpanjang tidak meluber di layar sempit', (tester) async {
+      // 320dp adalah HP terkecil yang masih dipakai; kalau jatah pilnya kurang
+      // labelnya harus di-ellipsis, bukan bikin garis kuning overflow.
+      await pumpAt(tester, 320);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('lebar semua pil menghabiskan lebar bar', (tester) async {
+      await pumpAt(tester, 400);
+
+      final pills = tester
+          .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
+          .toList();
+      expect(pills, hasLength(nav.length));
+
+      final total = pills
+          .map((p) => tester.getSize(find.byWidget(p)).width)
+          .reduce((a, b) => a + b);
+      // Lebar dalam bar = 400 - margin 16*2 - padding 6*2 - border 1*2.
+      expect(total, closeTo(400 - 32 - 12 - 2, 0.5));
     });
   });
 

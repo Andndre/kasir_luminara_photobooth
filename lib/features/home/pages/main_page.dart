@@ -183,17 +183,27 @@ class FloatingNavBar extends StatelessWidget {
           border: Border.all(color: surfaces.border),
           boxShadow: surfaces.cardShadow,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            for (var i = 0; i < entries.length; i++)
-              _NavPill(
-                entry: entries[i],
-                selected: i == selectedIndex,
-                height: _pillHeight,
-                onTap: () => onSelect(i),
-              ),
-          ],
+        // Lebar pil diambil dari lebar bar, bukan dari isinya. Dengan
+        // spaceEvenly sisa ruang menganggur di kiri-kanan dan barnya terlihat
+        // setengah kosong; sekarang isinya selalu memenuhi wadahnya.
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Pil aktif dapat dua bagian, sisanya satu bagian masing-masing.
+            final unit = constraints.maxWidth / (entries.length + 1);
+
+            return Row(
+              children: [
+                for (var i = 0; i < entries.length; i++)
+                  _NavPill(
+                    entry: entries[i],
+                    selected: i == selectedIndex,
+                    width: i == selectedIndex ? unit * 2 : unit,
+                    height: _pillHeight,
+                    onTap: () => onSelect(i),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -207,12 +217,14 @@ class _NavPill extends StatelessWidget {
   const _NavPill({
     required this.entry,
     required this.selected,
+    required this.width,
     required this.height,
     required this.onTap,
   });
 
   final NavEntry entry;
   final bool selected;
+  final double width;
   final double height;
   final VoidCallback onTap;
 
@@ -231,8 +243,9 @@ class _NavPill extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
+          width: width,
           height: height,
-          padding: EdgeInsets.symmetric(horizontal: selected ? 14 : 11),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             // Dua warna opaque, bukan fade ke transparan — lerp ke
             // Colors.transparent (hitam alpha 0) berkedip gelap di tengah.
@@ -249,20 +262,26 @@ class _NavPill extends StatelessWidget {
                     ? theme.colorScheme.primary
                     : surfaces.textMuted,
               ),
-              // Label ikut menyusut jadi 0 saat tidak aktif — tanpa ini,
-              // lebar bar melompat waktu pindah tab.
-              ClipRect(
-                child: AnimatedAlign(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOutCubic,
-                  alignment: Alignment.centerLeft,
-                  widthFactor: selected ? 1 : 0,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: Dimens.dp8),
-                    child: Text(
-                      entry.label,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: theme.colorScheme.primary,
+              // Label menyusut jadi 0 saat tidak aktif, jadi ia tersingkap
+              // seiring pil melebar, bukan muncul begitu saja di tengahnya.
+              // Flexible + ellipsis: di layar sempit "Transaksi" lebih lebar
+              // dari jatah pilnya.
+              Flexible(
+                child: ClipRect(
+                  child: AnimatedAlign(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.centerLeft,
+                    widthFactor: selected ? 1 : 0,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: Dimens.dp8),
+                      child: Text(
+                        entry.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
                       ),
                     ),
                   ),
