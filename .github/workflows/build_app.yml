@@ -1,10 +1,11 @@
 name: Build App (Windows & Android)
 
+# Hanya tag. Build tiga platform makan belasan menit runner (macOS 10x lipat
+# kuotanya), dan menjalankannya di tiap merge ke main tidak menghasilkan apa
+# pun yang dipakai — artifact-nya kedaluwarsa sebelum ada yang mengunduhnya.
+# Butuh bukti main masih bisa dibuild? Jalankan manual lewat workflow_dispatch.
 on:
   push:
-    branches:
-      - main # Bukti bahwa main selalu bisa dibuild. Langkah Release di bawah
-             # tetap terkunci ke tag, jadi ini hanya menghasilkan artifact.
     tags:
       - "v*" # Trigger saat push tag (contoh: v1.0.0)
   workflow_dispatch: # Trigger manual
