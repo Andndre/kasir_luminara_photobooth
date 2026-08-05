@@ -72,8 +72,9 @@ void main() {
       final total = pills
           .map((p) => tester.getSize(find.byWidget(p)).width)
           .reduce((a, b) => a + b);
-      // Lebar dalam bar = 400 - margin 16*2 - padding 6*2 - border 1*2.
-      expect(total, closeTo(400 - 32 - 12 - 2, 0.5));
+      // Lebar dalam bar = 400 - margin 16*2 - padding 6*2 - border 1*2,
+      // dikurangi tiga sela 4px antar-pil.
+      expect(total, closeTo(400 - 32 - 12 - 2 - 12, 0.5));
     });
   });
 
