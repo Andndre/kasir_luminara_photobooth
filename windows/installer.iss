@@ -3,7 +3,7 @@
 
 #define MyAppName "Luminara Photobooth"
 ; Harus disamakan manual dengan `version:` di pubspec.yaml setiap rilis.
-#define MyAppVersion "1.5.2"
+#define MyAppVersion "1.5.3"
 #define MyAppPublisher "Andndre"
 #define MyAppURL "https://github.com/Andndre/kasir_luminara_photobooth"
 #define MyAppExeName "luminara_photobooth.exe"
