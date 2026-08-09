@@ -185,17 +185,24 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
     );
   }
 
+  /// Memindai TIDAK pernah melihat daftar antrean lokal — kodenya langsung
+  /// dikirim ke `POST /pos/verify` dan server yang memutuskan. Itu sebabnya
+  /// pemindaian tetap benar walau daftar di tab Antrean sudah basi, dan
+  /// sebabnya scanner boleh dibiarkan terbuka seharian tanpa polling apa pun.
   Future<void> _verifyTicket(String code) async {
+    // Diambil sebelum await: setelah itu context bisa saja sudah tidak ada.
+    final bloc = context.read<VerifierBloc>();
+
     try {
-      final result = await context.read<VerifierBloc>().service.verifyTicket(
-        code,
-      );
-      if (mounted) {
-        _showResult(result);
-      } else {
-        // If unmounted, reset processing state immediately
-        setState(() => _isProcessing = false);
-      }
+      final result = await bloc.service.verifyTicket(code);
+      if (!mounted) return;
+
+      // Tiket yang baru ditebus harus lenyap dari daftar antrean. Dulu ini
+      // terjadi sendiri karena daftarnya ditarik ulang tiap 5 detik; sejak
+      // polling dibuang, tidak ada lagi yang memberi tahu blocnya.
+      if (result is TicketAccepted) bloc.add(RefreshQueue());
+
+      _showResult(result);
     } catch (e) {
       if (mounted) {
         AppLog.error('Error verifying ticket: $e');
