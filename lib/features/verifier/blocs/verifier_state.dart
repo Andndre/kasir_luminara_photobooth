@@ -11,6 +11,14 @@ class VerifierState extends Equatable {
   final String? verifyingUuid;
   final bool verifySuccess;
 
+  /// Kapan [queue] terakhir benar-benar datang dari server.
+  ///
+  /// Antrean tidak lagi ditarik otomatis tiap 5 detik, jadi daftar ini bisa
+  /// setua apa pun. Umurnya ditampilkan supaya petugas tahu kapan perlu
+  /// menyegarkan — daftar basi yang terlihat sama dengan yang segar adalah
+  /// cara paling halus untuk membuat orang salah menyimpulkan.
+  final DateTime? queueFetchedAt;
+
   const VerifierState({
     this.status = VerifierStatus.disconnected,
     this.serverIp,
@@ -18,6 +26,7 @@ class VerifierState extends Equatable {
     this.errorMessage,
     this.verifyingUuid,
     this.verifySuccess = false,
+    this.queueFetchedAt,
   });
 
   VerifierState copyWith({
@@ -27,6 +36,7 @@ class VerifierState extends Equatable {
     String? errorMessage,
     String? verifyingUuid,
     bool? verifySuccess,
+    DateTime? queueFetchedAt,
     // `errorMessage: null` can't distinguish "leave it" from "clear it", so
     // clearing is an explicit flag. Without it a stale error stuck around
     // after a successful refresh.
@@ -41,6 +51,7 @@ class VerifierState extends Equatable {
       // verifying", which is the common case.
       verifyingUuid: verifyingUuid,
       verifySuccess: verifySuccess ?? this.verifySuccess,
+      queueFetchedAt: queueFetchedAt ?? this.queueFetchedAt,
     );
   }
 
@@ -52,5 +63,6 @@ class VerifierState extends Equatable {
     errorMessage,
     verifyingUuid,
     verifySuccess,
+    queueFetchedAt,
   ];
 }

@@ -47,26 +47,22 @@ class VerifierService {
   /// the queue screen would just spin.
   static const _timeout = Duration(seconds: 10);
 
-  /// How often the queue is refreshed. There is no push channel over the
-  /// internet, so this interval *is* the latency a customer sees between
-  /// paying and appearing on the booth's screen.
-  static const pollInterval = Duration(seconds: 5);
-
   bool _connected = false;
-  Stream<dynamic>? _pollStream;
 
   bool get isConnected => _connected;
 
-  void connect() {
-    _connected = true;
-
-    _pollStream = Stream.periodic(
-      pollInterval,
-      (_) => jsonEncode({'event': 'REFRESH_QUEUE'}),
-    ).asBroadcastStream();
-  }
-
-  Stream<dynamic>? get eventStream => _pollStream;
+  /// Tidak ada timer di sini, dan itu disengaja.
+  ///
+  /// Antrean dulu ditarik tiap 5 detik tanpa syarat — 720 permintaan per jam
+  /// per verifier, layar mati sekalipun. Dari satu IP venue itu cukup untuk
+  /// membuat Cloudflare memblokir seluruh perangkat di sana dengan 403, dan
+  /// itulah yang terjadi 7 Agustus 2026.
+  ///
+  /// Jalur utama petugas adalah memindai QR, dan itu selalu langsung ke server
+  /// saat itu juga. Daftar antrean cuma cadangan untuk tiket yang tak terbaca,
+  /// jadi ia disegarkan saat dibuka, saat aplikasi kembali ke depan, dan saat
+  /// ditarik ke bawah — bukan terus-menerus.
+  void connect() => _connected = true;
 
   /// Throws [ServerUnreachable] on network failure, so the bloc surfaces a real
   /// error instead of silently rendering an empty queue.
@@ -135,10 +131,7 @@ class VerifierService {
     return response;
   }
 
-  void disconnect() {
-    _connected = false;
-    _pollStream = null;
-  }
+  void disconnect() => _connected = false;
 }
 
 class ServerUnreachable implements Exception {
