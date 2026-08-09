@@ -40,10 +40,10 @@ Shipped installs hold real data under these exact names. Renaming any of them si
 **Persisted enum strings**: `TUNAI`, `QRIS`, `NON-TUNAI`, `PAID`, `COMPLETED`, `CANCELLED`.
 
 **SharedPreferences keys**: `is_midtrans_enabled`, `theme_mode`, `printer_paper_mm80_<mac>`, `printer_last_mac`, `profile`, `auth_token`, `auth_email`, `auth_last_verified`, `device_id`, `device_name`,
-`sync_pull_cursor`,
 `sync_catalogue_signature`,
-`sync_redemption_cursor` (unused since the pull widened past redemptions, but
-still cleared on logout so it can't leak into the next account).
+`sync_pull_cursor` and `sync_redemption_cursor` (both unused since sync became
+one-way, but still cleared on logout so they can't leak into the next account —
+or into an older build the device gets rolled back to).
 
 **Backup file JSON keys**: `version`, `tables`, and the five table names nested under `tables`. Customers have backup files on disk in this format.
 
@@ -154,27 +154,58 @@ The rule that keeps the two sides from ever disagreeing:
 > **The cashier creates, the server redeems.**
 
 `SyncService.push()` therefore never uploads `status`/`redeemed_at` changes — the
-server ignores those columns on rows it already has — and `pull()` brings back
-**only redemptions**, applied by `TransactionRepository.applyRedemptions` and
-guarded by `status = 'PAID'` so it can never overwrite a `redeemed_at` already
-printed on a receipt. Break that split and you get double-redeemed tickets.
+server ignores those columns on rows it already has. Break that split and you get
+double-redeemed tickets.
 
-Transactions themselves never come down. They don't need to: exactly one device
-creates them, and that device already has them. That is what the cashier lease
-buys — see below.
+**Sync is one-way. There is no `pull()`.** Nothing comes down in the background
+at all, and that is what makes the split safe by construction rather than by
+discipline: the two sides have no column that could disagree.
 
 ### Who reads from where
 
-| | Source of truth | Reads from |
+| | Writes to | Reads history from |
 |---|---|---|
-| Cashier | its own SQLite | SQLite; only redemptions come down |
+| Cashier | its own SQLite, then pushes | the server, plus its own un-pushed rows |
 | Verifier | — (creates nothing) | the server, always |
 
-The verifier keeps **no local replica**. It already needs the internet to scan a
-ticket at all, so replicating a database that would then have to be reconciled
-buys nothing. `TransactionHistoryView` takes a `HistoryLoader`; the cashier
-passes the repository-backed one, the verifier passes `fromServer`
-(`GET /api/pos/history?from=&to=`, upper bound exclusive).
+Transactions are still **created** locally — the till must keep selling when
+venue Wi-Fi dies, and `push()` awaited at checkout exists for exactly that. What
+the server owns is *reading*.
+
+It used to own neither: the cashier read its own SQLite, which holds only the
+rows **that device** created. Hand the role to a replacement phone and the two
+tills disagree about the day's takings forever, with no way to notice. The
+account has one history; only the server has all of it.
+
+`TransactionHistoryView` takes a `HistoryLoader`, and it is now **required** —
+the silent repository-backed default was what made this happen unnoticed. Two
+implementations:
+
+- `fromServer` — verifier. Pure server; unreachable is an error, because a
+  device with no local replica genuinely has nothing to show.
+- `forCashier` — server, plus local rows still waiting to be pushed, minus
+  duplicates by uuid (the server's copy wins — it may carry a redemption the
+  local one has never heard of). Merging is `mergePending`, extracted so a test
+  can reach it: a sale made offline vanishing from its own till's history is
+  money taken but not visible, which is worse than the divergence being fixed.
+
+When the server is unreachable, `forCashier` falls back to the local copy and
+sets `offline` on the state, which raises a bar over the list. Same rule as
+`CashierLeaseBanner` and `_FreshnessBar`, and the stakes are highest here: the
+"Total Pemasukan" figure above the list is used to count money, and a partial
+history produces a wrong total that does not look wrong.
+
+`GET /api/pos/history?from=&to=` — upper bound exclusive.
+
+**Deleted along with `pull()`**: `CloudApi.redemptions`, the `Redemptions`
+typedef, `TransactionRepository.applyRedemptions`, and `pendingQueue` (already
+dead — the cashier shows no queue; that is the verifier reading `/pos/queue`).
+`sync_pull_cursor` and `sync_redemption_cursor` are still cleared in `reset()`,
+because APKs are installed by hand and a device rolled back to an older build
+would otherwise resume from another account's cursor.
+
+`/api/pos/redemptions` stays on the server for now: 1.5.2 devices are still in
+the field and call it every 15s. Remove it once none are left.
 
 ### Deletion
 
@@ -304,10 +335,15 @@ hand.
 - `SyncService.push()` is **awaited at checkout, before printing** — a customer
   walks to the booth in seconds and a ticket the server has never seen cannot be
   scanned there. Failure warns, it does not cancel the sale.
-- The cashier's 15s `POST /pos/sync` is the one remaining network timer, and it
-  stays: it carries the lease heartbeat against a 90s TTL. The verifier's 5s
-  queue poll is gone — see **Verifier** above for why. (`_FreshnessBar` still
-  ticks every 20s, but only to age a label; it touches nothing.)
+- The cashier's 15s `POST /pos/sync` is the **only** recurring network timer left
+  in the app, and it stays: it carries the lease heartbeat against a 90s TTL.
+  The verifier's 5s queue poll is gone — see **Verifier** above for why. The two
+  other timers touch no network at all: `_FreshnessBar` ticks every 20s only to
+  age a label, and `PaymentPoller` runs per-payment with a 15-minute deadline.
+  Nothing reloads the history screen on a timer either — it refreshes on open,
+  on filter change, on `dataRefresh`, and on the AppBar button. Adding a poll
+  anywhere here needs a stop condition and a reason; one venue IP polling
+  unconditionally is what got the whole site 403'd by Cloudflare on 2026-08-07.
 - `/api/pos/restore` answers in the **backup file format**, so device migration
   reuses `BackupService.applyBackupJson` instead of a second restore path.
 

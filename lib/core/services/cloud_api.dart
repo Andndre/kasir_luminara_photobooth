@@ -10,9 +10,6 @@ import '../helpers/server_error_message.dart';
 import 'auth_service.dart';
 import 'cashier_lease_service.dart';
 
-/// Redemptions pulled from the server, plus the cursor to resume from.
-typedef Redemptions = ({String? cursor, Map<String, DateTime?> redeemedAt});
-
 /// Authenticated calls to `/api/pos/*`.
 ///
 /// Pure transport — *when* to call these lives in [SyncService]. Every method
@@ -95,29 +92,6 @@ class CloudApi {
     'GET',
     '/pos/products',
     parse: (body) => _parseProducts((body as Map<String, dynamic>)['products']),
-  );
-
-  /// Tickets redeemed since [since]. Pass the previous call's cursor.
-  ///
-  /// Penukaran adalah satu-satunya hal yang dimiliki server, jadi ini
-  /// satu-satunya yang perlu turun ke kasir. Transaksi tidak: hanya satu
-  /// perangkat yang membuatnya, dan perangkat itu sudah memilikinya.
-  Future<Result<Redemptions>> redemptions({String? since}) => _send(
-    'GET',
-    '/pos/redemptions${since == null ? '' : '?since=${Uri.encodeQueryComponent(since)}'}',
-    parse: (body) {
-      final map = body as Map<String, dynamic>;
-      final list = (map['redemptions'] as List?) ?? const [];
-      return (
-        cursor: map['cursor'] as String?,
-        redeemedAt: {
-          for (final row in list.whereType<Map>())
-            row['uuid'] as String: DateTime.tryParse(
-              row['redeemed_at'] as String? ?? '',
-            ),
-        },
-      );
-    },
   );
 
   /// The account's history, read straight from the server.

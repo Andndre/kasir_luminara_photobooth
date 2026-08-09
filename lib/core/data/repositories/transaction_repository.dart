@@ -108,25 +108,6 @@ class TransactionRepository {
         return _hydrate(db, rows);
       });
 
-  /// Unredeemed tickets, in the order they should be called at the booth.
-  /// Legacy rows without a queue number sort last, by creation time.
-  Future<Result<List<Transaction>>> pendingQueue() =>
-      runCatching('Gagal memuat antrian', () async {
-        final db = await getDatabase();
-        final rows = await db.query(
-          'transactions',
-          where: 'status = ?',
-          whereArgs: [TransactionStatus.paid.dbValue],
-          orderBy: '''
-            CASE WHEN queue_number IS NULL THEN 1 ELSE 0 END ASC,
-            queue_date ASC,
-            queue_number ASC,
-            created_at ASC
-          ''',
-        );
-        return _hydrate(db, rows);
-      });
-
   /// Deletes locally and leaves a tombstone for the server.
   ///
   /// Tanpa nisan itu penghapusan tidak punya apa pun untuk dikirim — barisnya
@@ -275,40 +256,6 @@ class TransactionRepository {
             whereArgs: chunk,
           );
         }
-      });
-
-  /// Applies redemptions the verifier made against the server.
-  ///
-  /// Guarded by `status = 'PAID'` for the same reason [redeem] is: if this row
-  /// was already redeemed locally, its `redeemed_at` is the one that was
-  /// printed on the receipt, and the server's copy must not overwrite it.
-  ///
-  /// Ini satu-satunya hal yang turun dari server ke kasir. Transaksi tidak
-  /// perlu: hanya satu perangkat yang membuatnya, dijamin oleh sewa peran
-  /// kasir, dan perangkat itu sudah memilikinya.
-  ///
-  /// Returns how many rows actually changed, so a caller can skip refreshing
-  /// the UI when the poll brought nothing new.
-  Future<Result<int>> applyRedemptions(Map<String, DateTime?> redeemedAt) =>
-      runCatching('Gagal menerapkan status tiket dari server', () async {
-        if (redeemedAt.isEmpty) return 0;
-        final db = await getDatabase();
-        var changed = 0;
-        await db.transaction((txn) async {
-          for (final entry in redeemedAt.entries) {
-            changed += await txn.update(
-              'transactions',
-              {
-                'status': TransactionStatus.completed.dbValue,
-                'redeemed_at': (entry.value ?? DateTime.now())
-                    .toIso8601String(),
-              },
-              where: 'uuid = ? AND status = ?',
-              whereArgs: [entry.key, TransactionStatus.paid.dbValue],
-            );
-          }
-        });
-        return changed;
       });
 
   Future<Result<Transaction?>> findByUuid(String uuid) =>
