@@ -4,6 +4,7 @@ import 'dart:io' show SocketException;
 
 import 'package:http/http.dart' as http;
 import 'package:luminara_photobooth/core/domain/domain.dart';
+import 'package:luminara_photobooth/core/helpers/server_error_message.dart';
 import 'package:luminara_photobooth/core/services/auth_service.dart';
 
 /// Outcome of `POST /api/pos/verify`, as seen by the verifier client.
@@ -125,8 +126,11 @@ class VerifierService {
       throw const ServerUnreachable('Waktu tunggu habis');
     }
 
+    // Server yang MENJAWAB bukan server yang tak terjangkau. Dulu keduanya
+    // dilempar sebagai ServerUnreachable, jadi 403 dari firewall terbaca
+    // "Server tidak dapat dihubungi" dan orang mencari masalah jaringan.
     if (response.statusCode != 200) {
-      throw ServerUnreachable('Server menjawab ${response.statusCode}');
+      throw ServerRejected(response.statusCode);
     }
     return response;
   }
@@ -140,4 +144,14 @@ class ServerUnreachable implements Exception {
 
   @override
   String toString() => 'Server tidak dapat dihubungi: $message';
+}
+
+/// Server menjawab, tapi menolak. Beda dari [ServerUnreachable], dan bedanya
+/// menentukan ke mana orang mencari saat kasir mati di tengah acara.
+class ServerRejected implements Exception {
+  final int statusCode;
+  const ServerRejected(this.statusCode);
+
+  @override
+  String toString() => serverErrorMessage(statusCode);
 }

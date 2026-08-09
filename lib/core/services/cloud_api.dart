@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../data/result.dart';
 import '../domain/domain.dart';
+import '../helpers/server_error_message.dart';
 import 'auth_service.dart';
 import 'cashier_lease_service.dart';
 
@@ -215,7 +216,7 @@ class CloudApi {
 
       if (response.statusCode == 401) {
         return Err(
-          'Sesi berakhir, silakan masuk lagi',
+          serverErrorMessage(401),
           'HTTP 401 $path',
           StackTrace.current,
         );
@@ -232,7 +233,7 @@ class CloudApi {
 
       if (response.statusCode ~/ 100 != 2) {
         return Err(
-          'Server menolak permintaan (${response.statusCode})',
+          serverErrorMessage(response.statusCode),
           'HTTP ${response.statusCode} $path: ${response.body}',
           StackTrace.current,
         );

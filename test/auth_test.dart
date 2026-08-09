@@ -44,8 +44,16 @@ void main() {
     test('status tak dikenal tetap membawa angkanya', () {
       expect(
         AuthService.loginErrorMessage(502, '<html>bad gateway'),
-        'Gagal masuk (502)',
+        contains('502'),
       );
+    });
+
+    test('401 saat login berarti kredensial, bukan sesi habis', () {
+      // Ini satu-satunya panggilan yang memang belum punya sesi, jadi pesan
+      // umum "Sesi berakhir, silakan masuk lagi" justru menyesatkan di sini.
+      final message = AuthService.loginErrorMessage(401, '');
+      expect(message, contains('password'));
+      expect(message, isNot(contains('Sesi berakhir')));
     });
   });
 }
