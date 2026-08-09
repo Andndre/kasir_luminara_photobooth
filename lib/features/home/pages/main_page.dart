@@ -12,15 +12,23 @@ import 'package:luminara_photobooth/features/verifier/pages/live_queue_page.dart
 import 'package:luminara_photobooth/features/verifier/pages/ticket_scanner_page.dart';
 
 import 'package:luminara_photobooth/features/verifier/pages/client_home_page.dart';
+import 'package:luminara_photobooth/core/services/update_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Satu entri navigasi. Dipakai bersama oleh NavigationRail (desktop) dan
 /// NavigationBar mengambang (mobile) supaya labelnya tidak pernah beda.
 typedef NavEntry = ({IconData icon, String label});
 
-class MainPage extends StatelessWidget {
+class MainPage extends StatefulWidget {
   const MainPage({super.key});
 
   static const String routeName = '/main';
+
+  @override
+  State<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
 
   static const _serverNav = <NavEntry>[
     (icon: AppIcons.storefront, label: 'Beranda'),
@@ -36,6 +44,37 @@ class MainPage extends StatelessWidget {
     (icon: Icons.list_alt_rounded, label: 'Antrean'),
     (icon: Icons.settings_rounded, label: 'Setelan'),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUpdate();
+  }
+
+  /// Sekali per nyala aplikasi, dan tidak menghalangi apa pun.
+  ///
+  /// Diletakkan di sini, bukan di Setelan: yang memegang perangkat sepanjang
+  /// hari adalah petugas yang tidak pernah membuka Setelan. Berbentuk SnackBar,
+  /// bukan dialog, karena aplikasi ini bisa saja sedang di tengah transaksi
+  /// saat jawabannya datang.
+  Future<void> _checkUpdate() async {
+    final update = await UpdateService.check();
+    if (!mounted || update == null) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Versi ${update.version} sudah tersedia'),
+        duration: const Duration(seconds: 10),
+        action: SnackBarAction(
+          label: 'Unduh',
+          onPressed: () => launchUrl(
+            update.url,
+            mode: LaunchMode.externalApplication,
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
