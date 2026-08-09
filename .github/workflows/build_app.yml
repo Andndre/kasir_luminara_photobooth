@@ -77,6 +77,39 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
+      # Tanpa langkah ini build release memakai kunci debug, dan runner membuat
+      # kunci debug BARU tiap kali jalan — tiap rilis jadi bertanda tangan beda
+      # dan Android menolak memperbaruinya ("paket ini bentrok dengan paket
+      # yang sudah ada"). Kalau secretnya belum diisi, langkah ini dilewati dan
+      # perilakunya kembali seperti dulu, bukan gagal build.
+      #
+      # base64 keystore-nya: base64 -w0 upload-keystore.jks
+      - name: Siapkan kunci penandatanganan
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          # Rilis tanpa kunci tetap jadi APK yang kelihatan baik-baik saja, dan
+          # yang menemukannya adalah petugas di lapangan yang gagal memasang,
+          # berhari-hari kemudian. Jadi gagalkan di sini, bukan di sana.
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            if [ "${{ startsWith(github.ref, 'refs/tags/') }}" = "true" ]; then
+              echo "::error::Secret ANDROID_KEYSTORE_BASE64 kosong — APK rilis akan bertanda tangan debug dan tidak bisa memperbarui pemasangan yang sudah ada."
+              exit 1
+            fi
+            echo "Tanpa kunci rilis — build percobaan, bukan rilis."
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storeFile=upload-keystore.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
       # Perintah ini menggantikan 3 perintah manual Anda menjadi 1 kali jalan
       # Hasilnya akan otomatis create 3 APK: v7a (arm), v8a (arm64), x64
       - name: Build APKs (Split per ABI)
