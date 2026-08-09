@@ -9,7 +9,6 @@ import 'package:luminara_photobooth/features/transaction/transaction.dart';
 
 import 'package:luminara_photobooth/core/constants/app_mode.dart';
 import 'package:luminara_photobooth/features/verifier/pages/live_queue_page.dart';
-import 'package:luminara_photobooth/features/verifier/pages/handshake_page.dart';
 import 'package:luminara_photobooth/features/verifier/pages/ticket_scanner_page.dart';
 
 import 'package:luminara_photobooth/features/verifier/pages/client_home_page.dart';
@@ -30,10 +29,11 @@ class MainPage extends StatelessWidget {
     (icon: AppIcons.settings, label: 'Setelan'),
   ];
 
+  // Tidak ada tab "Koneksi": akun yang menjadi pasangannya, dan itu sudah
+  // didapat saat login. Halaman lamanya cuma membalik sebuah boolean lokal.
   static const _clientNav = <NavEntry>[
     (icon: AppIcons.storefront, label: 'Beranda'),
     (icon: Icons.list_alt_rounded, label: 'Antrean'),
-    (icon: Icons.link_rounded, label: 'Koneksi'),
     (icon: Icons.settings_rounded, label: 'Setelan'),
   ];
 
@@ -53,7 +53,6 @@ class MainPage extends StatelessWidget {
         : const <Widget>[
             ClientHomePage(),
             LiveQueuePage(),
-            HandshakePage(),
             SettingsPage(),
           ];
 

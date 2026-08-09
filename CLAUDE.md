@@ -138,6 +138,13 @@ Windows firewall rule, the Android background isolate, the pairing QR and the
 manual IP entry. Redeeming is now the server's call alone, which is also what
 makes double-redeem impossible without any coordination between devices.
 
+The **Koneksi** tab that survived that removal is gone too. Once the account was
+the pairing, `connect()` was one line — `_connected = true` — so the page was a
+button that flipped a local boolean and a "Putuskan Koneksi" that flipped it
+back. `ConnectToServer`/`DisconnectFromServer` went with it; `InitializeVerifier`
+now does the whole job at startup. The verifier's nav is three tabs: Beranda,
+Antrean, Setelan.
+
 ### Cloud sync (luminarabali.com)
 
 The Laravel backend holds a copy of every transaction, behind a Sanctum token.

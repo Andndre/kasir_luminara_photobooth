@@ -16,8 +16,6 @@ class ClientHomePage extends StatelessWidget {
 
     return BlocBuilder<VerifierBloc, VerifierState>(
       builder: (context, state) {
-        final isConnected = state.status == VerifierStatus.connected;
-
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
           appBar: AppBar(
@@ -54,7 +52,7 @@ class ClientHomePage extends StatelessWidget {
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,
                         ),
-                    itemCount: 4,
+                    itemCount: 3,
                     itemBuilder: (context, index) {
                       final items = [
                         {
@@ -78,26 +76,17 @@ class ClientHomePage extends StatelessWidget {
                             TapBottomNavEvent(1),
                           ),
                         },
-                        {
-                          'title': isConnected
-                              ? 'Koneksi Aktif'
-                              : 'Status Koneksi',
-                          'icon': isConnected
-                              ? Icons.wifi_rounded
-                              : Icons.wifi_off_rounded,
-                          'color': isConnected
-                              ? AppTokens.success
-                              : AppTokens.danger,
-                          'onTap': () => context.read<BottomNavBloc>().add(
-                            TapBottomNavEvent(2),
-                          ),
-                        },
+                        // Kartu "Status Koneksi" ikut hilang bersama halaman
+                        // Koneksi. Keadaannya tetap terlihat — di chip pada
+                        // sambutan di atas — cuma tidak ada lagi halaman yang
+                        // bisa dituju, karena tidak ada yang bisa dilakukan
+                        // di sana selain membalik sebuah boolean.
                         {
                           'title': 'Pengaturan',
                           'icon': Icons.settings_rounded,
                           'color': context.surfaces.textSecondary,
                           'onTap': () => context.read<BottomNavBloc>().add(
-                            TapBottomNavEvent(3),
+                            TapBottomNavEvent(2),
                           ),
                         },
                       ];
@@ -184,7 +173,9 @@ class ClientHomePage extends StatelessWidget {
       value: isConnected ? (state.serverIp ?? '-') : 'Belum terhubung',
       meta: isConnected
           ? 'Siap memverifikasi tiket · ${DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(DateTime.now())}'
-          : 'Hubungkan lewat menu Koneksi.',
+          // Tidak ada lagi menu Koneksi untuk dirujuk, dan memang tidak ada
+          // yang bisa ditekan: yang menentukan cuma akun dan internet.
+          : 'Pastikan sudah masuk akun dan perangkat terhubung internet.',
       icon: isConnected ? Icons.verified_user_rounded : Icons.gpp_maybe_rounded,
       // Terputus bukan kondisi brand — pakai tinta netral, bukan wine.
       gradient: isConnected

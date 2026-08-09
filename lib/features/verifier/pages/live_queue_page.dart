@@ -232,13 +232,13 @@ class _QueueTabState extends State<_QueueTab> with WidgetsBindingObserver {
       },
       child: BlocBuilder<VerifierBloc, VerifierState>(
         builder: (context, state) {
+          // Hanya keadaan awal sebelum InitializeVerifier selesai; tidak ada
+          // lagi tombol putus yang bisa membawanya ke sini.
           if (state.status == VerifierStatus.disconnected) {
             return const EmptyState(
               icon: Icons.cloud_off_rounded,
-              title: 'Belum terhubung',
-              message:
-                  'Hubungkan ke server lewat menu Koneksi untuk '
-                  'melihat antrean.',
+              title: 'Menyiapkan antrean',
+              message: 'Sebentar lagi.',
             );
           }
 
