@@ -54,7 +54,8 @@ class UpdateService {
       final current = (await PackageInfo.fromPlatform()).version;
       if (!isNewer(latest, current)) return null;
 
-      for (final asset in (body['assets'] as List? ?? const []).whereType<Map>()) {
+      for (final asset
+          in (body['assets'] as List? ?? const []).whereType<Map>()) {
         final name = asset['name'] as String? ?? '';
         final url = asset['browser_download_url'] as String?;
         if (url != null && name.endsWith(suffix)) {
@@ -125,11 +126,9 @@ class UpdateService {
       await _channel.invokeMethod<void>('install', {'path': file.path});
       return;
     }
-    await Process.start(
-      file.path,
-      ['/SILENT'],
-      mode: ProcessStartMode.detached,
-    );
+    await Process.start(file.path, [
+      '/SILENT',
+    ], mode: ProcessStartMode.detached);
     exit(0);
   }
 

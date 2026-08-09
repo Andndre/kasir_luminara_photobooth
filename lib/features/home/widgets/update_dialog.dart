@@ -75,7 +75,9 @@ class _UpdateDialogState extends State<_UpdateDialog> {
     final failed = _error != null;
 
     return AlertDialog(
-      title: Text(failed ? 'Pembaruan gagal' : 'Memperbarui ke ${widget.update.version}'),
+      title: Text(
+        failed ? 'Pembaruan gagal' : 'Memperbarui ke ${widget.update.version}',
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -29,7 +29,6 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-
   static const _serverNav = <NavEntry>[
     (icon: AppIcons.storefront, label: 'Beranda'),
     (icon: AppIcons.receipt, label: 'Transaksi'),
@@ -86,11 +85,7 @@ class _MainPageState extends State<MainPage> {
             ProductPage(),
             SettingsPage(),
           ]
-        : const <Widget>[
-            ClientHomePage(),
-            LiveQueuePage(),
-            SettingsPage(),
-          ];
+        : const <Widget>[ClientHomePage(), LiveQueuePage(), SettingsPage()];
 
     final nav = isServer ? _serverNav : _clientNav;
 

@@ -101,9 +101,7 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
       // Pesannya dipakai apa adanya, tidak diberi awalan lagi. Versi lama
       // menumpuk tiga: "Refresh Failed: Server tidak dapat dihubungi: Server
       // menjawab 403" — panjang, dua bahasa, dan menyesatkan di dua tempat.
-      emit(
-        state.copyWith(status: VerifierStatus.error, errorMessage: '$e'),
-      );
+      emit(state.copyWith(status: VerifierStatus.error, errorMessage: '$e'));
     }
   }
 
