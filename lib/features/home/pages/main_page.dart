@@ -13,7 +13,7 @@ import 'package:luminara_photobooth/features/verifier/pages/ticket_scanner_page.
 
 import 'package:luminara_photobooth/features/verifier/pages/client_home_page.dart';
 import 'package:luminara_photobooth/core/services/update_service.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:luminara_photobooth/features/home/widgets/update_dialog.dart';
 
 /// Satu entri navigasi. Dipakai bersama oleh NavigationRail (desktop) dan
 /// NavigationBar mengambang (mobile) supaya labelnya tidak pernah beda.
@@ -66,11 +66,8 @@ class _MainPageState extends State<MainPage> {
         content: Text('Versi ${update.version} sudah tersedia'),
         duration: const Duration(seconds: 10),
         action: SnackBarAction(
-          label: 'Unduh',
-          onPressed: () => launchUrl(
-            update.url,
-            mode: LaunchMode.externalApplication,
-          ),
+          label: 'Perbarui',
+          onPressed: () => showUpdateDialog(context, update),
         ),
       ),
     );
