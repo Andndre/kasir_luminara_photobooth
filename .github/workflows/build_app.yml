@@ -192,6 +192,24 @@ jobs:
           name: iOS-IPA-unsigned
           path: build/sideload/LuminaraPhotobooth-unsigned.ipa
 
+      # Ikut terbit di halaman Release, sama seperti installer Windows dan
+      # ketiga APK. Artifact di atas saja tidak cukup: ia kedaluwarsa dalam 90
+      # hari, sementara iOS dipakai per acara — jeda antaracara bisa lebih
+      # panjang dari itu, dan IPA-nya sudah hilang saat dibutuhkan. Rilis tidak
+      # kedaluwarsa, dan tidak perlu menggali ke tab Actions untuk mengambilnya.
+      #
+      # Hanya yang TANPA tanda tangan. Kalau IOS_ENABLED menyala, IPA-nya
+      # bertanda tangan distribusi dan tempatnya di TestFlight, bukan di
+      # halaman unduhan publik.
+      - name: Release IPA Sideload
+        if: vars.IOS_ENABLED != 'true' && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/sideload/LuminaraPhotobooth-unsigned.ipa
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Import Signing Certificate
         if: vars.IOS_ENABLED == 'true'
         uses: apple-actions/import-codesign-certs@v3
