@@ -329,10 +329,7 @@ class _FreshnessBarState extends State<_FreshnessBar> {
     // Timer ini tidak menyentuh jaringan sama sekali — ia cuma membuat
     // labelnya menua di depan mata. Tanpanya "baru saja" akan tertulis
     // selamanya, yang justru kebohongan yang mau dihindari bilah ini.
-    _tick = Timer.periodic(
-      const Duration(seconds: 20),
-      (_) => setState(() {}),
-    );
+    _tick = Timer.periodic(const Duration(seconds: 20), (_) => setState(() {}));
   }
 
   @override
@@ -345,9 +342,7 @@ class _FreshnessBarState extends State<_FreshnessBar> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final fetchedAt = widget.fetchedAt;
-    final age = fetchedAt == null
-        ? null
-        : DateTime.now().difference(fetchedAt);
+    final age = fetchedAt == null ? null : DateTime.now().difference(fetchedAt);
     final isStale = age == null || age >= _FreshnessBar.stale;
 
     final color = isStale ? AppTokens.warning : context.surfaces.textMuted;
@@ -384,7 +379,6 @@ class _FreshnessBarState extends State<_FreshnessBar> {
       ),
     );
   }
-
 }
 
 /// Umur antrean dalam kata-kata. Top-level supaya bisa diuji tanpa memompa

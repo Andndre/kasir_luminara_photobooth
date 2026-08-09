@@ -22,7 +22,7 @@ void main() {
         AuthService.loginErrorMessage(
           422,
           '{"message":"The given data was invalid.",'
-              '"errors":{"email":["Email wajib diisi"]}}',
+          '"errors":{"email":["Email wajib diisi"]}}',
         ),
         'Email wajib diisi',
       );
@@ -60,13 +60,18 @@ void main() {
       expect(message, isNot(contains('Access denied')));
     });
 
-    test('429 Laravel tidak menggantikan pesan "tunggu" dengan bahasa Inggris',
-        () {
-      expect(
-        AuthService.loginErrorMessage(429, '{"message":"Too Many Attempts."}'),
-        contains('Tunggu'),
-      );
-    });
+    test(
+      '429 Laravel tidak menggantikan pesan "tunggu" dengan bahasa Inggris',
+      () {
+        expect(
+          AuthService.loginErrorMessage(
+            429,
+            '{"message":"Too Many Attempts."}',
+          ),
+          contains('Tunggu'),
+        );
+      },
+    );
 
     test('message bukan String tidak menjatuhkan penanganan errornya', () {
       expect(
