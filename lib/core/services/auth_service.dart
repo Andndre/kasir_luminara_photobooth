@@ -2,6 +2,7 @@ import 'dart:async' show TimeoutException;
 import 'dart:convert';
 import 'dart:io' show SocketException;
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -98,14 +99,16 @@ class AuthService {
           )
           .timeout(_timeout);
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-
       if (response.statusCode != 200) {
-        // 422 dari Laravel membawa pesan yang memang ditulis untuk dibaca user
-        // ("Email atau password salah"), jadi diteruskan apa adanya.
-        final message = _validationMessage(body) ?? 'Gagal masuk';
-        return Err(message, message, StackTrace.current);
+        final message = loginErrorMessage(response.statusCode, response.body);
+        return Err(
+          message,
+          'HTTP ${response.statusCode} /pos/login: ${response.body}',
+          StackTrace.current,
+        );
       }
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
 
       _token = body['token'] as String?;
       _email = (body['user'] as Map?)?['email'] as String?;
@@ -175,13 +178,50 @@ class AuthService {
   Future<void> _markVerified(SharedPreferences prefs) =>
       prefs.setString(_keyVerifiedAt, DateTime.now().toIso8601String());
 
+  /// Turns a failed login response into something a kasir can act on.
+  ///
+  /// Bodinya diurai SETELAH status diperiksa, dan kegagalan urai ditelan.
+  /// Versi lama mengurai lebih dulu: blokir dari Cloudflare/WAF datang sebagai
+  /// halaman HTML, `jsonDecode` melempar FormatException, dan yang sampai ke
+  /// kasir cuma "Gagal masuk" — tanpa kode status, jadi 403 dari firewall tak
+  /// bisa dibedakan dari password salah. Itu memakan satu malam di lapangan.
+  @visibleForTesting
+  static String loginErrorMessage(int statusCode, String body) {
+    // 422 dari Laravel membawa pesan yang memang ditulis untuk dibaca user
+    // ("Email atau password salah"), jadi diteruskan apa adanya.
+    final message = _validationMessage(body);
+    if (message != null) return message;
+
+    return switch (statusCode) {
+      429 => 'Terlalu banyak percobaan masuk. Tunggu semenit lalu coba lagi.',
+      // Rute /pos/* tidak pernah menjawab 403; kalau muncul, penolaknya ada di
+      // depan Laravel (Cloudflare/firewall hosting) dan biasanya memblokir
+      // seluruh jaringan venue, bukan akun ini.
+      403 =>
+        'Ditolak firewall server (403), bukan salah email/password. '
+            'Coba lewat jaringan lain, misalnya hotspot HP.',
+      _ => 'Gagal masuk ($statusCode)',
+    };
+  }
+
   /// Pulls the first message out of Laravel's `{message, errors: {field: []}}`.
-  static String? _validationMessage(Map<String, dynamic> body) {
-    final errors = body['errors'];
+  ///
+  /// Returns null kalau bodinya bukan JSON sama sekali — halaman error HTML
+  /// dari firewall, misalnya.
+  static String? _validationMessage(String rawBody) {
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(rawBody);
+    } on FormatException {
+      return null;
+    }
+    if (decoded is! Map) return null;
+
+    final errors = decoded['errors'];
     if (errors is Map && errors.isNotEmpty) {
       final first = errors.values.first;
       if (first is List && first.isNotEmpty) return first.first.toString();
     }
-    return body['message'] as String?;
+    return decoded['message'] as String?;
   }
 }
