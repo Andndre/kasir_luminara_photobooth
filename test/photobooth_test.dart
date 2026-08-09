@@ -141,34 +141,15 @@ void main() {
       expect(saved.status, TransactionStatus.paid);
     });
 
-    test('Redeem sekali berhasil, kedua kali ditolak', () async {
-      final uuid = const Uuid().v4();
-      expectOk(
-        await transactions.create(
-          Transaction(
-            uuid: uuid,
-            items: const [
-              TransactionItem(
-                productName: 'Test Package',
-                productPrice: 10000,
-                quantity: 1,
-              ),
-            ],
-            totalPrice: 10000,
-            createdAt: DateTime.now(),
-          ),
-        ),
-      );
-
-      expect(expectOk(await transactions.redeem(uuid)), isA<RedeemedOk>());
-      expect(
-        expectOk(await transactions.redeem(uuid)),
-        isA<TicketAlreadyUsed>(),
-      );
-      expect(
-        expectOk(await transactions.redeem('tidak-ada')),
-        isA<TicketNotFound>(),
-      );
-    });
+    // Tes "redeem sekali berhasil, kedua kali ditolak" dulu ada di sini,
+    // bersama TransactionRepository.redeem yang dijaganya. Keduanya dihapus
+    // karena menukarkan tiket sudah sepenuhnya keputusan server sejak verifier
+    // berhenti memakai server LAN di perangkat kasir.
+    //
+    // Propertinya TIDAK hilang, cuma pindah ke tempat yang benar-benar
+    // memutuskan: test_tiket_hanya_bisa_ditukar_sekali di PosSyncTest, pada
+    // repo luminarabali.com. Kalau suatu saat penukaran lokal dihidupkan lagi,
+    // penukaran ganda ikut hidup lagi bersamanya — dua perangkat yang
+    // sama-sama merasa berhak adalah persis yang dicegah rancangan sekarang.
   });
 }

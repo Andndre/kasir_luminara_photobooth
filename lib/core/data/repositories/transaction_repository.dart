@@ -2,32 +2,17 @@ import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart' hide Transaction;
 
 import '../../domain/transaction.dart';
-import '../../domain/transaction_status.dart';
 import '../db.dart';
 import '../result.dart';
 
-/// Outcome of redeeming a ticket. Three distinct cases the caller must handle,
-/// so they get three distinct types rather than a nullable-plus-bool.
-sealed class RedeemOutcome {
-  const RedeemOutcome();
-}
-
-final class RedeemedOk extends RedeemOutcome {
-  final Transaction transaction;
-  const RedeemedOk(this.transaction);
-}
-
-final class TicketNotFound extends RedeemOutcome {
-  const TicketNotFound();
-}
-
-final class TicketAlreadyUsed extends RedeemOutcome {
-  final Transaction transaction;
-  const TicketAlreadyUsed(this.transaction);
-}
-
 /// The only place that touches `transactions`, `transaction_items` and
 /// `daily_queue_counter`.
+///
+/// Tidak ada `redeem` di sini, dan itu disengaja: menukarkan tiket adalah
+/// keputusan server (`POST /pos/verify`). Dulu ada, waktu verifier memindai
+/// lewat server LAN di perangkat kasir — dan justru karena dua perangkat bisa
+/// sama-sama merasa berhak, itulah yang membuat penukaran ganda mungkin.
+/// Sekarang satu baris di satu database yang memutuskan.
 class TransactionRepository {
   const TransactionRepository();
 
@@ -158,35 +143,6 @@ class TransactionRepository {
             whereArgs: chunk,
           );
         }
-      });
-
-  /// Marks a ticket redeemed. Guarded by a conditional UPDATE so two verifiers
-  /// scanning the same ticket at once can't both succeed.
-  Future<Result<RedeemOutcome>> redeem(String uuid) =>
-      runCatching('Gagal memverifikasi tiket', () async {
-        final db = await getDatabase();
-        final existing = await _findByUuid(db, uuid);
-        if (existing == null) return const TicketNotFound();
-
-        final redeemedAt = DateTime.now();
-        final updated = await db.update(
-          'transactions',
-          {
-            'status': TransactionStatus.completed.dbValue,
-            'redeemed_at': redeemedAt.toIso8601String(),
-          },
-          where: 'uuid = ? AND status = ?',
-          whereArgs: [uuid, TransactionStatus.paid.dbValue],
-        );
-
-        if (updated == 0) return TicketAlreadyUsed(existing);
-
-        return RedeemedOk(
-          existing.copyWith(
-            status: TransactionStatus.completed,
-            redeemedAt: redeemedAt,
-          ),
-        );
       });
 
   /// Transactions not yet accepted by luminarabali.com, oldest first.
