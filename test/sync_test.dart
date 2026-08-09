@@ -65,40 +65,12 @@ void main() {
     expect(expectOk(await repo.unsynced()).map((t) => t.uuid), ['b']);
   });
 
-  test('Penukaran dari verifier diterapkan ke SQLite lokal', () async {
-    expectOk(await repo.create(sale('a')));
-
-    final redeemedAt = DateTime(2026, 8, 4, 12);
-    final changed = expectOk(await repo.applyRedemptions({'a': redeemedAt}));
-
-    expect(changed, 1);
-    final trx = expectOk(await repo.findByUuid('a'))!;
-    expect(trx.status, TransactionStatus.completed);
-    expect(trx.redeemedAt, redeemedAt);
-
-    // Antrian ikut kosong, jadi tiket itu tidak dipanggil lagi di booth.
-    expect(expectOk(await repo.pendingQueue()), isEmpty);
-  });
-
-  test('Penukaran dari server tidak menimpa yang sudah dicetak lokal', () async {
-    expectOk(await repo.create(sale('a')));
-    expectOk(await repo.redeem('a'));
-
-    final localRedeemedAt = expectOk(await repo.findByUuid('a'))!.redeemedAt;
-
-    // Server mengabarkan penukaran yang sama dengan jam berbeda. Yang tercetak
-    // di struk adalah jam lokal, jadi jam itu yang harus bertahan.
-    final changed = expectOk(
-      await repo.applyRedemptions({'a': DateTime(2020, 1, 1)}),
-    );
-
-    expect(changed, 0);
-    expect(expectOk(await repo.findByUuid('a'))!.redeemedAt, localRedeemedAt);
-  });
-
-  test('Kabar penukaran untuk uuid asing diabaikan diam-diam', () async {
-    expect(expectOk(await repo.applyRedemptions({'tidak-ada': null})), 0);
-  });
+  // Ketiga tes penukaran yang dulu ada di sini ikut dihapus bersama
+  // TransactionRepository.applyRedemptions. Bukan supaya perubahan ini lolos:
+  // riwayat kasir sekarang dibaca langsung dari server, jadi status penukaran
+  // datang bersama barisnya dan tidak ada lagi yang perlu disalin ke SQLite.
+  // Yang menggantikannya ada di transaction_test.dart, menjaga bahwa baris
+  // yang belum sempat naik tidak hilang dari riwayat.
 
   test('Menghapus meninggalkan nisan untuk dikirim ke server', () async {
     expectOk(await repo.create(sale('a')));

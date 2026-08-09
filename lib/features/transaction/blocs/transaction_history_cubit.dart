@@ -50,9 +50,16 @@ class TransactionHistoryState extends Equatable {
   final AsyncState<List<Transaction>> transactions;
   final DateRangeFilter filter;
 
+  /// Server tidak terjawab, jadi yang tampil adalah salinan lokal perangkat
+  /// ini — hanya transaksi buatannya sendiri. Layar wajib menyatakannya:
+  /// riwayat sebagian yang terlihat seperti riwayat lengkap adalah laporan
+  /// pendapatan yang salah, dan angkanya dipakai menghitung uang.
+  final bool offline;
+
   const TransactionHistoryState({
     this.transactions = const AsyncLoading(),
     required this.filter,
+    this.offline = false,
   });
 
   List<Transaction> get items =>
@@ -65,44 +72,41 @@ class TransactionHistoryState extends Equatable {
   TransactionHistoryState copyWith({
     AsyncState<List<Transaction>>? transactions,
     DateRangeFilter? filter,
+    bool? offline,
   }) => TransactionHistoryState(
     transactions: transactions ?? this.transactions,
     filter: filter ?? this.filter,
+    offline: offline ?? this.offline,
   );
 
   @override
-  List<Object?> get props => [transactions, filter];
+  List<Object?> get props => [transactions, filter, offline];
 }
+
+/// Satu halaman riwayat, beserta kabar apakah server yang menjawabnya.
+typedef HistoryPage = ({List<Transaction> rows, bool offline});
 
 /// Dari mana satu halaman riwayat diambil. `null` berarti semua tanggal.
 ///
 /// Ada supaya kasir dan verifier bisa memakai layar yang sama persis dengan
-/// sumber yang berbeda: kasir dari SQLite miliknya, verifier dari server.
-/// Sengaja sebuah fungsi dan bukan antarmuka dengan dua implementasi — yang
+/// sumber yang berbeda — keduanya sekarang dari server, tapi kasir menambahkan
+/// baris yang belum sempat naik dan punya jalan mundur ke salinan lokal.
+/// Sengaja sebuah fungsi dan bukan antarmuka dengan dua implementasi: yang
 /// berbeda cuma satu panggilan, bukan sebuah peran.
 typedef HistoryLoader =
-    Future<Result<List<Transaction>>> Function(DateTimeRange? range);
+    Future<Result<HistoryPage>> Function(DateTimeRange? range);
 
 class TransactionHistoryCubit extends Cubit<TransactionHistoryState> {
-  TransactionHistoryCubit({HistoryLoader? loader})
-    : _load = loader ?? _fromLocalDatabase,
+  TransactionHistoryCubit({required HistoryLoader loader})
+    : _load = loader,
       super(TransactionHistoryState(filter: DateRangeFilter.today)) {
-    // A ticket redeemed on the verifier changes a row we may be displaying.
-    // That news now arrives through dataRefresh, fired by SyncService when it
-    // pulls a redemption down — there is no local server to push it any more.
+    // Dipicu saat seluruh database diganti (restore) atau saat perangkat ini
+    // mengambil peran kasir. Bukan timer: tidak ada yang memuat ulang layar ini
+    // sendiri, dan itu disengaja — lihat tombol segarkan di AppBar.
     dataRefresh.addListener(load);
   }
 
   final HistoryLoader _load;
-
-  static Future<Result<List<Transaction>>> _fromLocalDatabase(
-    DateTimeRange? range,
-  ) {
-    const repository = TransactionRepository();
-    return range == null
-        ? repository.all()
-        : repository.byDateRange(range.start, range.end);
-  }
 
   /// Bumped per load. A filter change or a server event can start a second
   /// query while the first is still running; without this the slower one wins.
@@ -119,7 +123,17 @@ class TransactionHistoryCubit extends Cubit<TransactionHistoryState> {
     final result = await _load(state.filter.range);
 
     if (isClosed || generation != _generation) return;
-    emit(state.copyWith(transactions: result.toAsyncState()));
+    emit(
+      state.copyWith(
+        transactions: switch (result) {
+          Ok(:final value) => AsyncReady(value.rows),
+          Err(:final message) => AsyncFailed(message),
+        },
+        // Gagal total bukan "offline" — layarnya sudah menampilkan pesan
+        // kesalahan, dan bilah kedua yang mengulanginya cuma bising.
+        offline: result.valueOrNull?.offline ?? false,
+      ),
+    );
   }
 
   Future<void> applyFilter(DateRangeFilter filter) async {

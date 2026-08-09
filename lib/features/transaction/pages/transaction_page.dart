@@ -38,7 +38,9 @@ class TransactionPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => TransactionHistoryCubit()..load(),
+      create: (_) =>
+          TransactionHistoryCubit(loader: TransactionHistoryView.forCashier)
+            ..load(),
       child: const _TransactionView(),
     );
   }
@@ -48,10 +50,16 @@ class TransactionPage extends StatelessWidget {
 /// memakainya di samping antrean; kasir memakai [TransactionPage] yang
 /// membungkusnya dengan AppBar dan tombol export.
 class TransactionHistoryView extends StatelessWidget {
-  const TransactionHistoryView({super.key, this.loader, this.canDelete = true});
+  const TransactionHistoryView({
+    super.key,
+    required this.loader,
+    this.canDelete = true,
+  });
 
-  /// Dari mana barisnya diambil. Bawaannya SQLite perangkat ini.
-  final HistoryLoader? loader;
+  /// Dari mana barisnya diambil. Wajib diisi: dulu bawaannya SQLite lokal, dan
+  /// bawaan diam-diam itulah yang membuat riwayat kasir berbeda antar perangkat
+  /// tanpa ada yang menyadarinya.
+  final HistoryLoader loader;
 
   /// Verifier membaca saja — lihat [TransactionDetailDialog.canDelete].
   final bool canDelete;
@@ -61,13 +69,102 @@ class TransactionHistoryView extends StatelessWidget {
   /// Batas atas dikirim sebagai hari BERIKUTNYA karena server
   /// membandingkannya secara eksklusif; menambal "23:59:59" akan memotong
   /// transaksi yang detiknya berpecahan.
-  static Future<Result<List<Transaction>>> fromServer(DateTimeRange? range) =>
+  ///
+  /// Dipakai verifier, yang tidak menyimpan salinan lokal apa pun — kalau
+  /// server tidak terjawab, tidak ada yang bisa ditampilkan, dan mengarang
+  /// jalan mundur di sini justru menyembunyikan itu.
+  static Future<Result<HistoryPage>> fromServer(DateTimeRange? range) async =>
+      switch (await _serverRows(range)) {
+        Ok(:final value) => Ok((rows: value, offline: false)),
+        Err(:final message, :final error, :final stackTrace) => Err(
+          message,
+          error,
+          stackTrace,
+        ),
+      };
+
+  /// Riwayat kasir: server sebagai sumber, salinan lokal sebagai jaring.
+  ///
+  /// Server yang menjawab, bukan SQLite, supaya riwayat tidak lagi berbeda
+  /// antar perangkat setelah peran kasir berpindah — server memegang semuanya,
+  /// tiap perangkat cuma memegang buatannya sendiri.
+  ///
+  /// Dua hal yang membuatnya tidak sesederhana [fromServer]:
+  ///
+  /// - Baris yang belum sempat naik belum ada di jawaban server. Tanpa
+  ///   digabungkan, penjualan yang baru saja dibuat saat internet putus hilang
+  ///   dari riwayat kasirnya sendiri — uang yang sudah diterima tapi tidak
+  ///   terlihat, yang lebih buruk daripada masalah yang layar ini perbaiki.
+  /// - Server tidak terjawab bukan alasan mengosongkan layar. Jatuh ke salinan
+  ///   lokal, tapi TANDAI: itu riwayat sebagian.
+  static Future<Result<HistoryPage>> forCashier(DateTimeRange? range) async {
+    const repository = TransactionRepository();
+
+    switch (await _serverRows(range)) {
+      case Ok(value: final remote):
+        final pending = (await repository.unsynced()).valueOrNull ?? const [];
+        return Ok((rows: mergePending(remote, pending, range), offline: false));
+
+      case Err(:final message, :final error, :final stackTrace):
+        AppLog.error('Riwayat dari server gagal, pakai salinan lokal: $error');
+        return switch (await _localRows(range)) {
+          Ok(value: final rows) => Ok((rows: rows, offline: true)),
+          // Lokal ikut gagal: tidak ada apa pun untuk ditampilkan, jadi
+          // kegagalan server yang dilaporkan — itu sebab yang sebenarnya.
+          Err() => Err(message, error, stackTrace),
+        };
+    }
+  }
+
+  /// Menyisipkan baris yang belum sampai server ke dalam jawaban server.
+  ///
+  /// Uuid yang sudah ada di [remote] menang: barisnya sudah mendarat, dan
+  /// salinan lokalnya bisa lebih tua — status penukaran misalnya, yang
+  /// ditentukan server dan tidak pernah ikut naik.
+  @visibleForTesting
+  static List<Transaction> mergePending(
+    List<Transaction> remote,
+    List<Transaction> pending,
+    DateTimeRange? range,
+  ) {
+    final seen = remote.map((t) => t.uuid).toSet();
+    return [
+      ...remote,
+      ...pending.where(
+        (t) => !seen.contains(t.uuid) && _inRange(t.createdAt, range),
+      ),
+    ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  static Future<Result<List<Transaction>>> _serverRows(DateTimeRange? range) =>
       const CloudApi().history(
         from: range == null ? null : _isoDate(range.start),
         to: range == null
             ? null
             : _isoDate(range.end.add(const Duration(days: 1))),
       );
+
+  static Future<Result<List<Transaction>>> _localRows(DateTimeRange? range) {
+    const repository = TransactionRepository();
+    return range == null
+        ? repository.all()
+        : repository.byDateRange(range.start, range.end);
+  }
+
+  /// Rentangnya inklusif di kedua ujung, dibandingkan per hari — sama seperti
+  /// yang dikirim ke server, supaya baris tertunda tidak muncul di filter yang
+  /// seharusnya tidak memuatnya.
+  static bool _inRange(DateTime at, DateTimeRange? range) {
+    if (range == null) return true;
+    final day = DateTime(at.year, at.month, at.day);
+    final start = DateTime(
+      range.start.year,
+      range.start.month,
+      range.start.day,
+    );
+    final end = DateTime(range.end.year, range.end.month, range.end.day);
+    return !day.isBefore(start) && !day.isAfter(end);
+  }
 
   static String _isoDate(DateTime value) => DateTime(
     value.year,
@@ -136,6 +233,42 @@ class _TransactionView extends StatelessWidget {
       body: const SafeArea(child: _HistoryBody()),
     );
   }
+}
+
+/// Menyatakan bahwa yang tampil bukan riwayat akun, melainkan salinan lokal.
+///
+/// Prinsipnya sama dengan CashierLeaseBanner dan _FreshnessBar: keadaan yang
+/// tidak bisa dijamin tidak boleh terlihat seperti yang bisa. Di layar ini
+/// taruhannya paling tinggi — angka "Total Pemasukan" di atasnya dipakai
+/// menghitung uang, dan riwayat sebagian menghasilkan total yang salah tanpa
+/// terlihat salah.
+class _OfflineHistoryBar extends StatelessWidget {
+  const _OfflineHistoryBar();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(
+      horizontal: Dimens.dp16,
+      vertical: Dimens.dp8,
+    ),
+    color: AppTokens.warning.withValues(alpha: 0.15),
+    child: Row(
+      children: [
+        const Icon(Icons.cloud_off_rounded, size: 16, color: AppTokens.warning),
+        const SizedBox(width: Dimens.dp8),
+        Expanded(
+          child: Text(
+            'Server tidak terjawab — menampilkan salinan perangkat ini saja, '
+            'tanpa transaksi dari perangkat lain.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppTokens.warning),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 /// Panel ringkasan + track filter + daftar. Dipakai kasir dan verifier.
@@ -235,6 +368,7 @@ class _HistoryBody extends StatelessWidget {
       builder: (context, state) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (state.offline) const _OfflineHistoryBar(),
           Padding(
             padding: const EdgeInsets.fromLTRB(
               Dimens.dp16,

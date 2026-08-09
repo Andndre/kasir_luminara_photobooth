@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../data/data_refresh.dart';
 import '../data/repositories/product_repository.dart';
 import '../data/repositories/transaction_repository.dart';
 import '../data/result.dart';
@@ -26,11 +25,12 @@ enum LoginDataPlan {
   syncNormally,
 }
 
-/// Keeps the local SQLite and luminarabali.com in step.
+/// Mendorong isi SQLite perangkat ini ke luminarabali.com.
 ///
-/// The split that makes this safe: **the cashier creates, the server redeems.**
-/// [push] therefore never uploads `status`/`redeemed_at`, and [pull] never
-/// overwrites a row this device created — the two can't disagree about a field.
+/// Satu arah, dan itulah yang membuatnya aman: **kasir yang membuat, server
+/// yang menukarkan.** [push] tidak pernah mengunggah `status`/`redeemed_at`,
+/// dan tidak ada yang turun ke sini sama sekali — riwayat dibaca langsung dari
+/// server, jadi kedua sisi tidak punya kolom yang bisa berselisih.
 class SyncService {
   static final SyncService _instance = SyncService._();
   factory SyncService() => _instance;
@@ -40,24 +40,24 @@ class SyncService {
   static const _transactions = TransactionRepository();
   static const _products = ProductRepository();
 
-  static const _keyCursor = 'sync_pull_cursor';
-
   /// Tanda tangan katalog yang terakhir diterima server, supaya daftar yang
   /// tidak berubah tidak ikut dikirim ulang tiap 15 detik.
   static const _keyCatalogue = 'sync_catalogue_signature';
 
-  /// Kursor versi lama, waktu yang ditarik hanya penukaran. Tidak dipakai lagi,
-  /// tapi tetap dibuang di [reset] supaya tidak tertinggal milik akun lain.
-  static const _keyLegacyCursor = 'sync_redemption_cursor';
+  /// Kursor-kursor tarikan versi lama. Tidak dipakai lagi sejak sync jadi satu
+  /// arah, tapi tetap dibuang di [reset]: perangkat yang diturunkan ke build
+  /// lama akan memakainya lagi, dan kursor milik akun sebelumnya membuatnya
+  /// melewatkan penukaran.
+  static const _legacyCursors = ['sync_pull_cursor', 'sync_redemption_cursor'];
 
   /// Matches the server's `max:500` cap with room to spare.
   static const _batchSize = 200;
 
   /// How often the background loop runs.
   ///
-  /// Bukan realtime dan tidak perlu: yang ditunggu hanyalah kabar tiket sudah
-  /// ditukar dari perangkat lain. 15 detik terasa cukup cepat tanpa membuat
-  /// perangkat mengetuk server ribuan kali sehari. Setel di sini kalau perlu.
+  /// Yang dikerjakannya cuma mendorong sisa yang belum naik dan membawa detak
+  /// sewa terhadap TTL 90 detik. Bukan untuk menunggu kabar apa pun — tidak ada
+  /// lagi yang ditunggu dari server di sini.
   static const interval = Duration(seconds: 15);
 
   Timer? _timer;
@@ -92,9 +92,9 @@ class SyncService {
         case Ok():
           break;
       }
-      if (await pull() case Err(:final error)) {
-        AppLog.error('Sync pull gagal: $error');
-      }
+      // Tidak ada tarikan. Sync ini satu arah sejak riwayat kasir dibaca
+      // langsung dari server — status penukaran ikut turun bersama barisnya,
+      // jadi tidak ada lagi yang perlu disalin ke SQLite lokal.
     } finally {
       _busy = false;
     }
@@ -263,43 +263,13 @@ class SyncService {
     }
   }
 
-  /// Brings back tickets the verifier redeemed, so this device's history and
-  /// queue stop showing them as unused.
-  ///
-  /// Hanya penukaran, karena hanya itu yang dimiliki server. Transaksi tidak
-  /// perlu turun: satu-satunya perangkat yang membuatnya sudah memilikinya,
-  /// dan itu dijamin oleh sewa peran kasir.
-  Future<Result<int>> pull() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final result = await _api.redemptions(since: prefs.getString(_keyCursor));
-    switch (result) {
-      case Err(:final message, :final error, :final stackTrace):
-        return Err(message, error, stackTrace);
-      case Ok(value: final page):
-        final applied = await _transactions.applyRedemptions(page.redeemedAt);
-        if (applied case Err(:final message, :final error, :final stackTrace)) {
-          return Err(message, error, stackTrace);
-        }
-
-        // Kursor disimpan hanya setelah baris benar-benar tertulis. Kalau
-        // urutannya dibalik, satu kegagalan tulis membuat penukaran itu
-        // terlewat selamanya.
-        final cursor = page.cursor;
-        if (cursor != null) await prefs.setString(_keyCursor, cursor);
-
-        final changed = applied.valueOrNull ?? 0;
-        if (changed > 0) dataRefresh.invalidate();
-        return Ok(changed);
-    }
-  }
-
   /// Cursor must be dropped along with the account — the next login may be a
   /// different one, whose rows all predate this cursor.
   Future<void> reset() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyCursor);
-    await prefs.remove(_keyLegacyCursor);
+    for (final key in _legacyCursors) {
+      await prefs.remove(key);
+    }
     // Ikut dibuang: tanpa ini, tanda tangan katalog akun lama membuat katalog
     // akun baru dianggap "sudah terkirim" dan tidak pernah sampai server.
     await prefs.remove(_keyCatalogue);
