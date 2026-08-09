@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/data_refresh.dart';
@@ -40,6 +41,10 @@ class SyncService {
   static const _products = ProductRepository();
 
   static const _keyCursor = 'sync_pull_cursor';
+
+  /// Tanda tangan katalog yang terakhir diterima server, supaya daftar yang
+  /// tidak berubah tidak ikut dikirim ulang tiap 15 detik.
+  static const _keyCatalogue = 'sync_catalogue_signature';
 
   /// Kursor versi lama, waktu yang ditarik hanya penukaran. Tidak dipakai lagi,
   /// tapi tetap dibuang di [reset] supaya tidak tertinggal milik akun lain.
@@ -132,6 +137,15 @@ class SyncService {
   Future<Result<int>> push() async {
     var uploaded = 0;
 
+    // Katalog ikut hanya kalau memang berubah sejak terakhir server menerimanya.
+    // Sebelumnya ia ikut di setiap putaran pertama — 5.760 salinan daftar yang
+    // sama per perangkat per hari, untuk daftar yang berubah beberapa kali
+    // setahun.
+    final prefs = await SharedPreferences.getInstance();
+    final catalogue = (await _products.all()).valueOrNull ?? const <Product>[];
+    final signature = catalogueSignature(catalogue);
+    final catalogueChanged = signature != prefs.getString(_keyCatalogue);
+
     // Berhenti setelah beberapa putaran walaupun masih ada sisa: perangkat yang
     // baru login bisa punya ribuan baris, dan checkout tidak boleh menunggu
     // seluruh riwayat terkirim. Sisanya diambil tick berikutnya.
@@ -149,9 +163,7 @@ class SyncService {
           // Produk dan penghapusan ikut hanya di putaran pertama — keduanya
           // daftar pendek yang tidak berubah antar batch. null di putaran
           // berikutnya berarti "jangan sentuh katalog", bukan "katalog kosong".
-          final products = round == 0
-              ? (await _products.all()).valueOrNull ?? const <Product>[]
-              : null;
+          final products = round == 0 && catalogueChanged ? catalogue : null;
           final deleted = round == 0
               ? (await _transactions.pendingDeletes()).valueOrNull ??
                     const <String>[]
@@ -168,7 +180,17 @@ class SyncService {
             case Err(:final message, :final error, :final stackTrace):
               return Err(message, error, stackTrace);
             case Ok(value: final leaseAnswer):
-              if (round == 0) CashierLeaseService().onHeartbeat(leaseAnswer);
+              if (round == 0) {
+                CashierLeaseService().onHeartbeat(leaseAnswer);
+
+                // Hanya dicatat kalau perangkat ini memegang sewa. Server
+                // mengabaikan bagian PENGHAPUSAN katalog dari perangkat yang
+                // sudah kehilangan peran, jadi mencatatnya di sini berarti
+                // paket yang dihapus tidak akan pernah dicoba kirim lagi.
+                if (catalogueChanged && leaseAnswer == 'held') {
+                  await prefs.setString(_keyCatalogue, signature);
+                }
+              }
               final marked = await _transactions.markSynced(
                 pending.map((t) => t.uuid).toList(),
                 DateTime.now(),
@@ -194,6 +216,51 @@ class SyncService {
       }
     }
     return Ok(uploaded);
+  }
+
+  /// Fingerprints the catalogue, to tell "berubah" from "sama saja".
+  ///
+  /// Daftarnya belasan baris, jadi disimpan mentah — bukan hash. Tidak ada
+  /// tabrakan yang mungkin, dan kalau suatu saat ada yang perlu tahu kenapa
+  /// katalog terkirim ulang, isinya bisa dibaca langsung dari preferences.
+  @visibleForTesting
+  static String catalogueSignature(List<Product> products) =>
+      products.map((p) => '${p.id} ${p.name} ${p.price}').join('\n');
+
+  /// Pushes the local catalogue, then takes the server's answer as the truth.
+  ///
+  /// Dorong dulu baru tarik, dan urutannya bukan selera: kalau ditarik lebih
+  /// dulu, paket yang baru dibuat dan belum sempat terkirim akan tersapu
+  /// jawaban server yang belum mengenalnya.
+  ///
+  /// Dipanggil dari tarik-untuk-menyegarkan di halaman Paket, bukan dari loop
+  /// 15 detik — katalog berubah beberapa kali setahun, dan satu-satunya
+  /// perangkat yang mengubahnya sudah memilikinya.
+  Future<Result<void>> refreshProducts() async {
+    if (await push() case Err(
+      :final message,
+      :final error,
+      :final stackTrace,
+    )) {
+      return Err(message, error, stackTrace);
+    }
+
+    final remote = await _api.products();
+    switch (remote) {
+      case Err(:final message, :final error, :final stackTrace):
+        return Err(message, error, stackTrace);
+      case Ok(value: final products):
+        final saved = await _products.replaceAll(products);
+        if (saved case Err(:final message, :final error, :final stackTrace)) {
+          return Err(message, error, stackTrace);
+        }
+
+        // Lokal dan server sekarang identik, jadi dicatat supaya push
+        // berikutnya tidak mengirim balik daftar yang baru saja diterima.
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_keyCatalogue, catalogueSignature(products));
+        return const Ok(null);
+    }
   }
 
   /// Brings back tickets the verifier redeemed, so this device's history and
@@ -233,6 +300,9 @@ class SyncService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyCursor);
     await prefs.remove(_keyLegacyCursor);
+    // Ikut dibuang: tanpa ini, tanda tangan katalog akun lama membuat katalog
+    // akun baru dianggap "sudah terkirim" dan tidak pernah sampai server.
+    await prefs.remove(_keyCatalogue);
     AppLog.info('Sync cursor direset');
   }
 }

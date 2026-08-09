@@ -44,6 +44,23 @@ class ProductRepository {
         if (updated == 0) throw StateError('Produk tidak ditemukan');
       });
 
+  /// Swaps the whole catalogue for [products], in one transaction.
+  ///
+  /// Menghapus dulu baru mengisi, karena katalog server adalah pengganti utuh —
+  /// paket yang tidak ada di sana memang sudah dibuang. Riwayat tidak ikut
+  /// terbawa: `transaction_items` menyimpan nama dan harga sebagai salinan,
+  /// bukan sebagai acuan ke baris `products`.
+  Future<Result<void>> replaceAll(List<Product> products) =>
+      runCatching('Gagal menyimpan katalog', () async {
+        final db = await getDatabase();
+        await db.transaction((txn) async {
+          await txn.delete('products');
+          for (final product in products) {
+            await txn.insert('products', product.toMap());
+          }
+        });
+      });
+
   Future<Result<void>> delete(int id) =>
       runCatching('Gagal menghapus produk', () async {
         final db = await getDatabase();

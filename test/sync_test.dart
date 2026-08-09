@@ -1,8 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luminara_photobooth/core/data/db.dart';
+import 'package:luminara_photobooth/core/data/repositories/product_repository.dart';
 import 'package:luminara_photobooth/core/data/repositories/transaction_repository.dart';
 import 'package:luminara_photobooth/core/data/result.dart';
 import 'package:luminara_photobooth/core/domain/domain.dart';
+import 'package:luminara_photobooth/core/services/sync_service.dart';
 // Hides sqflite's own `Transaction` so the domain one wins here.
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' hide Transaction;
 
@@ -139,4 +141,81 @@ void main() {
       expect(expectOk(await repo.create(sale('b'))), 2);
     });
   });
+
+  // Katalog tidak lagi ikut di setiap sync — hanya kalau tanda tangannya
+  // berbeda. Kalau tanda tangan gagal membedakan dua katalog, perubahan harga
+  // atau paket yang dihapus tidak akan pernah sampai server.
+  group('Tanda tangan katalog', () {
+    String sign(List<Product> products) =>
+        SyncService.catalogueSignature(products);
+
+    test('katalog yang sama menghasilkan tanda tangan yang sama', () {
+      expect(sign([a1, b2]), sign([a1, b2]));
+    });
+
+    test('harga berubah terbaca berbeda', () {
+      expect(sign([a1, b2]), isNot(sign([a1, b2.copyWith(price: 12000)])));
+    });
+
+    test('nama berubah terbaca berbeda', () {
+      expect(sign([a1, b2]), isNot(sign([a1, b2.copyWith(name: 'Cetak')])));
+    });
+
+    test('paket dihapus terbaca berbeda', () {
+      expect(sign([a1, b2]), isNot(sign([a1])));
+    });
+
+    // Nama yang mengandung pemisah tidak boleh bisa meniru baris lain, kalau
+    // tidak dua katalog berbeda bisa punya tanda tangan sama dan yang kedua
+    // tidak pernah terkirim.
+    test('nama berisi spasi tidak menabrak baris lain', () {
+      expect(
+        sign([const Product(id: 1, name: 'A 1 B', price: 2)]),
+        isNot(sign([const Product(id: 1, name: 'A', price: 1)])),
+      );
+    });
+
+    test('katalog kosong bukan string yang sama dengan katalog berisi', () {
+      expect(sign(const []), isNot(sign([a1])));
+    });
+  });
+
+  group('replaceAll katalog', () {
+    const products = ProductRepository();
+
+    test('mengganti seluruh isi, bukan menggabung', () async {
+      expectOk(await products.create(a1));
+      expectOk(await products.create(b2));
+
+      expectOk(
+        await products.replaceAll([
+          const Product(id: 9, name: 'Baru', price: 1),
+        ]),
+      );
+
+      final after = expectOk(await products.all());
+      expect(after, [const Product(id: 9, name: 'Baru', price: 1)]);
+    });
+
+    test('daftar kosong mengosongkan katalog', () async {
+      expectOk(await products.create(a1));
+      expectOk(await products.replaceAll(const []));
+
+      expect(expectOk(await products.all()), isEmpty);
+    });
+
+    // Riwayat menyimpan nama dan harga sebagai salinan, jadi mengganti katalog
+    // tidak boleh menyentuhnya. Kalau ini gugur, laporan kehilangan isinya
+    // setiap kali kasir menyegarkan daftar paket.
+    test('tidak menyentuh riwayat transaksi', () async {
+      expectOk(await repo.create(sale('x')));
+      expectOk(await products.replaceAll(const []));
+
+      final history = expectOk(await repo.all());
+      expect(history.single.items.single.productName, 'Self Photo 15 Menit');
+    });
+  });
 }
+
+const a1 = Product(id: 1, name: 'Self Photo', price: 50000);
+const b2 = Product(id: 2, name: 'Cetak Ulang', price: 10000);

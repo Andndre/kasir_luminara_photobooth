@@ -87,6 +87,16 @@ class CloudApi {
     },
   );
 
+  /// The account's catalogue.
+  ///
+  /// Sengaja bukan bagian dari sync berkala: katalog naik saat berubah, dan
+  /// turun hanya saat user menyegarkan daftar paket.
+  Future<Result<List<Product>>> products() => _send(
+    'GET',
+    '/pos/products',
+    parse: (body) => _parseProducts((body as Map<String, dynamic>)['products']),
+  );
+
   /// Tickets redeemed since [since]. Pass the previous call's cursor.
   ///
   /// Penukaran adalah satu-satunya hal yang dimiliki server, jadi ini
@@ -159,7 +169,14 @@ class CloudApi {
   /// caller must tell "another device is the cashier" apart from "we couldn't
   /// ask", and merging the two would make a dropped connection look like a
   /// takeover.
-  Future<Result<({({String date, int lastNumber}) queue})>> claimCashier({
+  /// [products] null berarti server tidak menjawabnya sama sekali — versi lama,
+  /// yang belum tahu katalog ikut di sini. Bedanya dengan daftar kosong sama
+  /// pentingnya dengan di [push]: yang satu berarti "jangan sentuh", yang lain
+  /// berarti "katalognya memang kosong, buang punyamu".
+  Future<
+    Result<({({String date, int lastNumber}) queue, List<Product>? products})>
+  >
+  claimCashier({
     required String deviceId,
     required String deviceName,
     required String queueDate,
@@ -188,9 +205,24 @@ class CloudApi {
           date: queue['date'] as String? ?? '',
           lastNumber: queue['last_number'] as int? ?? 0,
         ),
+        products: map.containsKey('products')
+            ? _parseProducts(map['products'])
+            : null,
       );
     },
   );
+
+  static List<Product> _parseProducts(Object? rows) =>
+      ((rows as List?) ?? const [])
+          .whereType<Map>()
+          .map(
+            (p) => Product(
+              id: (p['id'] as num?)?.toInt(),
+              name: p['name'] as String? ?? '-',
+              price: (p['price'] as num?)?.toInt() ?? 0,
+            ),
+          )
+          .toList();
 
   Future<Result<void>> releaseCashier({required String deviceId}) => _send(
     'POST',
