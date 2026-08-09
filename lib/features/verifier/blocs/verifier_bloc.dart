@@ -12,13 +12,12 @@ abstract class VerifierEvent extends Equatable {
   List<Object> get props => [];
 }
 
+/// Menyambung sekaligus, karena tidak ada lagi yang perlu disambungkan.
+///
+/// Dulu ada ConnectToServer dan DisconnectFromServer, dipicu tombol di halaman
+/// Koneksi. Halaman itu sudah dihapus: akun yang jadi pasangannya dan itu sudah
+/// didapat saat login, jadi yang tersisa cuma membalik sebuah boolean lokal.
 class InitializeVerifier extends VerifierEvent {}
-
-/// Pairs through the account on luminarabali.com. The account is the pairing;
-/// there is no address to type in.
-class ConnectToServer extends VerifierEvent {}
-
-class DisconnectFromServer extends VerifierEvent {}
 
 class RefreshQueue extends VerifierEvent {}
 
@@ -35,23 +34,12 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
 
   VerifierBloc() : super(const VerifierState()) {
     on<InitializeVerifier>(_onInitialize);
-    on<ConnectToServer>(_onConnect);
-    on<DisconnectFromServer>(_onDisconnect);
     on<RefreshQueue>(_onRefreshQueue);
     on<VerifyTransaction>(_onVerifyTransaction);
   }
 
   Future<void> _onInitialize(
     InitializeVerifier event,
-    Emitter<VerifierState> emit,
-  ) async {
-    // Tidak ada lagi alamat tersimpan yang perlu dibaca: akun yang jadi
-    // pasangannya, jadi begitu sudah masuk, sambungkan saja.
-    if (AuthService().isLoggedIn) add(ConnectToServer());
-  }
-
-  Future<void> _onConnect(
-    ConnectToServer event,
     Emitter<VerifierState> emit,
   ) async {
     if (!AuthService().isLoggedIn) {
@@ -64,9 +52,7 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
       return;
     }
 
-    emit(state.copyWith(status: VerifierStatus.connecting));
     service.connect();
-
     emit(
       state.copyWith(
         status: VerifierStatus.connected,
@@ -74,14 +60,6 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
       ),
     );
     add(RefreshQueue());
-  }
-
-  Future<void> _onDisconnect(
-    DisconnectFromServer event,
-    Emitter<VerifierState> emit,
-  ) async {
-    service.disconnect();
-    emit(const VerifierState(status: VerifierStatus.disconnected));
   }
 
   Future<void> _onRefreshQueue(
