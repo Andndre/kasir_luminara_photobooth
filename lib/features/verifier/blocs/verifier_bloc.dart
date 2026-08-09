@@ -32,6 +32,15 @@ class VerifyTransaction extends VerifierEvent {
 class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
   final VerifierService service = VerifierService();
 
+  /// Penanda permintaan antrean terakhir.
+  ///
+  /// Bloc menjalankan event secara bersamaan, dan sekarang ada empat pemicu
+  /// segar (tombol, tarik-ke-bawah, kembali ke depan, sesudah tebus) yang bisa
+  /// tumpang tindih. Tanpa penanda ini jawaban yang lebih lambat menimpa yang
+  /// lebih baru — daftar lama dipasang dengan cap waktu baru, yaitu basi yang
+  /// menyamar sebagai segar.
+  int _refreshSeq = 0;
+
   VerifierBloc() : super(const VerifierState()) {
     on<InitializeVerifier>(_onInitialize);
     on<RefreshQueue>(_onRefreshQueue);
@@ -73,8 +82,11 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
     // Baru bisa dijangkau sejak tombol Segarkan ada di bilah judul.
     if (!service.isConnected) return;
 
+    final seq = ++_refreshSeq;
+
     try {
       final queue = await service.fetchQueue();
+      if (seq != _refreshSeq) return;
       emit(
         state.copyWith(
           queue: queue,
@@ -84,6 +96,7 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
         ),
       );
     } catch (e) {
+      if (seq != _refreshSeq) return;
       AppLog.error('Gagal memuat antrean: $e');
       // Pesannya dipakai apa adanya, tidak diberi awalan lagi. Versi lama
       // menumpuk tiga: "Refresh Failed: Server tidak dapat dihubungi: Server
