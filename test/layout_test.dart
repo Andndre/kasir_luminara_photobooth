@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luminara_photobooth/core/preferences/dimens.dart';
 import 'package:luminara_photobooth/core/preferences/theme/app_theme.dart';
+import 'package:luminara_photobooth/core/components/app_logo_mark.dart';
 import 'package:luminara_photobooth/core/components/surface/status_badge.dart';
 import 'package:luminara_photobooth/features/home/pages/main_page.dart';
 
@@ -100,6 +101,31 @@ void main() {
 
     test('tidak pernah negatif', () {
       expect(Dimens.inner(8, 40), greaterThanOrEqualTo(4));
+    });
+  });
+
+  group('Logo tetap bulat', () {
+    // Induk dengan batasan lebar yang ketat pernah membuatnya jadi elips
+    // selebar layar: `width`/`height` pada Container cuma usulan.
+    testWidgets('tidak melar di Column stretch', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(Brightness.light),
+          home: const Scaffold(
+            body: SizedBox(
+              width: 400,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [AppLogoMark(size: 72)],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final oval = tester.getSize(find.byType(ClipOval));
+      expect(oval.width, 72);
+      expect(oval.height, 72);
     });
   });
 
