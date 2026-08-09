@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/result.dart';
 import '../helpers/app_log.dart';
+import '../helpers/server_error_message.dart';
 
 /// Root of every call to luminarabali.com — Midtrans and POS sync alike.
 /// Lives here because auth is the lowest layer that needs it; everything else
@@ -192,16 +193,10 @@ class AuthService {
     final message = _validationMessage(body);
     if (message != null) return message;
 
-    return switch (statusCode) {
-      429 => 'Terlalu banyak percobaan masuk. Tunggu semenit lalu coba lagi.',
-      // Rute /pos/* tidak pernah menjawab 403; kalau muncul, penolaknya ada di
-      // depan Laravel (Cloudflare/firewall hosting) dan biasanya memblokir
-      // seluruh jaringan venue, bukan akun ini.
-      403 =>
-        'Ditolak firewall server (403), bukan salah email/password. '
-            'Coba lewat jaringan lain, misalnya hotspot HP.',
-      _ => 'Gagal masuk ($statusCode)',
-    };
+    // 401 di sini berarti kredensialnya salah, bukan sesi habis — ini SATU-
+    // satunya panggilan yang memang belum punya sesi.
+    if (statusCode == 401) return 'Email atau password salah';
+    return serverErrorMessage(statusCode);
   }
 
   /// Pulls the first message out of Laravel's `{message, errors: {field: []}}`.

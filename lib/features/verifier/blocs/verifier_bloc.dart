@@ -106,12 +106,12 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
         ),
       );
     } catch (e) {
-      AppLog.error('Refresh Queue Error: $e');
+      AppLog.error('Gagal memuat antrean: $e');
+      // Pesannya dipakai apa adanya, tidak diberi awalan lagi. Versi lama
+      // menumpuk tiga: "Refresh Failed: Server tidak dapat dihubungi: Server
+      // menjawab 403" — panjang, dua bahasa, dan menyesatkan di dua tempat.
       emit(
-        state.copyWith(
-          status: VerifierStatus.error,
-          errorMessage: 'Refresh Failed: $e',
-        ),
+        state.copyWith(status: VerifierStatus.error, errorMessage: '$e'),
       );
     }
   }
@@ -143,12 +143,12 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
           );
       }
     } catch (e) {
-      AppLog.error('Verify Transaction Error: $e');
+      AppLog.error('Gagal memverifikasi tiket: $e');
       emit(
         state.copyWith(
           verifyingUuid: null,
           verifySuccess: false,
-          errorMessage: 'Verification Failed: $e',
+          errorMessage: '$e',
         ),
       );
     }
