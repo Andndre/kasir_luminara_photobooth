@@ -204,8 +204,13 @@ dead — the cashier shows no queue; that is the verifier reading `/pos/queue`).
 because APKs are installed by hand and a device rolled back to an older build
 would otherwise resume from another account's cursor.
 
-`/api/pos/redemptions` stays on the server for now: 1.5.2 devices are still in
-the field and call it every 15s. Remove it once none are left.
+`/api/pos/redemptions` stays on the server. The gate is **not** a version number
+— it is "every device in the field runs a build that contains this change".
+Every release up to and including 1.5.6 calls that endpoint every 15 seconds, so
+deleting it because the old 1.5.2 handsets are finally gone would break the
+entire fleet at once. Remove it only after a release carrying this change has
+reached every device, and check by watching the route go quiet rather than by
+reasoning about which builds are out there.
 
 ### Deletion
 
