@@ -132,8 +132,12 @@ Future<void> _onCreate(Database db, int version) async {
   await db.execute(_createQueueCounterTable);
   await db.execute(_createPendingDeletesTable);
 
-  await db.insert('products', {'name': 'Self Photo 15 Menit', 'price': 50000});
-  await db.insert('products', {'name': 'Wide Angle Photo', 'price': 75000});
+  // Tidak ada paket contoh di sini, dan itu disengaja. Katalog akun diganti
+  // utuh oleh pemegang sewa, jadi dua baris karangan di perangkat yang baru
+  // dipasang bukan sekadar salah — ia ikut naik dan mengganti katalog
+  // sungguhan begitu perangkat itu jadi kasir. Itu yang terjadi pada 9
+  // Agustus 2026. Perangkat baru sekarang mulai kosong dan mengambil
+  // katalognya dari server saat mengklaim peran kasir.
 
   debugPrint('Database created at schema v$version');
 }

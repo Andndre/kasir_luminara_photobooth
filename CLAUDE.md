@@ -41,6 +41,7 @@ Shipped installs hold real data under these exact names. Renaming any of them si
 
 **SharedPreferences keys**: `is_midtrans_enabled`, `theme_mode`, `printer_paper_mm80_<mac>`, `printer_last_mac`, `profile`, `auth_token`, `auth_email`, `auth_last_verified`, `device_id`, `device_name`,
 `sync_pull_cursor`,
+`sync_catalogue_signature`,
 `sync_redemption_cursor` (unused since the pull widened past redemptions, but
 still cleared on logout so it can't leak into the next account).
 
@@ -203,10 +204,72 @@ empty". Without that distinction, deleting the last package never reaches the
 server, and a replacement device restoring from there gets back every package
 ever deleted.
 
-The delete half only runs for a device that **holds the lease**. One that has
-lost it may still push transactions (that is money already taken) but its
-catalogue may be stale, and letting it delete would let one stray device empty
-the account.
+**Only the lease holder may touch the catalogue at all**, and that is decided by
+the server, in `applySync`, from the same `$lease` it computed for the heartbeat.
+A device that has lost the lease may still push transactions — that is money
+already taken — but its `products` key is dropped entirely.
+
+It used to be softer: everyone could upsert, and only the *delete* half was
+gated. That was enough for a spare phone left on in a drawer to resurrect a
+package the real cashier had just deleted, once every 15 seconds, forever. The
+client cannot make this call itself — it learns the lease verdict *from the reply
+to this very request*, so a check there is always one round late.
+
+Two consequences follow, and both are load-bearing:
+
+- **Claiming the lease brings the catalogue with it.** `claimCashier` answers
+  with `products`, and `CashierLeaseService.claim` applies them via
+  `ProductRepository.replaceAll` **before** the state goes active — the same
+  discipline, and the same reason, as `raiseQueueCounter` on the line above it.
+  Without it a freshly installed phone takes over with an empty `products` table
+  and wipes the account's catalogue on its first sync. `products` is nullable
+  here for the same null-vs-`[]` reason as in `push`: a server too old to send
+  the key must not read as "the catalogue is empty", or every app start against
+  it clears the local one.
+- **Logging in claims the lease too** (`login_page`), not just the splash screen.
+  Otherwise a device that just logged in holds no lease until the next restart,
+  and every package it creates in that first session is silently refused.
+
+The Paket screen refuses to edit without a lease, through the same
+`confirmCashierTakeover` the cashier screen uses. That is a courtesy, not the
+guard — it exists so the refusal is visible up front instead of arriving as data
+that quietly never syncs.
+
+Known cost, accepted: a package edited on a device **while it did not hold the
+lease** is discarded when that device next claims. The UI makes that hard to
+reach — the only route left is editing while active, then losing the lease before
+the edit is pushed.
+
+**The catalogue does not ride every sync.** It used to go up on every first
+round — 5,760 copies of the same dozen rows per device per day, for a list that
+changes a few times a year. `push()` now compares `SyncService.catalogueSignature`
+against `sync_catalogue_signature` in SharedPreferences and sends `products` only
+when they differ. The signature is stored raw rather than hashed: the list is
+short, nothing can collide, and it can be read back when someone wonders why a
+push happened.
+
+The signature is recorded **only when the server answers `cashier_lease: held`** —
+that is, only when the server actually took the catalogue. Record it on a `lost`
+reply and the push that was thrown away would count as delivered, and the
+catalogue would never be retried once the lease came back.
+
+`sync_catalogue_signature` is cleared in `SyncService.reset()` alongside the
+cursors — otherwise the old account's signature makes the new account's
+catalogue look already-sent and it never reaches the server.
+
+Coming **down** is a manual act, not a background one. `GET /pos/products`
+returns the catalogue alone (restore would drag the entire transaction history
+along for a dozen rows), and `SyncService.refreshProducts` pushes first and
+*then* replaces the local table via `ProductRepository.replaceAll`. That order is
+load-bearing: pull first and a package created while offline is wiped by a server
+that has never heard of it. Replacing the table cannot damage history —
+`transaction_items` stores name and price as copies, not as references to
+`products` rows.
+
+It is reachable from the Paket screen two ways: pull-to-refresh, and an AppBar
+button. The button is not redundant — pull-to-refresh only exists when the list
+has rows, and a replacement device starts empty, which is exactly when pulling
+the catalogue matters most.
 
 ### One cashier at a time
 
@@ -298,7 +361,7 @@ The database is testable without `path_provider`: set `debugDatabasePath = inMem
 
 Pure logic should be extracted so it can be tested without pumping a widget — `CashDenominations`, `Cart`, `BackupService.buildBackupJson` / `applyBackupJson` all exist as separate units for this reason. When adding non-trivial logic, put it somewhere a test can reach it.
 
-Tests that pin behaviour someone might "fix" incorrectly (persisted enum strings, `PaymentMethod` keeping unknown values, backup rejecting corrupt files without deleting data) are load-bearing. Don't delete them to make a change pass.
+Tests that pin behaviour someone might "fix" incorrectly (persisted enum strings, `PaymentMethod` keeping unknown values, backup rejecting corrupt files without deleting data, `_onCreate` seeding **no** products) are load-bearing. Don't delete them to make a change pass.
 
 ## Conventions
 

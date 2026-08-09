@@ -1,9 +1,12 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:luminara_photobooth/core/constants/app_mode.dart';
 import 'package:luminara_photobooth/core/core.dart';
 import 'package:luminara_photobooth/core/services/auth_service.dart';
+import 'package:luminara_photobooth/core/services/cashier_lease_service.dart';
 import 'package:luminara_photobooth/core/services/sync_service.dart';
+import 'package:provider/provider.dart';
 import 'package:luminara_photobooth/features/home/home.dart';
 import 'package:luminara_photobooth/features/settings/services/backup_service.dart';
 
@@ -60,6 +63,14 @@ class _LoginPageState extends State<LoginPage> {
       case Ok():
         await _reconcileData();
         if (!mounted) return;
+        // Sewa diklaim di sini juga, bukan hanya di splash. Server menolak
+        // katalog dari perangkat tanpa sewa, dan sesudah login yang berhasil
+        // tidak ada yang mengklaimkannya sampai aplikasi dinyalakan ulang —
+        // jadi paket yang dibuat di sesi pertama tidak akan pernah terkirim.
+        if (context.read<AppMode>() == AppMode.server) {
+          await CashierLeaseService().claim();
+          if (!mounted) return;
+        }
         SyncService().start();
         Navigator.pushNamedAndRemoveUntil(
           context,

@@ -94,9 +94,12 @@ void main() {
 
     tearDown(resetDatabase);
 
-    test('Skema baru punya produk bawaan', () async {
-      final seeded = expectOk(await products.all());
-      expect(seeded, hasLength(2));
+    // Kebalikan dari yang dulu dijaga di sini, dan itu perbaikan bug, bukan
+    // selera: katalog akun diganti utuh oleh pemegang sewa, jadi paket contoh
+    // di perangkat yang baru dipasang ikut naik dan mengganti katalog
+    // sungguhan begitu perangkat itu jadi kasir. Jangan tanam apa pun di sini.
+    test('Perangkat baru mulai tanpa paket bawaan', () async {
+      expect(expectOk(await products.all()), isEmpty);
     });
 
     test('Should create and retrieve products', () async {

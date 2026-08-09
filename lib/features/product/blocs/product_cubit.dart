@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:luminara_photobooth/core/blocs/async_state.dart';
 import 'package:luminara_photobooth/core/core.dart';
+import 'package:luminara_photobooth/core/services/sync_service.dart';
 
 class ProductListState extends Equatable {
   final AsyncState<List<Product>> products;
@@ -47,6 +48,20 @@ class ProductCubit extends Cubit<ProductListState> {
     emit(state.copyWith(products: AsyncLoading(state.products.dataOrNull)));
     final result = await _repository.all();
     if (!isClosed) emit(state.copyWith(products: result.toAsyncState()));
+  }
+
+  /// Pull-to-refresh: selaraskan dengan server dulu, baru baca ulang lokal.
+  ///
+  /// Returns null on success, or a message to show the user. Gagal terhubung
+  /// bukan alasan menolak menampilkan katalog yang sudah ada di perangkat —
+  /// [load] tetap dijalankan.
+  Future<String?> refresh() async {
+    final synced = await SyncService().refreshProducts();
+    await load();
+    return switch (synced) {
+      Err(:final message) => message,
+      Ok() => null,
+    };
   }
 
   void search(String query) => emit(state.copyWith(query: query));

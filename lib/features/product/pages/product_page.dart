@@ -39,11 +39,29 @@ class _ProductViewState extends State<_ProductView> {
     super.dispose();
   }
 
+  bool _refreshing = false;
+
   void _reload() {
     if (mounted) context.read<ProductCubit>().load();
   }
 
+  Future<void> _refresh() async {
+    if (_refreshing) return;
+    setState(() => _refreshing = true);
+    final error = await context.read<ProductCubit>().refresh();
+    if (!mounted) return;
+    setState(() => _refreshing = false);
+    if (error != null) SnackBarHelper.showError(context, error);
+  }
+
+  /// Katalog akun ini diganti utuh oleh pemegang sewa, jadi mengeditnya di
+  /// perangkat yang bukan kasir aktif tidak akan pernah sampai server — dan
+  /// akan terbuang saat perangkat ini mengambil alih. Lebih jujur menolak di
+  /// depan daripada menerima lalu diam-diam membuangnya.
+  Future<bool> _requireLease() => confirmCashierTakeover(context);
+
   Future<void> _openForm({Product? existing}) async {
+    if (!await _requireLease() || !mounted) return;
     final cubit = context.read<ProductCubit>();
     final product = await ProductFormDialog.show(context, existing: existing);
     if (product == null) return;
@@ -55,6 +73,7 @@ class _ProductViewState extends State<_ProductView> {
   }
 
   Future<void> _confirmDelete(Product product) async {
+    if (!await _requireLease() || !mounted) return;
     final cubit = context.read<ProductCubit>();
     final confirmed = await showDialog<bool>(
       context: context,
@@ -99,6 +118,19 @@ class _ProductViewState extends State<_ProductView> {
       appBar: AppBar(
         title: const Text('Paket Photobooth'),
         actions: [
+          // Tarik-untuk-menyegarkan cuma ada kalau daftarnya berisi, dan
+          // perangkat pengganti justru mulai dari kosong — di sanalah menarik
+          // katalog dari server paling dibutuhkan.
+          IconButton(
+            onPressed: _refreshing ? null : _refresh,
+            tooltip: 'Selaraskan dengan server',
+            icon: _refreshing
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.sync_rounded, size: 20),
+          ),
           // Bukan FAB: slot FAB layar ini sudah dipakai tombol Kasir milik
           // MainPage, keduanya akan bertumpuk di pojok kanan bawah.
           Padding(
@@ -161,6 +193,7 @@ class _ProductViewState extends State<_ProductView> {
                   _ => _ProductList(
                     products: state.visible,
                     isDesktop: isDesktop,
+                    onRefresh: _refresh,
                     onEdit: (p) => _openForm(existing: p),
                     onDelete: _confirmDelete,
                   ),
@@ -178,12 +211,14 @@ class _ProductList extends StatelessWidget {
   const _ProductList({
     required this.products,
     required this.isDesktop,
+    required this.onRefresh,
     required this.onEdit,
     required this.onDelete,
   });
 
   final List<Product> products;
   final bool isDesktop;
+  final Future<void> Function() onRefresh;
   final void Function(Product) onEdit;
   final void Function(Product) onDelete;
 
@@ -206,7 +241,7 @@ class _ProductList extends StatelessWidget {
     }
 
     return RefreshIndicator(
-      onRefresh: () => context.read<ProductCubit>().load(),
+      onRefresh: onRefresh,
       child: isDesktop
           ? GridView.builder(
               padding: _padding,

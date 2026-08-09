@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../data/data_refresh.dart';
+import '../data/repositories/product_repository.dart';
 import '../data/repositories/transaction_repository.dart';
 import '../data/result.dart';
 import '../helpers/app_log.dart';
@@ -94,6 +96,29 @@ class CashierLeaseService extends ChangeNotifier {
           claim.queue.date,
           claim.queue.lastNumber,
         );
+
+        // Sebab yang sama, benda yang berbeda: mulai detik ini perangkat inilah
+        // yang katalognya jadi kebenaran bagi seluruh akun, jadi ia harus mulai
+        // dari katalog yang dipakai kasir sebelumnya. Tanpa ini, HP yang baru
+        // dipasang mengambil alih lalu menghapus semua paket di server pada
+        // sync 15 detik pertamanya, karena tabel lokalnya masih kosong.
+        //
+        // ponytail: paket yang diedit di perangkat ini SELAGI ia tidak
+        // memegang sewa akan terbuang di sini. Itu memang yang diinginkan —
+        // yang tidak memegang sewa bukan kasir — dan UI-nya sudah menolak edit
+        // lebih dulu, jadi satu-satunya cara sampai ke sini adalah edit saat
+        // aktif lalu kehilangan sewa sebelum sempat mengirimnya.
+        //
+        // null berarti server versi lama yang belum mengirim katalog di sini.
+        // Menganggapnya "katalog kosong" akan mengosongkan daftar paket setiap
+        // kali aplikasi dinyalakan sampai servernya ikut diperbarui.
+        final catalogue = claim.products;
+        if (catalogue != null) {
+          await const ProductRepository().replaceAll(catalogue);
+          // Layar Paket dan keranjang kasir sama-sama memegang daftar lama.
+          dataRefresh.invalidate();
+        }
+
         _emit(CashierLeaseState.active);
         AppLog.info('Peran kasir diambil perangkat ini');
 
