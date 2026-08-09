@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hanya satu folder yang dibuka, dan isinya cuma APK pembaruan.
+     `cache-path` = getCacheDir(), yang persis dikembalikan
+     path_provider.getTemporaryDirectory() di Android. -->
+<paths>
+    <cache-path name="updates" path="updates/" />
+</paths>
