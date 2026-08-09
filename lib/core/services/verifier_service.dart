@@ -97,8 +97,21 @@ class VerifierService {
     }
 
     // A rejection is a normal outcome and arrives with a 4xx status, so the
-    // body is parsed either way.
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    // body is parsed either way — status saja tidak cukup untuk memisahkan
+    // "tiket sudah ditebus" dari "ditolak firewall".
+    //
+    // Yang memisahkan keduanya: jawaban aplikasi selalu JSON. Blokir 403 dari
+    // Cloudflare datang sebagai halaman HTML, dan dulu itu keluar di layar
+    // petugas sebagai "Error: FormatException" — persis kebutaan yang memakan
+    // satu malam di jalur login.
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      throw ServerRejected(response.statusCode);
+    }
+    if (decoded is! Map) throw ServerRejected(response.statusCode);
+    final body = decoded.cast<String, dynamic>();
     if (body['valid'] != true) {
       return TicketRejected(body['message'] as String? ?? 'Verifikasi gagal');
     }

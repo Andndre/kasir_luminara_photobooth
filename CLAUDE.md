@@ -241,9 +241,10 @@ hand.
 - `SyncService.push()` is **awaited at checkout, before printing** — a customer
   walks to the booth in seconds and a ticket the server has never seen cannot be
   scanned there. Failure warns, it does not cancel the sale.
-- The cashier's 15s `POST /pos/sync` is the one remaining timer, and it stays:
-  it carries the lease heartbeat against a 90s TTL. The verifier's 5s queue
-  poll is gone — see **Verifier** above for why.
+- The cashier's 15s `POST /pos/sync` is the one remaining network timer, and it
+  stays: it carries the lease heartbeat against a 90s TTL. The verifier's 5s
+  queue poll is gone — see **Verifier** above for why. (`_FreshnessBar` still
+  ticks every 20s, but only to age a label; it touches nothing.)
 - `/api/pos/restore` answers in the **backup file format**, so device migration
   reuses `BackupService.applyBackupJson` instead of a second restore path.
 

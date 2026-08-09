@@ -183,6 +183,11 @@ class _QueueTabState extends State<_QueueTab> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Membuka tab ini adalah pemicu segar yang pertama, dan sampai sekarang
+    // satu-satunya yang belum dipasang: nav bawah membangun ulang halamannya
+    // tiap pindah tab, jadi daftar yang dilihat petugas bisa saja ditarik
+    // berjam-jam lalu saat aplikasi dinyalakan.
+    context.read<VerifierBloc>().add(RefreshQueue());
   }
 
   @override
@@ -224,10 +229,17 @@ class _QueueTabState extends State<_QueueTab> with WidgetsBindingObserver {
       listener: (context, state) {
         if (state.verifySuccess) {
           SnackBarHelper.showSuccess(context, 'Tiket berhasil diverifikasi');
-        } else if (state.errorMessage != null &&
-            state.verifyingUuid == null &&
-            state.status == VerifierStatus.connected) {
-          SnackBarHelper.showError(context, state.errorMessage!);
+        } else if (state.errorMessage != null && state.verifyingUuid == null) {
+          // Satu-satunya kasus yang dilewati: antrean kosong DAN gagal — di
+          // situ EmptyState sudah memajang pesan yang sama. Dulu syaratnya
+          // `status == connected`, yang berarti segar-ulang yang gagal di atas
+          // daftar berisi tidak berbunyi sama sekali: petugas menekan Segarkan
+          // dan tidak terjadi apa-apa.
+          final shownByEmptyState =
+              state.status == VerifierStatus.error && state.queue.isEmpty;
+          if (!shownByEmptyState) {
+            SnackBarHelper.showError(context, state.errorMessage!);
+          }
         }
       },
       child: BlocBuilder<VerifierBloc, VerifierState>(

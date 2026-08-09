@@ -188,10 +188,15 @@ class AuthService {
   /// bisa dibedakan dari password salah. Itu memakan satu malam di lapangan.
   @visibleForTesting
   static String loginErrorMessage(int statusCode, String body) {
-    // 422 dari Laravel membawa pesan yang memang ditulis untuk dibaca user
-    // ("Email atau password salah"), jadi diteruskan apa adanya.
-    final message = _validationMessage(body);
-    if (message != null) return message;
+    // Hanya 422. Itu satu-satunya status yang bodinya memang ditulis untuk
+    // dibaca kasir ("Email atau password salah"). 401 dan 429 juga membawa
+    // `message`, tapi isinya bawaan Laravel dalam bahasa Inggris — "Too Many
+    // Attempts." menggantikan pesan yang menyuruh menunggu semenit, dan itu
+    // justru menghapus satu-satunya petunjuk yang berguna.
+    if (statusCode == 422) {
+      final message = _validationMessage(body);
+      if (message != null) return message;
+    }
 
     // 401 di sini berarti kredensialnya salah, bukan sesi habis — ini SATU-
     // satunya panggilan yang memang belum punya sesi.
@@ -217,6 +222,9 @@ class AuthService {
       final first = errors.values.first;
       if (first is List && first.isNotEmpty) return first.first.toString();
     }
-    return decoded['message'] as String?;
+    // `as String?` akan melempar kalau `message` ternyata objek — dan kalau
+    // itu terjadi, yang jatuh adalah jalur penanganan error itu sendiri.
+    final message = decoded['message'];
+    return message is String ? message : null;
   }
 }

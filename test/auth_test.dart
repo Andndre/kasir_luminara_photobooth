@@ -48,6 +48,33 @@ void main() {
       );
     });
 
+    test('403 ber-JSON tetap dibaca sebagai blokir, bukan pesan servernya', () {
+      // Sebagian WAF menjawab JSON, bukan HTML. Kalau `message`-nya dipakai
+      // apa adanya, kasir dapat kalimat Inggris tanpa kode status — persis
+      // kebutaan yang mau dihilangkan.
+      final message = AuthService.loginErrorMessage(
+        403,
+        '{"message":"Access denied"}',
+      );
+      expect(message, contains('403'));
+      expect(message, isNot(contains('Access denied')));
+    });
+
+    test('429 Laravel tidak menggantikan pesan "tunggu" dengan bahasa Inggris',
+        () {
+      expect(
+        AuthService.loginErrorMessage(429, '{"message":"Too Many Attempts."}'),
+        contains('Tunggu'),
+      );
+    });
+
+    test('message bukan String tidak menjatuhkan penanganan errornya', () {
+      expect(
+        AuthService.loginErrorMessage(422, '{"message":{"id":"apa pun"}}'),
+        contains('422'),
+      );
+    });
+
     test('401 saat login berarti kredensial, bukan sesi habis', () {
       // Ini satu-satunya panggilan yang memang belum punya sesi, jadi pesan
       // umum "Sesi berakhir, silakan masuk lagi" justru menyesatkan di sini.

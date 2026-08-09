@@ -204,12 +204,13 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
 
       _showResult(result);
     } catch (e) {
-      if (mounted) {
-        AppLog.error('Error verifying ticket: $e');
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+      AppLog.error('Error verifying ticket: $e');
+      // Keluar sebelum setState, bukan sesudah: halamannya bisa saja sudah
+      // ditutup selagi permintaan berjalan, dan setState di situ melempar.
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
       // Reset state on error to allow retry
       setState(() => _isProcessing = false);
     }
