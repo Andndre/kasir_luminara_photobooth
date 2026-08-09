@@ -18,14 +18,25 @@ class AppLogoMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipOval(
-      child: Container(
-        width: size,
-        height: size,
-        // Sewarna dengan latar asetnya sendiri, jadi tepi lingkarannya menyatu.
-        color: const Color(0xFF000000),
-        padding: EdgeInsets.all(size * 0.12),
-        child: Image.asset(MainAssets.logo, fit: BoxFit.contain),
+    // Center-nya bukan hiasan tata letak: `width`/`height` pada Container cuma
+    // usulan, dan induk yang memberi batasan ketat menang. Halaman login
+    // memakai Column dengan CrossAxisAlignment.stretch, jadi lebarnya dipaksa
+    // selebar layar sementara tingginya tetap `size` — ClipOval lalu mengklip
+    // kotak yang sudah lonjong itu dan lingkarannya keluar sebagai elips.
+    //
+    // Diperbaiki di sini, bukan di halamannya, karena tiap pemakaian berikutnya
+    // akan menabrak hal yang sama tanpa petunjuk apa pun.
+    return Center(
+      child: ClipOval(
+        child: Container(
+          width: size,
+          height: size,
+          // Sewarna dengan latar asetnya sendiri, jadi tepi lingkarannya
+          // menyatu.
+          color: const Color(0xFF000000),
+          padding: EdgeInsets.all(size * 0.12),
+          child: Image.asset(MainAssets.logo, fit: BoxFit.contain),
+        ),
       ),
     );
   }
