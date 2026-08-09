@@ -107,9 +107,25 @@ Wrap repository bodies in `runCatching('Pesan untuk user', () async { ... })`.
 
 ### Verifier
 
-`VerifierService` polls `GET /api/pos/queue` every 5 seconds and redeems through
+`VerifierService` reads `GET /api/pos/queue` and redeems through
 `POST /api/pos/verify`. The account pairs the scanner with the till, so it does
 not have to share a network with it.
+
+**The queue is not polled.** It used to be, every 5 seconds unconditionally —
+720 requests an hour per verifier, screen off or not. From one venue IP that was
+enough for Cloudflare to answer the whole site with 403, which is what took the
+booth down on 2026-08-07. The queue now refreshes when the tab opens, when the
+app returns to the foreground, on pull-to-refresh, on the AppBar button, and
+after a successful redeem.
+
+That is safe because scanning a QR is the primary path and it always hits the
+server right then; the list is only the fallback for a ticket that won't scan.
+What it costs is that the list can be arbitrarily stale, so `_FreshnessBar`
+states its age and turns amber past two minutes — same rule as
+`CashierLeaseBanner`: a state you cannot vouch for must never look like one you
+can. `VerifierBloc._onRefreshQueue` bails when the service is disconnected,
+because `fetchQueue` answers `[]` rather than throwing and an empty queue reads
+as "everyone has been served".
 
 A verifier is a **pure reader**: it creates nothing, so it takes no cashier
 lease, runs no `SyncService`, and keeps no local replica. Its history tab reads
@@ -218,9 +234,9 @@ hand.
 - `SyncService.push()` is **awaited at checkout, before printing** — a customer
   walks to the booth in seconds and a ticket the server has never seen cannot be
   scanned there. Failure warns, it does not cancel the sale.
-- The verifier's queue arrives by polling, wrapped in the same
-  `{"event": "REFRESH_QUEUE"}` message the WebSocket used to push, so
-  `VerifierBloc` reads it unchanged.
+- The cashier's 15s `POST /pos/sync` is the one remaining timer, and it stays:
+  it carries the lease heartbeat against a 90s TTL. The verifier's 5s queue
+  poll is gone — see **Verifier** above for why.
 - `/api/pos/restore` answers in the **backup file format**, so device migration
   reuses `BackupService.applyBackupJson` instead of a second restore path.
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:luminara_photobooth/core/core.dart';
@@ -121,9 +123,8 @@ class _QueueCard extends StatelessWidget {
 
 /// Antrean dan riwayat berdampingan.
 ///
-/// Riwayatnya adalah SQLite perangkat ini, yang kini ikut menerima transaksi
-/// kasir lewat `SyncService.pull` — sebelum itu ada, verifier tidak punya apa
-/// pun untuk ditampilkan di sini selain tiket yang ia pindai sendiri.
+/// Keduanya dibaca langsung dari server; verifier tidak menyimpan salinan
+/// lokal apa pun.
 class LiveQueuePage extends StatelessWidget {
   const LiveQueuePage({super.key});
 
@@ -134,6 +135,16 @@ class LiveQueuePage extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Antrean'),
+          actions: [
+            // Tombolnya eksplisit, tidak cuma tarik-ke-bawah: sejak polling
+            // dibuang, menyegarkan jadi tindakan sadar dan tidak boleh
+            // bergantung pada gestur yang harus ditebak dulu.
+            IconButton(
+              tooltip: 'Segarkan antrean',
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: () => context.read<VerifierBloc>().add(RefreshQueue()),
+            ),
+          ],
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Antrean'),
@@ -160,8 +171,34 @@ class LiveQueuePage extends StatelessWidget {
   }
 }
 
-class _QueueTab extends StatelessWidget {
+class _QueueTab extends StatefulWidget {
   const _QueueTab();
+
+  @override
+  State<_QueueTab> createState() => _QueueTabState();
+}
+
+class _QueueTabState extends State<_QueueTab> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Kembali ke depan layar adalah saat paling mungkin daftarnya sudah basi:
+  /// petugas baru mengangkat HP-nya dan sedang menatap layar ini.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<VerifierBloc>().add(RefreshQueue());
+    }
+  }
 
   void _showVerifyDialog(BuildContext context, QueueTicket ticket) {
     showModalBottomSheet(
@@ -216,35 +253,138 @@ class _QueueTab extends StatelessWidget {
             );
           }
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              context.read<VerifierBloc>().add(RefreshQueue());
-            },
-            child: state.queue.isEmpty
-                ? const EmptyState(
-                    icon: Icons.done_all_rounded,
-                    title: 'Antrean kosong',
-                    message: 'Semua tiket sudah dilayani.',
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.all(Dimens.dp16),
-                    itemCount: state.queue.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: Dimens.dp12),
-                    itemBuilder: (context, index) {
-                      final ticket = state.queue[index];
-                      return _QueueCard(
-                        ticket: ticket,
-                        fallbackNumber: index + 1,
-                        onTap: () => _showVerifyDialog(context, ticket),
-                      );
-                    },
-                  ),
+          return Column(
+            children: [
+              _FreshnessBar(fetchedAt: state.queueFetchedAt),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    context.read<VerifierBloc>().add(RefreshQueue());
+                  },
+                  child: state.queue.isEmpty
+                      ? const EmptyState(
+                          icon: Icons.done_all_rounded,
+                          title: 'Antrean kosong',
+                          message: 'Semua tiket sudah dilayani.',
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.all(Dimens.dp16),
+                          itemCount: state.queue.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: Dimens.dp12),
+                          itemBuilder: (context, index) {
+                            final ticket = state.queue[index];
+                            return _QueueCard(
+                              ticket: ticket,
+                              fallbackNumber: index + 1,
+                              onTap: () => _showVerifyDialog(context, ticket),
+                            );
+                          },
+                        ),
+                ),
+              ),
+            ],
           );
         },
       ),
     );
   }
+}
+
+/// Umur daftar antrean, dinyatakan terus-menerus.
+///
+/// Sejak polling dibuang, daftar ini bisa setua apa pun tanpa ada yang
+/// berubah di layar. Prinsipnya sama dengan [CashierLeaseBanner]: keadaan
+/// yang tidak bisa dipastikan tidak boleh terlihat sama dengan yang pasti.
+class _FreshnessBar extends StatefulWidget {
+  const _FreshnessBar({required this.fetchedAt});
+
+  final DateTime? fetchedAt;
+
+  /// Setelah selama ini, daftarnya diragukan dan bilahnya berubah kuning.
+  static const stale = Duration(minutes: 2);
+
+  @override
+  State<_FreshnessBar> createState() => _FreshnessBarState();
+}
+
+class _FreshnessBarState extends State<_FreshnessBar> {
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    // Timer ini tidak menyentuh jaringan sama sekali — ia cuma membuat
+    // labelnya menua di depan mata. Tanpanya "baru saja" akan tertulis
+    // selamanya, yang justru kebohongan yang mau dihindari bilah ini.
+    _tick = Timer.periodic(
+      const Duration(seconds: 20),
+      (_) => setState(() {}),
+    );
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fetchedAt = widget.fetchedAt;
+    final age = fetchedAt == null
+        ? null
+        : DateTime.now().difference(fetchedAt);
+    final isStale = age == null || age >= _FreshnessBar.stale;
+
+    final color = isStale ? AppTokens.warning : context.surfaces.textMuted;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: Dimens.dp16,
+        vertical: Dimens.dp8,
+      ),
+      color: isStale
+          ? AppTokens.warning.withValues(alpha: 0.12)
+          : context.surfaces.surfaceAlt,
+      child: Row(
+        children: [
+          Icon(
+            isStale ? Icons.history_rounded : Icons.check_circle_outline,
+            size: 16,
+            color: color,
+          ),
+          const SizedBox(width: Dimens.dp8),
+          Expanded(
+            child: Text(
+              queueAgeLabel(age),
+              style: theme.textTheme.bodySmall?.copyWith(color: color),
+            ),
+          ),
+          if (isStale)
+            Text(
+              'tarik ke bawah untuk menyegarkan',
+              style: theme.textTheme.bodySmall?.copyWith(color: color),
+            ),
+        ],
+      ),
+    );
+  }
+
+}
+
+/// Umur antrean dalam kata-kata. Top-level supaya bisa diuji tanpa memompa
+/// widget — kelas bilahnya sendiri privat.
+String queueAgeLabel(Duration? age) {
+  if (age == null) return 'Antrean belum pernah dimuat';
+  if (age.inSeconds < 30) return 'Antrean baru saja diperbarui';
+  if (age.inMinutes < 1) return 'Antrean diperbarui kurang dari semenit lalu';
+  if (age.inMinutes < 60) {
+    return 'Antrean diperbarui ${age.inMinutes} menit lalu';
+  }
+  return 'Antrean diperbarui lebih dari ${age.inHours} jam lalu';
 }
 
 class _VerifyBottomSheet extends StatelessWidget {

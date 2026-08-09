@@ -1,5 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:luminara_photobooth/core/services/auth_service.dart';
@@ -34,7 +32,6 @@ class VerifyTransaction extends VerifierEvent {
 
 class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
   final VerifierService service = VerifierService();
-  StreamSubscription? _eventSubscription;
 
   VerifierBloc() : super(const VerifierState()) {
     on<InitializeVerifier>(_onInitialize);
@@ -70,15 +67,6 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
     emit(state.copyWith(status: VerifierStatus.connecting));
     service.connect();
 
-    await _eventSubscription?.cancel();
-    _eventSubscription = service.eventStream?.listen((data) {
-      final message = jsonDecode(data);
-      if (message['event'] == 'TICKET_REDEEMED' ||
-          message['event'] == 'REFRESH_QUEUE') {
-        add(RefreshQueue());
-      }
-    });
-
     emit(
       state.copyWith(
         status: VerifierStatus.connected,
@@ -92,7 +80,6 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
     DisconnectFromServer event,
     Emitter<VerifierState> emit,
   ) async {
-    _eventSubscription?.cancel();
     service.disconnect();
     emit(const VerifierState(status: VerifierStatus.disconnected));
   }
@@ -101,6 +88,13 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
     RefreshQueue event,
     Emitter<VerifierState> emit,
   ) async {
+    // `fetchQueue` mengembalikan daftar kosong — bukan melempar — saat belum
+    // tersambung. Tanpa penjaga ini, menyegarkan dalam keadaan terputus akan
+    // mengumumkan status `connected` dengan antrean kosong: persis tampilan
+    // "semua tiket sudah dilayani", padahal yang benar "kita tidak tahu".
+    // Baru bisa dijangkau sejak tombol Segarkan ada di bilah judul.
+    if (!service.isConnected) return;
+
     try {
       final queue = await service.fetchQueue();
       emit(
@@ -108,6 +102,7 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
           queue: queue,
           status: VerifierStatus.connected,
           clearError: true,
+          queueFetchedAt: DateTime.now(),
         ),
       );
     } catch (e) {
@@ -161,7 +156,6 @@ class VerifierBloc extends Bloc<VerifierEvent, VerifierState> {
 
   @override
   Future<void> close() {
-    _eventSubscription?.cancel();
     service.disconnect();
     return super.close();
   }
