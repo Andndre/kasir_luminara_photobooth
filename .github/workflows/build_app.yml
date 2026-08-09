@@ -83,31 +83,34 @@ jobs:
       # yang sudah ada"). Kalau secretnya belum diisi, langkah ini dilewati dan
       # perilakunya kembali seperti dulu, bukan gagal build.
       #
-      # base64 keystore-nya: base64 -w0 upload-keystore.jks
+      # Secretnya sudah ada sejak Mei 2026, dibuat bersamaan dengan
+      # android/app/release-key.jks — cuma tidak pernah tersambung ke build.
+      # Aliasnya `app`, bukan rahasia, jadi cukup ditulis di sini. Password
+      # store dan key-nya sama, jadi satu secret untuk keduanya.
+      #
+      # base64 keystore-nya: base64 -w0 android/app/release-key.jks
       - name: Siapkan kunci penandatanganan
         env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           # Rilis tanpa kunci tetap jadi APK yang kelihatan baik-baik saja, dan
           # yang menemukannya adalah petugas di lapangan yang gagal memasang,
           # berhari-hari kemudian. Jadi gagalkan di sini, bukan di sana.
           if [ -z "$KEYSTORE_BASE64" ]; then
             if [ "${{ startsWith(github.ref, 'refs/tags/') }}" = "true" ]; then
-              echo "::error::Secret ANDROID_KEYSTORE_BASE64 kosong — APK rilis akan bertanda tangan debug dan tidak bisa memperbarui pemasangan yang sudah ada."
+              echo "::error::Secret KEYSTORE_BASE64 kosong — APK rilis akan bertanda tangan debug dan tidak bisa memperbarui pemasangan yang sudah ada."
               exit 1
             fi
             echo "Tanpa kunci rilis — build percobaan, bukan rilis."
             exit 0
           fi
-          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-key.jks
           cat > android/key.properties <<EOF
-          storeFile=upload-keystore.jks
-          storePassword=$STORE_PASSWORD
-          keyAlias=$KEY_ALIAS
-          keyPassword=$KEY_PASSWORD
+          storeFile=release-key.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=app
+          keyPassword=$KEYSTORE_PASSWORD
           EOF
 
       # Perintah ini menggantikan 3 perintah manual Anda menjadi 1 kali jalan
